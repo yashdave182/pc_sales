@@ -24,11 +24,18 @@ def export_to_sql():
     )
     tables = [row[0] for row in cursor.fetchall()]
 
+    # Column name mapping (old -> new)
+    column_mapping = {
+        "created_date": "created_at",
+        "updated_date": "updated_at",
+    }
+
     output_file = Path(__file__).parent / "data_export.sql"
 
     with open(output_file, "w", encoding="utf-8") as f:
         f.write("-- Data export from sales_management.db\n")
-        f.write("-- Generated automatically\n\n")
+        f.write("-- Generated automatically\n")
+        f.write("-- Column names mapped: created_date -> created_at\n\n")
 
         for table in tables:
             print(f"Exporting table: {table}")
@@ -43,8 +50,9 @@ def export_to_sql():
 
             print(f"  - Found {len(rows)} rows")
 
-            # Get column names
+            # Get column names and map them
             columns = [description[0] for description in cursor.description]
+            mapped_columns = [column_mapping.get(col, col) for col in columns]
 
             f.write(f"\n-- Table: {table} ({len(rows)} rows)\n")
 
@@ -62,7 +70,7 @@ def export_to_sql():
                     else:
                         values.append(f"'{value}'")
 
-                columns_str = ", ".join(columns)
+                columns_str = ", ".join(mapped_columns)
                 values_str = ", ".join(values)
                 f.write(f"INSERT INTO {table} ({columns_str}) VALUES ({values_str});\n")
 

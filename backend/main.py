@@ -1,3 +1,4 @@
+import json
 import os
 import sqlite3
 import sys
@@ -1148,6 +1149,114 @@ def get_demo_conversion_stats(conn: sqlite3.Connection = Depends(get_db)):
         """
         df = pd.read_sql_query(query, conn)
         return df.to_dict(orient="records")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== Data Import Endpoint ====================
+
+
+@app.post("/api/admin/import-sql")
+async def import_sql_data(file: UploadFile = File(...)):
+    """
+    Import SQL data file to populate the database.
+    WARNING: This will execute SQL statements directly!
+    """
+    try:
+        if not file.filename.endswith(".sql"):
+            raise HTTPException(status_code=400, detail="File must be a .sql file")
+
+        # Read SQL content
+        content = await file.read()
+        sql_content = content.decode("utf-8")
+
+        # Connect to database
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        # Execute SQL statements
+        statements = sql_content.split(";")
+        executed = 0
+        errors = []
+
+        for i, statement in enumerate(statements):
+            statement = statement.strip()
+            if statement and not statement.startswith("--"):
+                try:
+                    cursor.execute(statement)
+                    executed += 1
+                except Exception as e:
+                    errors.append(f"Statement {i}: {str(e)[:100]}")
+
+        conn.commit()
+        conn.close()
+
+        return {
+            "message": "SQL import completed",
+            "filename": file.filename,
+            "statements_executed": executed,
+            "errors": errors[:10] if errors else [],
+            "total_errors": len(errors),
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/admin/import-json")
+async def import_json_data(file: UploadFile = File(...)):
+    """
+    Import JSON data file to populate the database.
+    Expects format: {"table_name": [row1, row2, ...], ...}
+    """
+    try:
+        if not file.filename.endswith(".json"):
+            raise HTTPException(status_code=400, detail="File must be a .json file")
+
+        # Read JSON content
+        content = await file.read()
+        data = json.loads(content.decode("utf-8"))
+
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        total_rows = 0
+        table_counts = {}
+
+        for table_name, rows in data.items():
+            if not rows:
+                continue
+
+            count = 0
+            for row in rows:
+                columns = list(row.keys())
+                placeholders = ", ".join(["?" for _ in columns])
+                columns_str = ", ".join(columns)
+                values = [row[col] for col in columns]
+
+                try:
+                    cursor.execute(
+                        f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})",
+                        values,
+                    )
+                    count += 1
+                except Exception as e:
+                    # Skip rows that already exist or have errors
+                    pass
+
+            table_counts[table_name] = count
+            total_rows += count
+
+        conn.commit()
+        conn.close()
+
+        return {
+            "message": "JSON import completed",
+            "filename": file.filename,
+            "total_rows_imported": total_rows,
+            "tables": table_counts,
+        }
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -33,15 +33,126 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Database path
-DB_PATH = os.path.join(Path(__file__).parent.parent.parent, "sales_management.db")
-UPLOAD_DIR = os.path.join(Path(__file__).parent.parent.parent, "data")
+# Database path - use /opt/render/project/data for Render, fallback to parent dir for local
+if os.environ.get("RENDER"):
+    DATA_DIR = "/opt/render/project/data"
+    DB_PATH = os.path.join(DATA_DIR, "sales_management.db")
+    UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")
+else:
+    DB_PATH = os.path.join(Path(__file__).parent.parent.parent, "sales_management.db")
+    UPLOAD_DIR = os.path.join(Path(__file__).parent.parent.parent, "data")
+    DATA_DIR = str(Path(__file__).parent.parent.parent)
 
-# Ensure upload directory exists
+# Ensure directories exist
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 # ==================== Database Helper ====================
+def init_db():
+    """Initialize database with required tables if they don't exist"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    # Create tables
+    cursor.executescript("""
+        CREATE TABLE IF NOT EXISTS customers (
+            customer_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_code TEXT UNIQUE,
+            name TEXT NOT NULL,
+            mobile TEXT,
+            village TEXT,
+            taluka TEXT,
+            district TEXT,
+            status TEXT DEFAULT 'Active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS products (
+            product_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_name TEXT NOT NULL,
+            packing_type TEXT,
+            capacity_ltr REAL,
+            category TEXT,
+            standard_rate REAL,
+            is_active INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS distributors (
+            distributor_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            village TEXT,
+            taluka TEXT,
+            district TEXT,
+            mantri_name TEXT,
+            mantri_mobile TEXT,
+            sabhasad_count INTEGER DEFAULT 0,
+            contact_in_group INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'Active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS sales (
+            sale_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            invoice_no TEXT,
+            customer_id INTEGER,
+            sale_date TEXT NOT NULL,
+            total_amount REAL DEFAULT 0,
+            total_liters REAL DEFAULT 0,
+            payment_status TEXT DEFAULT 'Pending',
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS sale_items (
+            sale_item_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sale_id INTEGER,
+            product_id INTEGER,
+            quantity INTEGER,
+            rate REAL,
+            amount REAL,
+            FOREIGN KEY (sale_id) REFERENCES sales(sale_id),
+            FOREIGN KEY (product_id) REFERENCES products(product_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS payments (
+            payment_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sale_id INTEGER,
+            payment_date TEXT NOT NULL,
+            payment_method TEXT,
+            amount REAL NOT NULL,
+            rrn TEXT,
+            reference TEXT,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (sale_id) REFERENCES sales(sale_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS demos (
+            demo_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER,
+            distributor_id INTEGER,
+            demo_date TEXT NOT NULL,
+            demo_time TEXT,
+            product_id INTEGER,
+            quantity_provided INTEGER,
+            follow_up_date TEXT,
+            conversion_status TEXT DEFAULT 'Scheduled',
+            notes TEXT,
+            demo_location TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+            FOREIGN KEY (distributor_id) REFERENCES distributors(distributor_id),
+            FOREIGN KEY (product_id) REFERENCES products(product_id)
+        );
+    """)
+
+    conn.commit()
+    conn.close()
+
+
 def get_db():
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
@@ -49,6 +160,13 @@ def get_db():
         yield conn
     finally:
         conn.close()
+
+
+# Initialize database on startup
+@app.on_event("startup")
+async def startup_event():
+    init_db()
+    print(f"Database initialized at: {DB_PATH}")
 
 
 def dict_from_row(row):
@@ -240,7 +358,7 @@ def get_recent_sales(limit: int = 10, conn: sqlite3.Connection = Depends(get_db)
                s.total_amount, s.sale_date, s.payment_status
         FROM sales s
         JOIN customers c ON s.customer_id = c.customer_id
-        ORDER BY s.created_date DESC
+        ORDER BY s.created_at DESC
         LIMIT {limit}
         """
         df = pd.read_sql_query(query, conn)

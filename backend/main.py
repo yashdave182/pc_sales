@@ -411,7 +411,7 @@ def get_customers(
             query += " AND status = ?"
             params.append(status)
 
-        query += f" ORDER BY created_date DESC LIMIT {limit} OFFSET {skip}"
+        query += f" ORDER BY created_at DESC LIMIT {limit} OFFSET {skip}"
 
         cursor = conn.cursor()
         cursor.execute(query, params)
@@ -605,7 +605,7 @@ def get_sales(
             query += " AND s.payment_status = ?"
             params.append(status)
 
-        query += f" ORDER BY s.created_date DESC LIMIT {limit} OFFSET {skip}"
+        query += f" ORDER BY s.created_at DESC LIMIT {limit} OFFSET {skip}"
 
         df = pd.read_sql_query(query, conn, params=params)
         return df.to_dict(orient="records")
@@ -730,7 +730,7 @@ def get_payments(
         FROM payments p
         LEFT JOIN sales s ON p.sale_id = s.sale_id
         LEFT JOIN customers c ON s.customer_id = c.customer_id
-        ORDER BY p.created_date DESC
+        ORDER BY p.created_at DESC
         LIMIT ? OFFSET ?
         """
         df = pd.read_sql_query(query, conn, params=(limit, skip))
@@ -942,7 +942,7 @@ def get_distributors(
             query += " AND status = ?"
             params.append(status)
 
-        query += f" ORDER BY created_date DESC LIMIT {limit} OFFSET {skip}"
+        query += f" ORDER BY created_at DESC LIMIT {limit} OFFSET {skip}"
 
         cursor = conn.cursor()
         cursor.execute(query, params)

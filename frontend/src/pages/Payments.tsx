@@ -1,0 +1,448 @@
+import { useState, useEffect } from 'react';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Typography,
+  Grid,
+  MenuItem,
+  Alert,
+  CircularProgress,
+  Chip,
+  IconButton,
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Payment as PaymentIcon,
+  Refresh as RefreshIcon,
+  Receipt as ReceiptIcon,
+} from '@mui/icons-material';
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import { paymentAPI, salesAPI } from '../services/api';
+import type { Payment, PendingPayment } from '../types';
+
+export default function Payments() {
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [formData, setFormData] = useState({
+    sale_id: 0,
+    payment_date: new Date().toISOString().split('T')[0],
+    payment_method: 'Cash',
+    amount: 0,
+    rrn: '',
+    reference: '',
+    notes: '',
+  });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [paymentsData, pendingData] = await Promise.all([
+        paymentAPI.getAll({ limit: 1000 }),
+        paymentAPI.getPending(),
+      ]);
+      setPayments(paymentsData);
+      setPendingPayments(pendingData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenDialog = (pendingPayment?: PendingPayment) => {
+    if (pendingPayment) {
+      setFormData({
+        sale_id: pendingPayment.sale_id,
+        payment_date: new Date().toISOString().split('T')[0],
+        payment_method: 'Cash',
+        amount: pendingPayment.pending_amount,
+        rrn: '',
+        reference: '',
+        notes: '',
+      });
+    } else {
+      setFormData({
+        sale_id: 0,
+        payment_date: new Date().toISOString().split('T')[0],
+        payment_method: 'Cash',
+        amount: 0,
+        rrn: '',
+        reference: '',
+        notes: '',
+      });
+    }
+    setOpenDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+  };
+
+  const handleSubmit = async () => {
+    try {
+      if (!formData.sale_id || !formData.amount) {
+        setError('Sale and amount are required');
+        return;
+      }
+
+      await paymentAPI.create(formData as Payment);
+      handleCloseDialog();
+      loadData();
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to record payment');
+    }
+  };
+
+  const paymentColumns: GridColDef[] = [
+    {
+      field: 'invoice_no',
+      headerName: 'Invoice No',
+      width: 140,
+      renderCell: (params) => (
+        <Chip label={params.value} size="small" color="primary" />
+      ),
+    },
+    {
+      field: 'customer_name',
+      headerName: 'Customer',
+      flex: 1,
+      minWidth: 200,
+    },
+    {
+      field: 'payment_date',
+      headerName: 'Date',
+      width: 120,
+      renderCell: (params) => new Date(params.value).toLocaleDateString(),
+    },
+    {
+      field: 'payment_method',
+      headerName: 'Method',
+      width: 120,
+      renderCell: (params) => (
+        <Chip label={params.value} size="small" variant="outlined" />
+      ),
+    },
+    {
+      field: 'amount',
+      headerName: 'Amount',
+      width: 130,
+      renderCell: (params) => (
+        <Typography variant="body2" fontWeight={600} color="success.main">
+          ₹{params.value?.toLocaleString()}
+        </Typography>
+      ),
+    },
+    {
+      field: 'rrn',
+      headerName: 'RRN/Ref',
+      width: 150,
+    },
+  ];
+
+  const pendingColumns: GridColDef[] = [
+    {
+      field: 'invoice_no',
+      headerName: 'Invoice No',
+      width: 140,
+      renderCell: (params) => (
+        <Chip label={params.value} size="small" color="warning" />
+      ),
+    },
+    {
+      field: 'customer_name',
+      headerName: 'Customer',
+      flex: 1,
+      minWidth: 200,
+    },
+    {
+      field: 'mobile',
+      headerName: 'Mobile',
+      width: 130,
+    },
+    {
+      field: 'sale_date',
+      headerName: 'Sale Date',
+      width: 120,
+      renderCell: (params) => new Date(params.value).toLocaleDateString(),
+    },
+    {
+      field: 'total_amount',
+      headerName: 'Total',
+      width: 110,
+      renderCell: (params) => `₹${params.value?.toLocaleString()}`,
+    },
+    {
+      field: 'paid_amount',
+      headerName: 'Paid',
+      width: 110,
+      renderCell: (params) => `₹${params.value?.toLocaleString()}`,
+    },
+    {
+      field: 'pending_amount',
+      headerName: 'Pending',
+      width: 120,
+      renderCell: (params) => (
+        <Typography variant="body2" fontWeight={600} color="error.main">
+          ₹{params.value?.toLocaleString()}
+        </Typography>
+      ),
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 120,
+      sortable: false,
+      renderCell: (params) => (
+        <Button
+          size="small"
+          variant="contained"
+          onClick={() => handleOpenDialog(params.row)}
+        >
+          Pay
+        </Button>
+      ),
+    },
+  ];
+
+  return (
+    <Box>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+          <PaymentIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+          Payment Management
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Record and track payments
+        </Typography>
+      </Box>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Summary Cards */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={4}>
+          <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+            <CardContent>
+              <Typography variant="body2" sx={{ color: 'white', opacity: 0.9 }}>
+                Total Payments
+              </Typography>
+              <Typography variant="h4" sx={{ color: 'white', fontWeight: 700, mt: 1 }}>
+                {payments.length}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={4}>
+          <Card sx={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
+            <CardContent>
+              <Typography variant="body2" sx={{ color: 'white', opacity: 0.9 }}>
+                Pending Payments
+              </Typography>
+              <Typography variant="h4" sx={{ color: 'white', fontWeight: 700, mt: 1 }}>
+                {pendingPayments.length}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={4}>
+          <Card sx={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
+            <CardContent>
+              <Typography variant="body2" sx={{ color: 'white', opacity: 0.9 }}>
+                Total Pending Amount
+              </Typography>
+              <Typography variant="h4" sx={{ color: 'white', fontWeight: 700, mt: 1 }}>
+                ₹{pendingPayments.reduce((sum, p) => sum + p.pending_amount, 0).toLocaleString()}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Pending Payments */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Pending Payments
+            </Typography>
+            <IconButton onClick={loadData} color="primary">
+              <RefreshIcon />
+            </IconButton>
+          </Box>
+          <Box sx={{ height: 400, width: '100%' }}>
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <DataGrid
+                rows={pendingPayments}
+                columns={pendingColumns}
+                getRowId={(row) => row.sale_id}
+                pageSizeOptions={[5, 10, 25]}
+                initialState={{
+                  pagination: { paginationModel: { pageSize: 10 } },
+                }}
+                disableRowSelectionOnClick
+              />
+            )}
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Payment History */}
+      <Card>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Payment History
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenDialog()}
+            >
+              Record Payment
+            </Button>
+          </Box>
+          <Box sx={{ height: 500, width: '100%' }}>
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <DataGrid
+                rows={payments}
+                columns={paymentColumns}
+                getRowId={(row) => row.payment_id}
+                pageSizeOptions={[10, 25, 50]}
+                initialState={{
+                  pagination: { paginationModel: { pageSize: 25 } },
+                }}
+                disableRowSelectionOnClick
+              />
+            )}
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Payment Dialog */}
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <ReceiptIcon />
+            Record Payment
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                select
+                label="Select Sale/Invoice *"
+                value={formData.sale_id}
+                onChange={(e) => setFormData({ ...formData, sale_id: Number(e.target.value) })}
+              >
+                <MenuItem value={0}>Select Invoice</MenuItem>
+                {pendingPayments.map((sale) => (
+                  <MenuItem key={sale.sale_id} value={sale.sale_id}>
+                    {sale.invoice_no} - {sale.customer_name} (₹{sale.pending_amount.toLocaleString()} pending)
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="date"
+                label="Payment Date"
+                value={formData.payment_date}
+                onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                select
+                label="Payment Method"
+                value={formData.payment_method}
+                onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
+              >
+                <MenuItem value="Cash">Cash</MenuItem>
+                <MenuItem value="UPI">UPI</MenuItem>
+                <MenuItem value="Bank Transfer">Bank Transfer</MenuItem>
+                <MenuItem value="Cheque">Cheque</MenuItem>
+                <MenuItem value="Card">Card</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Amount *"
+                value={formData.amount}
+                onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
+                InputProps={{ startAdornment: '₹' }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="RRN / Transaction ID"
+                value={formData.rrn}
+                onChange={(e) => setFormData({ ...formData, rrn: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Reference"
+                value={formData.reference}
+                onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                label="Notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Cancel</Button>
+          <Button onClick={handleSubmit} variant="contained">
+            Record Payment
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+}

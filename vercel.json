@@ -23,6 +23,6 @@
     }
   ],
   "env": {
-    "VITE_API_URL": "https://sales-management-backend.onrender.com"
+    "VITE_API_URL": "https://pc-sales-8phu.onrender.com"
   }
 }

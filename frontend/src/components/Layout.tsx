@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
   Drawer,
@@ -18,7 +18,7 @@ import {
   Avatar,
   Tooltip,
   Badge,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
@@ -34,14 +34,14 @@ import {
   Notifications,
   Settings,
   AccountCircle,
-} from '@mui/icons-material';
+} from "@mui/icons-material";
 
 const drawerWidth = 260;
 
 interface LayoutProps {
   children: React.ReactNode;
   toggleTheme: () => void;
-  themeMode: 'light' | 'dark';
+  themeMode: "light" | "dark";
 }
 
 interface NavItem {
@@ -54,60 +54,64 @@ interface NavItem {
 
 const navigationItems: NavItem[] = [
   {
-    id: 'dashboard',
-    label: 'Dashboard',
+    id: "dashboard",
+    label: "Dashboard",
     icon: <DashboardIcon />,
-    path: '/dashboard',
+    path: "/dashboard",
   },
   {
-    id: 'customers',
-    label: 'Customers',
+    id: "customers",
+    label: "Customers",
     icon: <PeopleIcon />,
-    path: '/customers',
+    path: "/customers",
   },
   {
-    id: 'sales',
-    label: 'Sales',
+    id: "sales",
+    label: "Sales",
     icon: <ShoppingCartIcon />,
-    path: '/sales',
+    path: "/sales",
   },
   {
-    id: 'payments',
-    label: 'Payments',
+    id: "payments",
+    label: "Payments",
     icon: <PaymentIcon />,
-    path: '/payments',
+    path: "/payments",
   },
   {
-    id: 'demos',
-    label: 'Demos',
+    id: "demos",
+    label: "Demos",
     icon: <ScienceIcon />,
-    path: '/demos',
+    path: "/demos",
   },
   {
-    id: 'distributors',
-    label: 'Distributors',
+    id: "distributors",
+    label: "Distributors",
     icon: <GroupIcon />,
-    path: '/distributors',
+    path: "/distributors",
   },
   {
-    id: 'reports',
-    label: 'Reports',
+    id: "reports",
+    label: "Reports",
     icon: <AssessmentIcon />,
-    path: '/reports',
+    path: "/reports",
   },
   {
-    id: 'import',
-    label: 'Data Import',
+    id: "import",
+    label: "Data Import",
     icon: <CloudUploadIcon />,
-    path: '/import',
+    path: "/import",
   },
 ];
 
-export default function Layout({ children, toggleTheme, themeMode }: LayoutProps) {
+export default function Layout({
+  children,
+  toggleTheme,
+  themeMode,
+}: LayoutProps) {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleDrawerToggle = () => {
@@ -124,24 +128,24 @@ export default function Layout({ children, toggleTheme, themeMode }: LayoutProps
   const isActive = (path: string) => location.pathname === path;
 
   const drawer = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       {/* Logo Section */}
       <Box
         sx={{
           p: 3,
-          display: 'flex',
-          alignItems: 'center',
+          display: "flex",
+          alignItems: "center",
           gap: 2,
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
+          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          color: "white",
         }}
       >
         <Avatar
           sx={{
             width: 50,
             height: 50,
-            bgcolor: 'rgba(255, 255, 255, 0.2)',
-            fontSize: '1.5rem',
+            bgcolor: "rgba(255, 255, 255, 0.2)",
+            fontSize: "1.5rem",
           }}
         >
           📊
@@ -150,7 +154,10 @@ export default function Layout({ children, toggleTheme, themeMode }: LayoutProps
           <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
             Sales
           </Typography>
-          <Typography variant="body2" sx={{ opacity: 0.9, fontSize: '0.85rem' }}>
+          <Typography
+            variant="body2"
+            sx={{ opacity: 0.9, fontSize: "0.85rem" }}
+          >
             Management System
           </Typography>
         </Box>
@@ -170,23 +177,23 @@ export default function Layout({ children, toggleTheme, themeMode }: LayoutProps
                   borderRadius: 2,
                   mx: 1,
                   backgroundColor: active
-                    ? theme.palette.mode === 'dark'
-                      ? 'rgba(144, 202, 249, 0.16)'
-                      : 'rgba(25, 118, 210, 0.08)'
-                    : 'transparent',
-                  color: active ? theme.palette.primary.main : 'inherit',
-                  '&:hover': {
+                    ? theme.palette.mode === "dark"
+                      ? "rgba(144, 202, 249, 0.16)"
+                      : "rgba(25, 118, 210, 0.08)"
+                    : "transparent",
+                  color: active ? theme.palette.primary.main : "inherit",
+                  "&:hover": {
                     backgroundColor:
-                      theme.palette.mode === 'dark'
-                        ? 'rgba(144, 202, 249, 0.08)'
-                        : 'rgba(25, 118, 210, 0.04)',
+                      theme.palette.mode === "dark"
+                        ? "rgba(144, 202, 249, 0.08)"
+                        : "rgba(25, 118, 210, 0.04)",
                   },
-                  transition: 'all 0.2s',
+                  transition: "all 0.2s",
                 }}
               >
                 <ListItemIcon
                   sx={{
-                    color: active ? theme.palette.primary.main : 'inherit',
+                    color: active ? theme.palette.primary.main : "inherit",
                     minWidth: 40,
                   }}
                 >
@@ -202,7 +209,7 @@ export default function Layout({ children, toggleTheme, themeMode }: LayoutProps
                   primary={item.label}
                   primaryTypographyProps={{
                     fontWeight: active ? 600 : 500,
-                    fontSize: '0.95rem',
+                    fontSize: "0.95rem",
                   }}
                 />
               </ListItemButton>
@@ -214,26 +221,26 @@ export default function Layout({ children, toggleTheme, themeMode }: LayoutProps
       <Divider />
 
       {/* Footer */}
-      <Box sx={{ p: 2, textAlign: 'center' }}>
+      <Box sx={{ p: 2, textAlign: "center" }}>
         <Typography variant="caption" color="text.secondary">
           Version 1.0.0
         </Typography>
         <Typography variant="caption" display="block" color="text.secondary">
-          © 2024 Sales Management
+          © 2025 Sales Management
         </Typography>
       </Box>
     </Box>
   );
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ display: "flex", minHeight: "100vh" }}>
       {/* AppBar */}
       <AppBar
         position="fixed"
         sx={{
           width: { md: `calc(100% - ${drawerWidth}px)` },
           ml: { md: `${drawerWidth}px` },
-          boxShadow: theme.palette.mode === 'dark' ? 1 : 2,
+          boxShadow: theme.palette.mode === "dark" ? 1 : 2,
           bgcolor: theme.palette.background.paper,
           color: theme.palette.text.primary,
         }}
@@ -245,20 +252,26 @@ export default function Layout({ children, toggleTheme, themeMode }: LayoutProps
             aria-label="open drawer"
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: 'none' } }}
+            sx={{ mr: 2, display: { md: "none" } }}
           >
             <MenuIcon />
           </IconButton>
 
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
-            {navigationItems.find((item) => item.path === location.pathname)?.label || 'Dashboard'}
+          <Typography
+            variant="h6"
+            noWrap
+            component="div"
+            sx={{ flexGrow: 1, fontWeight: 600 }}
+          >
+            {navigationItems.find((item) => item.path === location.pathname)
+              ?.label || "Dashboard"}
           </Typography>
 
           {/* Actions */}
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
             <Tooltip title="Toggle theme">
               <IconButton onClick={toggleTheme} color="inherit">
-                {themeMode === 'dark' ? <Brightness7 /> : <Brightness4 />}
+                {themeMode === "dark" ? <Brightness7 /> : <Brightness4 />}
               </IconButton>
             </Tooltip>
 
@@ -300,9 +313,9 @@ export default function Layout({ children, toggleTheme, themeMode }: LayoutProps
             keepMounted: true, // Better open performance on mobile.
           }}
           sx={{
-            display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
+            display: { xs: "block", md: "none" },
+            "& .MuiDrawer-paper": {
+              boxSizing: "border-box",
               width: drawerWidth,
             },
           }}
@@ -314,9 +327,9 @@ export default function Layout({ children, toggleTheme, themeMode }: LayoutProps
         <Drawer
           variant="permanent"
           sx={{
-            display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
+            display: { xs: "none", md: "block" },
+            "& .MuiDrawer-paper": {
+              boxSizing: "border-box",
               width: drawerWidth,
               borderRight: `1px solid ${theme.palette.divider}`,
             },
@@ -333,14 +346,12 @@ export default function Layout({ children, toggleTheme, themeMode }: LayoutProps
         sx={{
           flexGrow: 1,
           width: { md: `calc(100% - ${drawerWidth}px)` },
-          minHeight: '100vh',
+          minHeight: "100vh",
           bgcolor: theme.palette.background.default,
         }}
       >
         <Toolbar /> {/* Spacer for AppBar */}
-        <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-          {children}
-        </Box>
+        <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>{children}</Box>
       </Box>
     </Box>
   );

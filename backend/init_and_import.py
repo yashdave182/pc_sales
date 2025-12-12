@@ -2,8 +2,13 @@ import os
 import sqlite3
 from pathlib import Path
 
-# Database path
-DB_PATH = os.path.join(Path(__file__).parent.parent.parent, "sales_management.db")
+# Database path - use /opt/render/project/data for Render, fallback to parent dir for local
+if os.environ.get("RENDER"):
+    DATA_DIR = "/opt/render/project/data"
+    DB_PATH = os.path.join(DATA_DIR, "sales_management.db")
+    os.makedirs(DATA_DIR, exist_ok=True)
+else:
+    DB_PATH = os.path.join(Path(__file__).parent.parent.parent, "sales_management.db")
 
 
 def init_and_import_db():
@@ -115,9 +120,11 @@ def init_and_import_db():
             print("Data imported successfully!")
         except Exception as e:
             print(f"Error importing data: {e}")
+            print(f"This is expected if some tables don't exist in the export.")
             conn.rollback()
     else:
         print(f"SQL file not found: {sql_file}")
+        print(f"Skipping data import - tables created but empty")
 
     # Verify data
     cursor.execute("SELECT COUNT(*) FROM customers")

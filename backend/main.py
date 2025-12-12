@@ -281,10 +281,73 @@ def health_check():
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table'")
         table_count = cursor.fetchone()[0]
+
+        # Get data counts
+        counts = {}
+        try:
+            cursor.execute("SELECT COUNT(*) FROM customers")
+            counts["customers"] = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM products")
+            counts["products"] = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM sales")
+            counts["sales"] = cursor.fetchone()[0]
+        except:
+            counts = {"error": "Tables may not exist"}
+
         conn.close()
-        return {"status": "healthy", "database": "connected", "tables": table_count}
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "tables": table_count,
+            "data_counts": counts,
+        }
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
+
+
+@app.post("/api/admin/import-data")
+def import_data():
+    """Import data from SQL export file - for admin use"""
+    try:
+        import sys
+        from pathlib import Path
+
+        # Add the backend directory to path
+        backend_dir = Path(__file__).parent
+        sys.path.insert(0, str(backend_dir))
+
+        # Import and run the initialization
+        from init_and_import import init_and_import_db
+
+        # Run the import
+        init_and_import_db()
+
+        # Verify data was imported
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT COUNT(*) FROM customers")
+        customer_count = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM products")
+        product_count = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM sales")
+        sales_count = cursor.fetchone()[0]
+
+        conn.close()
+
+        return {
+            "status": "success",
+            "message": "Data imported successfully",
+            "counts": {
+                "customers": customer_count,
+                "products": product_count,
+                "sales": sales_count,
+            },
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to import data: {str(e)}"}
 
 
 # ==================== Dashboard ====================

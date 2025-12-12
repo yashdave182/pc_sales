@@ -5,8 +5,14 @@ services:
     region: oregon
     plan: free
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && python init_and_import.py
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PORT
         value: 8000
+      - key: RENDER
+        value: true
+    disk:
+      name: sales-data
+      mountPath: /opt/render/project/data
+      sizeGB: 1

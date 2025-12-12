@@ -100,6 +100,24 @@ def init_and_import_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (sale_id) REFERENCES sales (sale_id)
         );
+
+        CREATE TABLE demos (
+            demo_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER,
+            distributor_id INTEGER,
+            demo_date TEXT NOT NULL,
+            demo_time TEXT,
+            product_id INTEGER,
+            quantity_provided INTEGER,
+            follow_up_date TEXT,
+            conversion_status TEXT DEFAULT 'Scheduled',
+            notes TEXT,
+            demo_location TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+            FOREIGN KEY (distributor_id) REFERENCES distributors(distributor_id),
+            FOREIGN KEY (product_id) REFERENCES products(product_id)
+        );
     """)
 
     conn.commit()
@@ -145,6 +163,9 @@ def init_and_import_db():
     cursor.execute("SELECT COUNT(*) FROM payments")
     payments_count = cursor.fetchone()[0]
 
+    cursor.execute("SELECT COUNT(*) FROM demos")
+    demos_count = cursor.fetchone()[0]
+
     print(f"\nData verification:")
     print(f"- Customers: {customer_count}")
     print(f"- Products: {product_count}")
@@ -152,6 +173,7 @@ def init_and_import_db():
     print(f"- Sales: {sales_count}")
     print(f"- Sale Items: {sale_items_count}")
     print(f"- Payments: {payments_count}")
+    print(f"- Demos: {demos_count}")
 
     conn.close()
     print("\nDatabase initialized and data imported successfully!")

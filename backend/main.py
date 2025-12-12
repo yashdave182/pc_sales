@@ -9,8 +9,11 @@ from typing import List, Optional
 import pandas as pd
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
+
+# Import report generator
+from reports import ReportGenerator
 
 # Add parent directory to path to access existing database
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -1136,6 +1139,333 @@ def get_product_performance(conn: sqlite3.Connection = Depends(get_db)):
         """
         df = pd.read_sql_query(query, conn)
         return df.to_dict(orient="records")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== Report Downloads ====================
+
+report_generator = ReportGenerator(company_name="Sales Management System")
+
+
+@app.get("/api/reports/download/sales-pdf")
+def download_sales_report_pdf(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    conn: sqlite3.Connection = Depends(get_db),
+):
+    """Download Sales Report as PDF"""
+    try:
+        # Get sales data
+        query = """
+        SELECT s.*, c.name as customer_name
+        FROM sales s
+        LEFT JOIN customers c ON s.customer_id = c.customer_id
+        WHERE 1=1
+        """
+        params = []
+        if start_date:
+            query += " AND s.sale_date >= ?"
+            params.append(start_date)
+        if end_date:
+            query += " AND s.sale_date <= ?"
+            params.append(end_date)
+        query += " ORDER BY s.sale_date DESC"
+
+        df = pd.read_sql_query(query, conn, params=params)
+        sales_data = df.to_dict(orient="records")
+
+        # Generate PDF
+        pdf_bytes = report_generator.generate_sales_report_pdf(
+            sales_data, start_date, end_date
+        )
+
+        # Return as downloadable file
+        filename = f"sales_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        return StreamingResponse(
+            iter([pdf_bytes]),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/reports/download/sales-excel")
+def download_sales_report_excel(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    conn: sqlite3.Connection = Depends(get_db),
+):
+    """Download Sales Report as Excel"""
+    try:
+        # Get sales data
+        query = """
+        SELECT s.*, c.name as customer_name
+        FROM sales s
+        LEFT JOIN customers c ON s.customer_id = c.customer_id
+        WHERE 1=1
+        """
+        params = []
+        if start_date:
+            query += " AND s.sale_date >= ?"
+            params.append(start_date)
+        if end_date:
+            query += " AND s.sale_date <= ?"
+            params.append(end_date)
+        query += " ORDER BY s.sale_date DESC"
+
+        df = pd.read_sql_query(query, conn, params=params)
+        sales_data = df.to_dict(orient="records")
+
+        # Generate Excel
+        excel_bytes = report_generator.generate_sales_report_excel(
+            sales_data, start_date, end_date
+        )
+
+        # Return as downloadable file
+        filename = f"sales_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        return StreamingResponse(
+            iter([excel_bytes]),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/reports/download/customers-pdf")
+def download_customers_report_pdf(conn: sqlite3.Connection = Depends(get_db)):
+    """Download Customers Report as PDF"""
+    try:
+        query = "SELECT * FROM customers ORDER BY name"
+        df = pd.read_sql_query(query, conn)
+        customers_data = df.to_dict(orient="records")
+
+        # Generate PDF
+        pdf_bytes = report_generator.generate_customer_report_pdf(customers_data)
+
+        # Return as downloadable file
+        filename = f"customers_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        return StreamingResponse(
+            iter([pdf_bytes]),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/reports/download/customers-excel")
+def download_customers_report_excel(conn: sqlite3.Connection = Depends(get_db)):
+    """Download Customers Report as Excel"""
+    try:
+        query = "SELECT * FROM customers ORDER BY name"
+        df = pd.read_sql_query(query, conn)
+        customers_data = df.to_dict(orient="records")
+
+        # Generate Excel
+        excel_bytes = report_generator.generate_customer_report_excel(customers_data)
+
+        # Return as downloadable file
+        filename = f"customers_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        return StreamingResponse(
+            iter([excel_bytes]),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/reports/download/payments-pdf")
+def download_payments_report_pdf(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    conn: sqlite3.Connection = Depends(get_db),
+):
+    """Download Payments Report as PDF"""
+    try:
+        query = """
+        SELECT p.*, s.invoice_no
+        FROM payments p
+        LEFT JOIN sales s ON p.sale_id = s.sale_id
+        WHERE 1=1
+        """
+        params = []
+        if start_date:
+            query += " AND p.payment_date >= ?"
+            params.append(start_date)
+        if end_date:
+            query += " AND p.payment_date <= ?"
+            params.append(end_date)
+        query += " ORDER BY p.payment_date DESC"
+
+        df = pd.read_sql_query(query, conn, params=params)
+        payments_data = df.to_dict(orient="records")
+
+        # Generate PDF
+        pdf_bytes = report_generator.generate_payment_report_pdf(
+            payments_data, start_date, end_date
+        )
+
+        # Return as downloadable file
+        filename = f"payments_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        return StreamingResponse(
+            iter([pdf_bytes]),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/reports/download/payments-excel")
+def download_payments_report_excel(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    conn: sqlite3.Connection = Depends(get_db),
+):
+    """Download Payments Report as Excel"""
+    try:
+        query = """
+        SELECT p.*, s.invoice_no
+        FROM payments p
+        LEFT JOIN sales s ON p.sale_id = s.sale_id
+        WHERE 1=1
+        """
+        params = []
+        if start_date:
+            query += " AND p.payment_date >= ?"
+            params.append(start_date)
+        if end_date:
+            query += " AND p.payment_date <= ?"
+            params.append(end_date)
+        query += " ORDER BY p.payment_date DESC"
+
+        df = pd.read_sql_query(query, conn, params=params)
+        payments_data = df.to_dict(orient="records")
+
+        # Generate Excel
+        excel_bytes = report_generator.generate_payment_report_excel(
+            payments_data, start_date, end_date
+        )
+
+        # Return as downloadable file
+        filename = f"payments_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        return StreamingResponse(
+            iter([excel_bytes]),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/reports/download/products-pdf")
+def download_product_performance_pdf(conn: sqlite3.Connection = Depends(get_db)):
+    """Download Product Performance Report as PDF"""
+    try:
+        query = """
+        SELECT p.product_name,
+               COUNT(si.sale_item_id) as sales_count,
+               SUM(si.quantity) as total_quantity,
+               SUM(si.amount) as total_revenue
+        FROM sale_items si
+        JOIN products p ON si.product_id = p.product_id
+        GROUP BY p.product_id, p.product_name
+        ORDER BY total_revenue DESC
+        """
+        df = pd.read_sql_query(query, conn)
+        products_data = df.to_dict(orient="records")
+
+        # Generate PDF
+        pdf_bytes = report_generator.generate_product_performance_pdf(products_data)
+
+        # Return as downloadable file
+        filename = f"product_performance_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        return StreamingResponse(
+            iter([pdf_bytes]),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/reports/download/products-excel")
+def download_product_performance_excel(conn: sqlite3.Connection = Depends(get_db)):
+    """Download Product Performance Report as Excel"""
+    try:
+        query = """
+        SELECT p.product_name,
+               COUNT(si.sale_item_id) as sales_count,
+               SUM(si.quantity) as total_quantity,
+               SUM(si.amount) as total_revenue
+        FROM sale_items si
+        JOIN products p ON si.product_id = p.product_id
+        GROUP BY p.product_id, p.product_name
+        ORDER BY total_revenue DESC
+        """
+        df = pd.read_sql_query(query, conn)
+        products_data = df.to_dict(orient="records")
+
+        # Generate Excel
+        excel_bytes = report_generator.generate_product_performance_excel(products_data)
+
+        # Return as downloadable file
+        filename = (
+            f"product_performance_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        )
+        return StreamingResponse(
+            iter([excel_bytes]),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/reports/download/inventory-pdf")
+def download_inventory_report_pdf(conn: sqlite3.Connection = Depends(get_db)):
+    """Download Inventory Report as PDF"""
+    try:
+        query = "SELECT * FROM products ORDER BY product_name"
+        df = pd.read_sql_query(query, conn)
+        inventory_data = df.to_dict(orient="records")
+
+        # Generate PDF
+        pdf_bytes = report_generator.generate_inventory_report_pdf(inventory_data)
+
+        # Return as downloadable file
+        filename = f"inventory_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        return StreamingResponse(
+            iter([pdf_bytes]),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/reports/download/inventory-excel")
+def download_inventory_report_excel(conn: sqlite3.Connection = Depends(get_db)):
+    """Download Inventory Report as Excel"""
+    try:
+        query = "SELECT * FROM products ORDER BY product_name"
+        df = pd.read_sql_query(query, conn)
+        inventory_data = df.to_dict(orient="records")
+
+        # Generate Excel
+        excel_bytes = report_generator.generate_inventory_report_excel(inventory_data)
+
+        # Return as downloadable file
+        filename = f"inventory_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        return StreamingResponse(
+            iter([excel_bytes]),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

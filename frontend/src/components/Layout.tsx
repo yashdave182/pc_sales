@@ -141,15 +141,14 @@ export default function Layout({
         }}
       >
         <Avatar
+          src="/logo.jpg"
+          alt="Sales Management Logo"
           sx={{
             width: 50,
             height: 50,
             bgcolor: "rgba(255, 255, 255, 0.2)",
-            fontSize: "1.5rem",
           }}
-        >
-          📊
-        </Avatar>
+        />
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
             Sales

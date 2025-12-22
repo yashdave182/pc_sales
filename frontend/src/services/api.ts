@@ -2,7 +2,7 @@ import axios, { AxiosError } from "axios";
 
 // Create axios instance with base configuration
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "https://pc-sales.onrender.com";
+  import.meta.env.VITE_API_BASE_URL || "https://pc-sales-8phu.onrender.com";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

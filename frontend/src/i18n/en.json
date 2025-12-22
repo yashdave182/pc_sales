@@ -359,9 +359,15 @@
   "import": {
     "title": "Data Import",
 
+    "subtitle": "Upload Excel files to import data into the system",
+
     "importData": "Import Data",
 
     "selectFile": "Select File",
+
+    "clickToSelect": "Click to select file or drag and drop",
+
+    "supportedFormats": "Supported formats: .xlsx, .xls",
 
     "importType": "Import Type",
 
@@ -381,7 +387,29 @@
 
     "uploadError": "Failed to import data",
 
-    "selectFileError": "Please select a file"
+    "selectFileError": "Please select a file",
+
+    "invalidFileType": "Please select an Excel file (.xlsx or .xls)",
+
+    "fileUploaded": "File uploaded successfully",
+
+    "instructions": "Upload Instructions",
+
+    "excelFormat": "Excel Format",
+
+    "excelFormatDesc": "Ensure your Excel file contains proper column headers",
+
+    "dataStructure": "Data Structure",
+
+    "dataStructureDesc": "The system will automatically detect sales, customer, and distributor data",
+
+    "fileSize": "File Size",
+
+    "fileSizeDesc": "Maximum file size is 10MB",
+
+    "processing": "Processing",
+
+    "processingDesc": "After upload, data will be processed and imported automatically"
   },
 
   "messages": {

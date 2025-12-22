@@ -226,8 +226,11 @@
   },
   "import": {
     "title": "ડેટા આયાત",
+    "subtitle": "સિસ્ટમમાં ડેટા આયાત કરવા માટે Excel ફાઇલો અપલોડ કરો",
     "importData": "ડેટા આયાત કરો",
     "selectFile": "ફાઇલ પસંદ કરો",
+    "clickToSelect": "ફાઇલ પસંદ કરવા માટે ક્લિક કરો અથવા ડ્રેગ અને ડ્રોપ કરો",
+    "supportedFormats": "સમર્થિત ફોર્મેટ: .xlsx, .xls",
     "importType": "આયાત પ્રકાર",
     "customers": "ગ્રાહકો",
     "sales": "વેચાણ",
@@ -237,7 +240,18 @@
     "uploading": "અપલોડ થઈ રહ્યું છે...",
     "uploadSuccess": "ડેટા સફળતાપૂર્વક આયાત કર્યો",
     "uploadError": "ડેટા આયાતમાં નિષ્ફળતા",
-    "selectFileError": "કૃપયા એક ફાઇલ પસંદ કરો"
+    "selectFileError": "કૃપયા એક ફાઇલ પસંદ કરો",
+    "invalidFileType": "કૃપયા એક Excel ફાઇલ (.xlsx અથવા .xls) પસંદ કરો",
+    "fileUploaded": "ફાઇલ સફળતાપૂર્વક અપલોડ કરી",
+    "instructions": "અપલોડ સૂચનાઓ",
+    "excelFormat": "Excel ફોર્મેટ",
+    "excelFormatDesc": "ખાતરી કરો કે તમારી Excel ફાઇલમાં યોગ્ય કૉલમ હેડર છે",
+    "dataStructure": "ડેટા સ્ટ્રક્ચર",
+    "dataStructureDesc": "સિસ્ટમ આપોઆપ વેચાણ, ગ્રાહક અને વિતરણકર્તા ડેટાને શોધી કાઢશે",
+    "fileSize": "ફાઇલ સાઇઝ",
+    "fileSizeDesc": "મહત્તમ ફાઇલ સાઇઝ 10MB છે",
+    "processing": "પ્રક્રિયા",
+    "processingDesc": "અપલોડ પછી, ડેટા આપમેળે પ્રક્રિયા અને આયાત કરવામાં આવશે"
   },
   "messages": {
     "loading": "લોડ થઈ રહ્યું છે...",

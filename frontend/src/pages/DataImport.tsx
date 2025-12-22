@@ -21,8 +21,10 @@ import {
   CheckCircle as CheckCircleIcon,
 } from "@mui/icons-material";
 import { fileAPI } from "../services/api";
+import { useTranslation } from "../hooks/useTranslation";
 
 export default function DataImport() {
+  const { t } = useTranslation();
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +38,7 @@ export default function DataImport() {
         setSelectedFile(file);
         setError(null);
       } else {
-        setError("Please select an Excel file (.xlsx or .xls)");
+        setError(t("import.invalidFileType"));
         setSelectedFile(null);
       }
     }
@@ -44,7 +46,7 @@ export default function DataImport() {
 
   const handleUpload = async () => {
     if (!selectedFile) {
-      setError("Please select a file first");
+      setError(t("import.selectFileError"));
       return;
     }
 
@@ -66,7 +68,7 @@ export default function DataImport() {
 
       clearInterval(progressInterval);
       setUploadProgress(100);
-      setSuccess(`File "${response.filename}" uploaded successfully!`);
+      setSuccess(t("import.fileUploaded") + `: "${response.filename}"`);
       setSelectedFile(null);
 
       // Reset after 3 seconds
@@ -75,7 +77,7 @@ export default function DataImport() {
         setUploadProgress(0);
       }, 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to upload file");
+      setError(err instanceof Error ? err.message : t("import.uploadError"));
     } finally {
       setUploading(false);
     }
@@ -87,10 +89,10 @@ export default function DataImport() {
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
           <CloudUploadIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-          Data Import
+          {t("import.title")}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Upload Excel files to import data into the system
+          {t("import.subtitle")}
         </Typography>
       </Box>
 
@@ -133,12 +135,10 @@ export default function DataImport() {
               sx={{ fontSize: 64, color: "primary.main", mb: 2 }}
             />
             <Typography variant="h6" sx={{ mb: 1 }}>
-              {selectedFile
-                ? selectedFile.name
-                : "Click to select file or drag and drop"}
+              {selectedFile ? selectedFile.name : t("import.clickToSelect")}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Supported formats: .xlsx, .xls
+              {t("import.supportedFormats")}
             </Typography>
             <input
               id="file-input"
@@ -163,7 +163,7 @@ export default function DataImport() {
                 disabled={uploading}
                 startIcon={<CloudUploadIcon />}
               >
-                Upload
+                {t("import.upload")}
               </Button>
             </Box>
           )}
@@ -176,7 +176,7 @@ export default function DataImport() {
                 color="text.secondary"
                 sx={{ mt: 1, display: "block" }}
               >
-                Uploading... {uploadProgress}%
+                {t("import.uploading")} {uploadProgress}%
               </Typography>
             </Box>
           )}
@@ -187,7 +187,7 @@ export default function DataImport() {
       <Card>
         <CardContent>
           <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            Upload Instructions
+            {t("import.instructions")}
           </Typography>
           <List>
             <ListItem>
@@ -195,8 +195,8 @@ export default function DataImport() {
                 <CheckCircleIcon color="success" />
               </ListItemIcon>
               <ListItemText
-                primary="Excel Format"
-                secondary="Ensure your Excel file contains proper column headers"
+                primary={t("import.excelFormat")}
+                secondary={t("import.excelFormatDesc")}
               />
             </ListItem>
             <ListItem>
@@ -204,8 +204,8 @@ export default function DataImport() {
                 <CheckCircleIcon color="success" />
               </ListItemIcon>
               <ListItemText
-                primary="Data Structure"
-                secondary="The system will automatically detect sales, customer, and distributor data"
+                primary={t("import.dataStructure")}
+                secondary={t("import.dataStructureDesc")}
               />
             </ListItem>
             <ListItem>
@@ -213,8 +213,8 @@ export default function DataImport() {
                 <CheckCircleIcon color="success" />
               </ListItemIcon>
               <ListItemText
-                primary="File Size"
-                secondary="Maximum file size is 10MB"
+                primary={t("import.fileSize")}
+                secondary={t("import.fileSizeDesc")}
               />
             </ListItem>
             <ListItem>
@@ -222,8 +222,8 @@ export default function DataImport() {
                 <CheckCircleIcon color="success" />
               </ListItemIcon>
               <ListItemText
-                primary="Processing"
-                secondary="After upload, data will be processed and imported automatically"
+                primary={t("import.processing")}
+                secondary={t("import.processingDesc")}
               />
             </ListItem>
           </List>

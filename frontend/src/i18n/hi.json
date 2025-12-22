@@ -226,8 +226,11 @@
   },
   "import": {
     "title": "डेटा आयात",
+    "subtitle": "सिस्टम में डेटा आयात करने के लिए Excel फाइलें अपलोड करें",
     "importData": "डेटा आयात करें",
     "selectFile": "फाइल चुनें",
+    "clickToSelect": "फाइल चुनने के लिए क्लिक करें या ड्रैग और ड्रॉप करें",
+    "supportedFormats": "समर्थित प्रारूप: .xlsx, .xls",
     "importType": "आयात प्रकार",
     "customers": "ग्राहक",
     "sales": "बिक्रय",
@@ -237,7 +240,18 @@
     "uploading": "अपलोड हो रहा है...",
     "uploadSuccess": "डेटा सफलतापूर्वक आयात किया गया",
     "uploadError": "डेटा आयात करने में विफल",
-    "selectFileError": "कृपया एक फाइल चुनें"
+    "selectFileError": "कृपया एक फाइल चुनें",
+    "invalidFileType": "कृपया एक Excel फाइल (.xlsx या .xls) चुनें",
+    "fileUploaded": "फाइल सफलतापूर्वक अपलोड की गई",
+    "instructions": "अपलोड निर्देश",
+    "excelFormat": "Excel प्रारूप",
+    "excelFormatDesc": "सुनिश्चित करें कि आपकी Excel फाइल में उचित कॉलम हेडर हैं",
+    "dataStructure": "डेटा संरचना",
+    "dataStructureDesc": "सिस्टम स्वचालित रूप से बिक्रय, ग्राहक और वितरक डेटा का पता लगाएगा",
+    "fileSize": "फाइल आकार",
+    "fileSizeDesc": "अधिकतम फाइल आकार 10MB है",
+    "processing": "प्रसंस्करण",
+    "processingDesc": "अपलोड के बाद, डेटा स्वचालित रूप से संसाधित और आयात किया जाएगा"
   },
   "messages": {
     "loading": "लोड हो रहा है...",

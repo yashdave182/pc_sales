@@ -1,108 +1,94 @@
-import { useEffect, useState, ReactNode } from 'react';
-import { useTranslation } from '../hooks/useTranslation';
+import { ReactNode } from "react";
+import { useTranslation } from "../hooks/useTranslation";
 
 interface TranslatedTextProps {
-  children: ReactNode;
+  /**
+   * Translation key from JSON files (e.g., 'nav.dashboard', 'common.add')
+   */
+  tKey?: string;
+  /**
+   * Raw text content (will be used as-is without translation)
+   */
+  children?: ReactNode;
+  /**
+   * Fallback text if translation key not found
+   */
   fallback?: string;
 }
 
 /**
- * Component that automatically translates its text content
+ * Component for displaying translated text using JSON translation files
  *
- * Usage:
- * <TranslatedText>Welcome Back!</TranslatedText>
- * <TranslatedText>Add Customer</TranslatedText>
+ * Usage with translation key:
+ * <TranslatedText tKey="nav.dashboard" />
+ * <TranslatedText tKey="common.add" fallback="Add" />
+ *
+ * Usage with raw text (no translation):
+ * <TranslatedText>Some raw text</TranslatedText>
  */
-export const TranslatedText = ({ children, fallback = '' }: TranslatedTextProps) => {
-  const { tAsync, language } = useTranslation();
-  const [translatedText, setTranslatedText] = useState<string>('');
-  const [isTranslating, setIsTranslating] = useState(false);
+export const TranslatedText = ({
+  tKey,
+  children,
+  fallback,
+}: TranslatedTextProps) => {
+  const { t } = useTranslation();
 
-  useEffect(() => {
-    const text = children?.toString() || fallback;
-
-    if (!text) {
-      setTranslatedText('');
-      return;
-    }
-
-    if (language === 'en') {
-      setTranslatedText(text);
-      return;
-    }
-
-    setIsTranslating(true);
-    tAsync(text)
-      .then((translation) => {
-        setTranslatedText(translation);
-        setIsTranslating(false);
-      })
-      .catch(() => {
-        setTranslatedText(text);
-        setIsTranslating(false);
-      });
-  }, [children, language, fallback, tAsync]);
-
-  // Show original text while translating
-  if (isTranslating && !translatedText) {
-    return <>{children || fallback}</>;
+  if (tKey) {
+    return <>{t(tKey, fallback)}</>;
   }
 
-  return <>{translatedText || children || fallback}</>;
+  return <>{children}</>;
 };
 
 /**
- * Higher-order component to wrap text nodes with automatic translation
+ * Shorthand component alias for convenience
+ * Usage: <T tKey="nav.dashboard" />
  */
-export const withAutoTranslation = <P extends object>(
-  Component: React.ComponentType<P>
-) => {
-  return (props: P) => {
-    const { t } = useTranslation();
-
-    // Intercept and translate string props
-    const translatedProps = Object.entries(props).reduce((acc, [key, value]) => {
-      if (typeof value === 'string' && value.trim()) {
-        acc[key] = t(value);
-      } else {
-        acc[key] = value;
-      }
-      return acc;
-    }, {} as any);
-
-    return <Component {...translatedProps} />;
-  };
-};
+export const T = TranslatedText;
 
 /**
- * Component for translating dynamic values
+ * Component for translating field names with automatic fallback
+ *
+ * Usage:
+ * <FieldText name="customerName" /> // Translates to "Customer Name"
+ * <FieldText name="totalAmount" />  // Translates to "Total Amount"
  */
-interface DynamicTranslationProps {
-  text: string;
-  values?: Record<string, string | number>;
+interface FieldTextProps {
+  name: string;
 }
 
-export const DynamicTranslation = ({ text, values = {} }: DynamicTranslationProps) => {
-  const { tAsync, language } = useTranslation();
-  const [translatedText, setTranslatedText] = useState(text);
+export const FieldText = ({ name }: FieldTextProps) => {
+  const { tf } = useTranslation();
+  return <>{tf(name)}</>;
+};
 
-  useEffect(() => {
-    if (language === 'en') {
-      setTranslatedText(text);
-      return;
-    }
+/**
+ * Component for dynamic text with placeholder replacement
+ *
+ * Usage:
+ * <DynamicText tKey="messages.itemsCount" values={{ count: 5 }} />
+ * // If translation is "You have {count} items", it will render "You have 5 items"
+ */
+interface DynamicTextProps {
+  tKey: string;
+  values?: Record<string, string | number>;
+  fallback?: string;
+}
 
-    tAsync(text).then((translation) => {
-      // Replace placeholders with values
-      let result = translation;
-      Object.entries(values).forEach(([key, value]) => {
-        result = result.replace(`{${key}}`, value.toString());
-      });
-      setTranslatedText(result);
-    });
-  }, [text, language, values, tAsync]);
+export const DynamicText = ({
+  tKey,
+  values = {},
+  fallback,
+}: DynamicTextProps) => {
+  const { t } = useTranslation();
+  let text = t(tKey, fallback);
 
-  return <>{translatedText}</>;
+  // Replace placeholders like {count}, {name} etc. with actual values
+  Object.entries(values).forEach(([key, value]) => {
+    text = text.replace(`{${key}}`, value.toString());
+  });
+
+  return <>{text}</>;
 };
 
 export default TranslatedText;

@@ -7,9 +7,9 @@ import {
   Typography,
   CircularProgress,
   Alert,
-  useTheme,
-  Paper,
   Button,
+  Paper,
+  useTheme,
   Chip,
   Divider,
 } from "@mui/material";
@@ -27,6 +27,7 @@ import {
   ArrowForward,
   CheckCircle,
   Schedule,
+  Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import {
   LineChart,
@@ -207,10 +208,52 @@ export default function Dashboard() {
   }
 
   if (error) {
+    const isNetworkError =
+      error.toLowerCase().includes("network") ||
+      error.toLowerCase().includes("reach server") ||
+      error.toLowerCase().includes("cors");
+
     return (
-      <Alert severity="error" sx={{ mb: 3 }}>
-        {error}
-      </Alert>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "60vh",
+        }}
+      >
+        <Paper
+          elevation={3}
+          sx={{
+            p: 4,
+            maxWidth: 500,
+            textAlign: "center",
+          }}
+        >
+          <Typography variant="h5" color="error" gutterBottom>
+            {isNetworkError
+              ? "Unable to Connect to Server"
+              : "Error Loading Dashboard"}
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+            {isNetworkError
+              ? "The backend server may be sleeping or unavailable. This is common with free-tier hosting. Please click refresh to wake it up."
+              : error}
+          </Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            size="large"
+            startIcon={<RefreshIcon />}
+            onClick={() => {
+              setError(null);
+              loadDashboardData();
+            }}
+          >
+            Refresh Page
+          </Button>
+        </Paper>
+      </Box>
     );
   }
 

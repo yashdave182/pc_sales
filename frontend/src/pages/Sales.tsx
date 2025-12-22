@@ -32,6 +32,7 @@ import type { Sale, Customer, Product, SaleItem } from "../types";
 import { useTranslation } from "../hooks/useTranslation";
 
 export default function Sales() {
+  const { t, tf } = useTranslation();
   const [sales, setSales] = useState<Sale[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -60,7 +61,6 @@ export default function Sales() {
         customerAPI.getAll({ limit: 1000 }),
         productAPI.getAll(),
       ]);
-      const { t, tf } = useTranslation();
       setSales(salesData);
       setCustomers(customersData.data || []);
       setProducts(productsData);

@@ -8,6 +8,9 @@ import { ThemeProvider, CssBaseline } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 
+// Error Boundary
+import { ErrorBoundary } from "./components/ErrorBoundary";
+
 // Layout
 import Layout from "./components/Layout";
 import QuickActions from "./components/QuickActions";
@@ -45,28 +48,36 @@ function App() {
   };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <Router>
-          <Layout toggleTheme={toggleTheme} themeMode={mode}>
-            <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/customers" element={<Customers />} />
-              <Route path="/sales" element={<Sales />} />
-              <Route path="/payments" element={<Payments />} />
-              <Route path="/demos" element={<Demos />} />
-              <Route path="/distributors" element={<Distributors />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/import" element={<DataImport />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
-            <QuickActions />
-          </Layout>
-        </Router>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <Router>
+            <Layout toggleTheme={toggleTheme} themeMode={mode}>
+              <Routes>
+                <Route
+                  path="/"
+                  element={<Navigate to="/dashboard" replace />}
+                />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/customers" element={<Customers />} />
+                <Route path="/sales" element={<Sales />} />
+                <Route path="/payments" element={<Payments />} />
+                <Route path="/demos" element={<Demos />} />
+                <Route path="/distributors" element={<Distributors />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/import" element={<DataImport />} />
+                <Route
+                  path="*"
+                  element={<Navigate to="/dashboard" replace />}
+                />
+              </Routes>
+              <QuickActions />
+            </Layout>
+          </Router>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

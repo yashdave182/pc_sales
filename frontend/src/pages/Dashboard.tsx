@@ -173,9 +173,12 @@ export default function Dashboard() {
 
       const [metricsData, trendData, salesData, demosData] = await Promise.all([
         dashboardAPI.getMetrics(),
-        dashboardAPI.getSalesTrend(30),
-        dashboardAPI.getRecentSales(10),
-        dashboardAPI.getUpcomingDemos(10),
+
+        dashboardAPI.getSalesTrend(30), // days
+
+        dashboardAPI.getRecentSales(10), // limit
+
+        dashboardAPI.getUpcomingDemos(10), // limit
       ]);
 
       setMetrics(metricsData);

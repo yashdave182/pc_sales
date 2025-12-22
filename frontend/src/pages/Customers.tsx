@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -17,7 +17,7 @@ import {
   InputAdornment,
   Grid,
   MenuItem,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -26,10 +26,11 @@ import {
   Phone as PhoneIcon,
   LocationOn as LocationOnIcon,
   Refresh as RefreshIcon,
-} from '@mui/icons-material';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { customerAPI } from '../services/api';
-import type { Customer } from '../types';
+} from "@mui/icons-material";
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { customerAPI } from "../services/api";
+import type { Customer } from "../types";
+import { useTranslation } from "../hooks/useTranslation";
 
 export default function Customers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -37,15 +38,17 @@ export default function Customers() {
   const [error, setError] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState<Partial<Customer>>({
-    name: '',
-    mobile: '',
-    village: '',
-    taluka: '',
-    district: '',
-    status: 'Active',
+    name: "",
+    mobile: "",
+    village: "",
+    taluka: "",
+    district: "",
+    status: "Active",
   });
+
+  const { t, tf } = useTranslation();
 
   useEffect(() => {
     loadCustomers();
@@ -58,8 +61,8 @@ export default function Customers() {
       const response = await customerAPI.getAll({ limit: 1000 });
       setCustomers(response.data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load customers');
-      console.error('Error loading customers:', err);
+      setError(err instanceof Error ? err.message : "Failed to load customers");
+      console.error("Error loading customers:", err);
     } finally {
       setLoading(false);
     }
@@ -72,12 +75,12 @@ export default function Customers() {
     } else {
       setEditingCustomer(null);
       setFormData({
-        name: '',
-        mobile: '',
-        village: '',
-        taluka: '',
-        district: '',
-        status: 'Active',
+        name: "",
+        mobile: "",
+        village: "",
+        taluka: "",
+        district: "",
+        status: "Active",
       });
     }
     setOpenDialog(true);
@@ -87,24 +90,27 @@ export default function Customers() {
     setOpenDialog(false);
     setEditingCustomer(null);
     setFormData({
-      name: '',
-      mobile: '',
-      village: '',
-      taluka: '',
-      district: '',
-      status: 'Active',
+      name: "",
+      mobile: "",
+      village: "",
+      taluka: "",
+      district: "",
+      status: "Active",
     });
   };
 
   const handleSubmit = async () => {
     try {
       if (!formData.name || !formData.mobile) {
-        setError('Name and mobile are required');
+        setError("Name and mobile are required");
         return;
       }
 
       if (editingCustomer && editingCustomer.customer_id) {
-        await customerAPI.update(editingCustomer.customer_id, formData as Customer);
+        await customerAPI.update(
+          editingCustomer.customer_id,
+          formData as Customer,
+        );
       } else {
         await customerAPI.create(formData as Customer);
       }
@@ -113,13 +119,13 @@ export default function Customers() {
       loadCustomers();
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save customer');
-      console.error('Error saving customer:', err);
+      setError(err instanceof Error ? err.message : "Failed to save customer");
+      console.error("Error saving customer:", err);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this customer?')) {
+    if (!window.confirm("Are you sure you want to delete this customer?")) {
       return;
     }
 
@@ -128,23 +134,30 @@ export default function Customers() {
       loadCustomers();
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete customer');
-      console.error('Error deleting customer:', err);
+      setError(
+        err instanceof Error ? err.message : "Failed to delete customer",
+      );
+      console.error("Error deleting customer:", err);
     }
   };
 
   const columns: GridColDef[] = [
     {
-      field: 'customer_code',
-      headerName: 'Code',
+      field: "customer_code",
+      headerName: tf("customer_code"),
       width: 120,
       renderCell: (params) => (
-        <Chip label={params.value} size="small" color="primary" variant="outlined" />
+        <Chip
+          label={params.value}
+          size="small"
+          color="primary"
+          variant="outlined"
+        />
       ),
     },
     {
-      field: 'name',
-      headerName: 'Name',
+      field: "name",
+      headerName: tf("name"),
       flex: 1,
       minWidth: 200,
       renderCell: (params) => (
@@ -154,52 +167,56 @@ export default function Customers() {
       ),
     },
     {
-      field: 'mobile',
-      headerName: 'Mobile',
+      field: "mobile",
+      headerName: tf("mobile"),
       width: 150,
       renderCell: (params) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <PhoneIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-          <Typography variant="body2">{params.value || 'N/A'}</Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <PhoneIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+          <Typography variant="body2">{params.value || "N/A"}</Typography>
         </Box>
       ),
     },
     {
-      field: 'village',
-      headerName: 'Village',
+      field: "village",
+      headerName: tf("village"),
       width: 150,
       renderCell: (params) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <LocationOnIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-          <Typography variant="body2">{params.value || 'N/A'}</Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <LocationOnIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+          <Typography variant="body2">{params.value || "N/A"}</Typography>
         </Box>
       ),
     },
     {
-      field: 'taluka',
-      headerName: 'Taluka',
+      field: "taluka",
+      headerName: tf("taluka"),
       width: 130,
     },
     {
-      field: 'district',
-      headerName: 'District',
+      field: "district",
+      headerName: tf("district"),
       width: 130,
     },
     {
-      field: 'status',
-      headerName: 'Status',
+      field: "status",
+      headerName: tf("status"),
       width: 100,
       renderCell: (params) => (
         <Chip
-          label={params.value}
+          label={
+            params.value === "Active"
+              ? t("customers.active")
+              : t("customers.inactive")
+          }
           size="small"
-          color={params.value === 'Active' ? 'success' : 'default'}
+          color={params.value === "Active" ? "success" : "default"}
         />
       ),
     },
     {
-      field: 'actions',
-      headerName: 'Actions',
+      field: "actions",
+      headerName: t("common.actions"),
       width: 120,
       sortable: false,
       renderCell: (params) => (
@@ -225,8 +242,8 @@ export default function Customers() {
 
   const filteredCustomers = customers.filter((customer) =>
     Object.values(customer).some((value) =>
-      value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-    )
+      value?.toString().toLowerCase().includes(searchTerm.toLowerCase()),
+    ),
   );
 
   return (
@@ -234,10 +251,10 @@ export default function Customers() {
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-          Customer Management
+          {t("customers.title")}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Manage your customer database
+          {t("customers.manageSubtitle", "Manage your customer database")}
         </Typography>
       </Box>
 
@@ -250,9 +267,16 @@ export default function Customers() {
       {/* Actions Bar */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
             <TextField
-              placeholder="Search customers..."
+              placeholder={t("common.search")}
               size="small"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -265,13 +289,15 @@ export default function Customers() {
               }}
               sx={{ flexGrow: 1, minWidth: 250 }}
             />
+
             <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => handleOpenDialog()}
             >
-              Add Customer
+              {t("customers.addCustomer")}
             </Button>
+
             <IconButton onClick={loadCustomers} color="primary">
               <RefreshIcon />
             </IconButton>
@@ -282,14 +308,14 @@ export default function Customers() {
       {/* Data Grid */}
       <Card>
         <CardContent>
-          <Box sx={{ height: 600, width: '100%' }}>
+          <Box sx={{ height: 600, width: "100%" }}>
             {loading ? (
               <Box
                 sx={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  height: '100%',
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  height: "100%",
                 }}
               >
                 <CircularProgress />
@@ -307,8 +333,8 @@ export default function Customers() {
                 }}
                 disableRowSelectionOnClick
                 sx={{
-                  '& .MuiDataGrid-cell:focus': {
-                    outline: 'none',
+                  "& .MuiDataGrid-cell:focus": {
+                    outline: "none",
                   },
                 }}
               />
@@ -318,73 +344,94 @@ export default function Customers() {
       </Card>
 
       {/* Add/Edit Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+      <Dialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>
-          {editingCustomer ? 'Edit Customer' : 'Add New Customer'}
+          {editingCustomer
+            ? t("customers.editCustomer")
+            : t("customers.addCustomer")}
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Name *"
+                label={`${tf("name")} *`}
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
               />
-            </Grid>
-            <Grid item xs={12} sm={6}>
+
               <TextField
                 fullWidth
-                label="Mobile *"
+                label={`${tf("mobile")} *`}
                 value={formData.mobile}
-                onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, mobile: e.target.value })
+                }
                 InputProps={{
-                  startAdornment: <InputAdornment position="start">+91</InputAdornment>,
+                  startAdornment: (
+                    <InputAdornment position="start">+91</InputAdornment>
+                  ),
                 }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Village"
+                label={tf("village")}
                 value={formData.village}
-                onChange={(e) => setFormData({ ...formData, village: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, village: e.target.value })
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Taluka"
+                label={tf("taluka")}
                 value={formData.taluka}
-                onChange={(e) => setFormData({ ...formData, taluka: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, taluka: e.target.value })
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="District"
+                label={tf("district")}
                 value={formData.district}
-                onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, district: e.target.value })
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 select
-                label="Status"
+                label={tf("status")}
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, status: e.target.value })
+                }
               >
-                <MenuItem value="Active">Active</MenuItem>
-                <MenuItem value="Inactive">Inactive</MenuItem>
+                <MenuItem value="Active">{t("customers.active")}</MenuItem>
+
+                <MenuItem value="Inactive">{t("customers.inactive")}</MenuItem>
               </TextField>
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
+          <Button onClick={handleCloseDialog}>{t("common.cancel")}</Button>
           <Button onClick={handleSubmit} variant="contained">
-            {editingCustomer ? 'Update' : 'Create'}
+            {t("common.save")}
           </Button>
         </DialogActions>
       </Dialog>

@@ -44,26 +44,79 @@
     "profile": "प्रोफ़ाइल",
     "changeLanguage": "भाषा बदलें"
   },
+
   "dashboard": {
     "title": "डैशबोर्ड",
+
+    "welcomeBack": "वापसी पर स्वागत है!",
+    "subtitle": "आज आपकी बिक्री में क्या हो रहा है",
+
+    "quickActions": {
+      "addCustomer": {
+        "title": "ग्राहक जोड़ें",
+        "subtitle": "नया ग्राहक पंजीकृत करें"
+      },
+      "newSale": {
+        "title": "नई बिक्रय",
+        "subtitle": "चालान बनाएँ"
+      },
+      "scheduleDemo": {
+        "title": "प्रदर्शन शेड्यूल करें",
+        "subtitle": "उत्पाद प्रदर्शन बुक करें"
+      },
+      "recordPayment": {
+        "title": "भुगतान दर्ज करें",
+        "subtitle": "भुगतान प्राप्त करें"
+      }
+    },
+
     "totalSales": "कुल बिक्रय",
+
     "totalCustomers": "कुल ग्राहक",
+
     "totalPayments": "कुल भुगतान",
+
+    "pendingPayments": "लंबित भुगतान",
     "pendingDemos": "लंबित प्रदर्शन",
+
+    "activeCustomers": "सक्रिय ग्राहक",
+    "transactions": "लेन-देन",
+    "outstandingAmount": "बकाया राशि",
+
     "revenue": "राजस्व",
+
     "orders": "आदेश",
+
     "customers": "ग्राहक",
+
     "growth": "वृद्धि",
+
     "salesTrend": "बिक्रय प्रवृत्ति",
+
+    "salesTrendLast30Days": "बिक्रय प्रवृत्ति (पिछले 30 दिन)",
     "recentSales": "हाल की बिक्रय",
+
     "upcomingDemos": "आने वाले प्रदर्शन",
+
     "paymentStatus": "भुगतान स्थिति",
+
+    "demoConversion": "प्रदर्शन रूपांतरण",
+    "conversionRate": "रूपांतरण दर",
     "paid": "भुगतान किया गया",
+
     "pending": "लंबित",
+
     "overview": "अवलोकन",
+
     "amount": "राशि",
-    "date": "तारीख"
+
+    "date": "तारीख",
+
+    "noRecentSales": "हाल की कोई बिक्रय नहीं मिली",
+    "noUpcomingDemos": "कोई आगामी प्रदर्शन निर्धारित नहीं",
+    "scheduleDemoCta": "प्रदर्शन शेड्यूल करें"
   },
+
   "customers": {
     "title": "ग्राहक",
     "addCustomer": "ग्राहक जोड़ें",

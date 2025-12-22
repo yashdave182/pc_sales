@@ -44,26 +44,79 @@
     "profile": "પ્રોફાઈલ",
     "changeLanguage": "ભાષા બદલો"
   },
+
   "dashboard": {
     "title": "ડેશબોર્ડ",
+
+    "welcomeBack": "ફરીથી સ્વાગત છે!",
+    "subtitle": "આજે તમારી વેચાણમાં શું ચાલી રહ્યું છે",
+
+    "quickActions": {
+      "addCustomer": {
+        "title": "ગ્રાહક ઉમેરો",
+        "subtitle": "નવા ગ્રાહકની નોંધણી કરો"
+      },
+      "newSale": {
+        "title": "નવી વેચાણ",
+        "subtitle": "ઇન્વૉઇસ બનાવો"
+      },
+      "scheduleDemo": {
+        "title": "પ્રદર્શન શેડ્યૂલ કરો",
+        "subtitle": "પ્રોડક્ટ ડેમો બુક કરો"
+      },
+      "recordPayment": {
+        "title": "ચુકવણી નોંધો",
+        "subtitle": "ચુકવણી વસૂલ કરો"
+      }
+    },
+
     "totalSales": "કુલ વેચાણ",
+
     "totalCustomers": "કુલ ગ્રાહકો",
+
     "totalPayments": "કુલ ચૂકવણી",
+
+    "pendingPayments": "બાકી ચૂકવણી",
     "pendingDemos": "બાકી પ્રદર્શન",
+
+    "activeCustomers": "સક્રિય ગ્રાહકો",
+    "transactions": "ટ્રાન્ઝેક્શન",
+    "outstandingAmount": "બાકી રકમ",
+
     "revenue": "આવક",
+
     "orders": "ઑર્ડર્સ",
+
     "customers": "ગ્રાહકો",
+
     "growth": "વૃદ્ધિ",
+
     "salesTrend": "વેચાણ જોડણી",
+
+    "salesTrendLast30Days": "વેચાણ જોડણી (છેલ્લા 30 દિવસ)",
     "recentSales": "તાજેતરનું વેચાણ",
+
     "upcomingDemos": "આવતા પ્રદર્શન",
+
     "paymentStatus": "ચૂકવણી સ્થિતિ",
+
+    "demoConversion": "ડેમો રૂપાંતરણ",
+    "conversionRate": "રૂપાંતરણ દર",
     "paid": "ચૂકવાયું",
+
     "pending": "બાકી",
+
     "overview": "ખ્યાલ",
+
     "amount": "રકમ",
-    "date": "તારીખ"
+
+    "date": "તારીખ",
+
+    "noRecentSales": "તાજેતરના વેચાણ મળ્યાં નથી",
+    "noUpcomingDemos": "કોઈ આવનારા પ્રદર્શન નિર્ધારિત નથી",
+    "scheduleDemoCta": "પ્રદર્શન શેડ્યૂલ કરો"
   },
+
   "customers": {
     "title": "ગ્રાહકો",
     "addCustomer": "ગ્રાહક ઉમેરો",

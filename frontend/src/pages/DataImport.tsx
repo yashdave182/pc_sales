@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Box,
   Button,
@@ -13,16 +13,18 @@ import {
   ListItemIcon,
   IconButton,
   Chip,
-} from '@mui/material';
+} from "@mui/material";
 import {
   CloudUpload as CloudUploadIcon,
   InsertDriveFile as FileIcon,
   Delete as DeleteIcon,
   CheckCircle as CheckCircleIcon,
-} from '@mui/icons-material';
-import { fileAPI } from '../services/api';
+} from "@mui/icons-material";
+import { fileAPI } from "../services/api";
+import { useTranslation } from "../hooks/useTranslation";
 
 export default function DataImport() {
+  const { t } = useTranslation();
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -32,11 +34,11 @@ export default function DataImport() {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+      if (file.name.endsWith(".xlsx") || file.name.endsWith(".xls")) {
         setSelectedFile(file);
         setError(null);
       } else {
-        setError('Please select an Excel file (.xlsx or .xls)');
+        setError(t("import.invalidFileType"));
         setSelectedFile(null);
       }
     }
@@ -44,7 +46,7 @@ export default function DataImport() {
 
   const handleUpload = async () => {
     if (!selectedFile) {
-      setError('Please select a file first');
+      setError(t("import.selectFileError"));
       return;
     }
 
@@ -58,11 +60,15 @@ export default function DataImport() {
         setUploadProgress((prev) => Math.min(prev + 10, 90));
       }, 200);
 
-      const response = await fileAPI.upload(selectedFile);
+      // Create FormData and append the file
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      const response = await fileAPI.upload(formData);
 
       clearInterval(progressInterval);
       setUploadProgress(100);
-      setSuccess(`File "${response.filename}" uploaded successfully!`);
+      setSuccess(t("import.fileUploaded") + `: "${response.filename}"`);
       setSelectedFile(null);
 
       // Reset after 3 seconds
@@ -71,7 +77,7 @@ export default function DataImport() {
         setUploadProgress(0);
       }, 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to upload file');
+      setError(err instanceof Error ? err.message : t("import.uploadError"));
     } finally {
       setUploading(false);
     }
@@ -82,11 +88,11 @@ export default function DataImport() {
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-          <CloudUploadIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-          Data Import
+          <CloudUploadIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+          {t("import.title")}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Upload Excel files to import data into the system
+          {t("import.subtitle")}
         </Typography>
       </Box>
 
@@ -97,7 +103,11 @@ export default function DataImport() {
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
+        <Alert
+          severity="success"
+          sx={{ mb: 3 }}
+          onClose={() => setSuccess(null)}
+        >
           {success}
         </Alert>
       )}
@@ -107,38 +117,40 @@ export default function DataImport() {
         <CardContent>
           <Box
             sx={{
-              border: '2px dashed',
-              borderColor: 'primary.main',
+              border: "2px dashed",
+              borderColor: "primary.main",
               borderRadius: 2,
               p: 4,
-              textAlign: 'center',
-              bgcolor: 'background.default',
-              cursor: 'pointer',
-              transition: 'all 0.3s',
-              '&:hover': {
-                bgcolor: 'action.hover',
+              textAlign: "center",
+              bgcolor: "background.default",
+              cursor: "pointer",
+              transition: "all 0.3s",
+              "&:hover": {
+                bgcolor: "action.hover",
               },
             }}
-            onClick={() => document.getElementById('file-input')?.click()}
+            onClick={() => document.getElementById("file-input")?.click()}
           >
-            <CloudUploadIcon sx={{ fontSize: 64, color: 'primary.main', mb: 2 }} />
+            <CloudUploadIcon
+              sx={{ fontSize: 64, color: "primary.main", mb: 2 }}
+            />
             <Typography variant="h6" sx={{ mb: 1 }}>
-              {selectedFile ? selectedFile.name : 'Click to select file or drag and drop'}
+              {selectedFile ? selectedFile.name : t("import.clickToSelect")}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Supported formats: .xlsx, .xls
+              {t("import.supportedFormats")}
             </Typography>
             <input
               id="file-input"
               type="file"
               accept=".xlsx,.xls"
-              style={{ display: 'none' }}
+              style={{ display: "none" }}
               onChange={handleFileSelect}
             />
           </Box>
 
           {selectedFile && (
-            <Box sx={{ mt: 3, display: 'flex', gap: 2, alignItems: 'center' }}>
+            <Box sx={{ mt: 3, display: "flex", gap: 2, alignItems: "center" }}>
               <Chip
                 icon={<FileIcon />}
                 label={`${selectedFile.name} (${(selectedFile.size / 1024).toFixed(1)} KB)`}
@@ -151,7 +163,7 @@ export default function DataImport() {
                 disabled={uploading}
                 startIcon={<CloudUploadIcon />}
               >
-                Upload
+                {t("import.upload")}
               </Button>
             </Box>
           )}
@@ -159,8 +171,12 @@ export default function DataImport() {
           {uploading && (
             <Box sx={{ mt: 3 }}>
               <LinearProgress variant="determinate" value={uploadProgress} />
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                Uploading... {uploadProgress}%
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 1, display: "block" }}
+              >
+                {t("import.uploading")} {uploadProgress}%
               </Typography>
             </Box>
           )}
@@ -171,7 +187,7 @@ export default function DataImport() {
       <Card>
         <CardContent>
           <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            Upload Instructions
+            {t("import.instructions")}
           </Typography>
           <List>
             <ListItem>
@@ -179,8 +195,8 @@ export default function DataImport() {
                 <CheckCircleIcon color="success" />
               </ListItemIcon>
               <ListItemText
-                primary="Excel Format"
-                secondary="Ensure your Excel file contains proper column headers"
+                primary={t("import.excelFormat")}
+                secondary={t("import.excelFormatDesc")}
               />
             </ListItem>
             <ListItem>
@@ -188,8 +204,8 @@ export default function DataImport() {
                 <CheckCircleIcon color="success" />
               </ListItemIcon>
               <ListItemText
-                primary="Data Structure"
-                secondary="The system will automatically detect sales, customer, and distributor data"
+                primary={t("import.dataStructure")}
+                secondary={t("import.dataStructureDesc")}
               />
             </ListItem>
             <ListItem>
@@ -197,8 +213,8 @@ export default function DataImport() {
                 <CheckCircleIcon color="success" />
               </ListItemIcon>
               <ListItemText
-                primary="File Size"
-                secondary="Maximum file size is 10MB"
+                primary={t("import.fileSize")}
+                secondary={t("import.fileSizeDesc")}
               />
             </ListItem>
             <ListItem>
@@ -206,8 +222,8 @@ export default function DataImport() {
                 <CheckCircleIcon color="success" />
               </ListItemIcon>
               <ListItemText
-                primary="Processing"
-                secondary="After upload, data will be processed and imported automatically"
+                primary={t("import.processing")}
+                secondary={t("import.processingDesc")}
               />
             </ListItem>
           </List>

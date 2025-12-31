@@ -18,6 +18,8 @@ import {
   Avatar,
   Tooltip,
   Badge,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -34,7 +36,12 @@ import {
   Notifications,
   Settings,
   AccountCircle,
+  Language as LanguageIcon,
 } from "@mui/icons-material";
+import { useTranslation } from "../hooks/useTranslation";
+import { useLanguageStore } from "../store/languageStore";
+import type { Language } from "../i18n/i18n";
+import { languages } from "../i18n/i18n";
 
 const drawerWidth = 260;
 
@@ -46,7 +53,7 @@ interface LayoutProps {
 
 interface NavItem {
   id: string;
-  label: string;
+  labelKey: string;
   icon: React.ReactElement;
   path: string;
   badge?: number;
@@ -55,49 +62,49 @@ interface NavItem {
 const navigationItems: NavItem[] = [
   {
     id: "dashboard",
-    label: "Dashboard",
+    labelKey: "nav.dashboard",
     icon: <DashboardIcon />,
     path: "/dashboard",
   },
   {
     id: "customers",
-    label: "Customers",
+    labelKey: "nav.customers",
     icon: <PeopleIcon />,
     path: "/customers",
   },
   {
     id: "sales",
-    label: "Sales",
+    labelKey: "nav.sales",
     icon: <ShoppingCartIcon />,
     path: "/sales",
   },
   {
     id: "payments",
-    label: "Payments",
+    labelKey: "nav.payments",
     icon: <PaymentIcon />,
     path: "/payments",
   },
   {
     id: "demos",
-    label: "Demos",
+    labelKey: "nav.demos",
     icon: <ScienceIcon />,
     path: "/demos",
   },
   {
     id: "distributors",
-    label: "Distributors",
+    labelKey: "nav.distributors",
     icon: <GroupIcon />,
     path: "/distributors",
   },
   {
     id: "reports",
-    label: "Reports",
+    labelKey: "nav.reports",
     icon: <AssessmentIcon />,
     path: "/reports",
   },
   {
     id: "import",
-    label: "Data Import",
+    labelKey: "nav.import",
     icon: <CloudUploadIcon />,
     path: "/import",
   },
@@ -113,6 +120,11 @@ export default function Layout({
   const location = useLocation();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [languageAnchorEl, setLanguageAnchorEl] = useState<null | HTMLElement>(
+    null,
+  );
+  const { t } = useTranslation();
+  const { language, setLanguage } = useLanguageStore();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -123,6 +135,19 @@ export default function Layout({
     if (isMobile) {
       setMobileOpen(false);
     }
+  };
+
+  const handleLanguageMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setLanguageAnchorEl(event.currentTarget);
+  };
+
+  const handleLanguageMenuClose = () => {
+    setLanguageAnchorEl(null);
+  };
+
+  const handleLanguageChange = (lang: Language) => {
+    setLanguage(lang);
+    handleLanguageMenuClose();
   };
 
   const isActive = (path: string) => location.pathname === path;
@@ -151,13 +176,13 @@ export default function Layout({
         />
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-            Sales
+            {t("common.salesManagementSystem").split(" ")[0]}
           </Typography>
           <Typography
             variant="body2"
             sx={{ opacity: 0.9, fontSize: "0.85rem" }}
           >
-            Management System
+            {t("common.salesManagementSystem").split(" ").slice(1).join(" ")}
           </Typography>
         </Box>
       </Box>
@@ -205,7 +230,7 @@ export default function Layout({
                   )}
                 </ListItemIcon>
                 <ListItemText
-                  primary={item.label}
+                  primary={t(item.labelKey)}
                   primaryTypographyProps={{
                     fontWeight: active ? 600 : 500,
                     fontSize: "0.95rem",
@@ -222,10 +247,10 @@ export default function Layout({
       {/* Footer */}
       <Box sx={{ p: 2, textAlign: "center" }}>
         <Typography variant="caption" color="text.secondary">
-          Version 1.0.0
+          {t("common.version")} 1.0.0
         </Typography>
         <Typography variant="caption" display="block" color="text.secondary">
-          © 2025 Sales Management
+          {t("common.copyright")}
         </Typography>
       </Box>
     </Box>
@@ -263,18 +288,46 @@ export default function Layout({
             sx={{ flexGrow: 1, fontWeight: 600 }}
           >
             {navigationItems.find((item) => item.path === location.pathname)
-              ?.label || "Dashboard"}
+              ? t(
+                  navigationItems.find(
+                    (item) => item.path === location.pathname,
+                  )?.labelKey || "nav.dashboard",
+                )
+              : t("nav.dashboard")}
           </Typography>
 
           {/* Actions */}
           <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-            <Tooltip title="Toggle theme">
+            {/* Language Switcher */}
+            <Tooltip title={t("layout.changeLanguage")}>
+              <IconButton onClick={handleLanguageMenuOpen} color="inherit">
+                <LanguageIcon />
+              </IconButton>
+            </Tooltip>
+
+            <Menu
+              anchorEl={languageAnchorEl}
+              open={Boolean(languageAnchorEl)}
+              onClose={handleLanguageMenuClose}
+            >
+              {(Object.keys(languages) as Language[]).map((lang) => (
+                <MenuItem
+                  key={lang}
+                  onClick={() => handleLanguageChange(lang)}
+                  selected={language === lang}
+                >
+                  {languages[lang]}
+                </MenuItem>
+              ))}
+            </Menu>
+
+            <Tooltip title={t("layout.toggleTheme")}>
               <IconButton onClick={toggleTheme} color="inherit">
                 {themeMode === "dark" ? <Brightness7 /> : <Brightness4 />}
               </IconButton>
             </Tooltip>
 
-            <Tooltip title="Notifications">
+            <Tooltip title={t("layout.notifications")}>
               <IconButton color="inherit">
                 <Badge badgeContent={3} color="error">
                   <Notifications />
@@ -282,13 +335,13 @@ export default function Layout({
               </IconButton>
             </Tooltip>
 
-            <Tooltip title="Settings">
+            <Tooltip title={t("layout.settings")}>
               <IconButton color="inherit">
                 <Settings />
               </IconButton>
             </Tooltip>
 
-            <Tooltip title="Profile">
+            <Tooltip title={t("layout.profile")}>
               <IconButton color="inherit">
                 <AccountCircle />
               </IconButton>

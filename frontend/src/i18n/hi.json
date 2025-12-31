@@ -1,0 +1,285 @@
+{
+  "nav": {
+    "dashboard": "डैशबोर्ड",
+    "customers": "ग्राहक",
+    "sales": "बिक्रय",
+    "payments": "भुगतान",
+    "demos": "प्रदर्शन",
+    "distributors": "वितरक",
+    "reports": "रिपोर्ट",
+    "import": "डेटा आयात"
+  },
+  "common": {
+    "add": "जोड़ें",
+    "edit": "संपादित करें",
+    "delete": "हटाएं",
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "search": "खोजें",
+    "refresh": "रीफ्रेश करें",
+    "loading": "लोड हो रहा है...",
+    "error": "त्रुटि",
+    "success": "सफल",
+    "confirm": "पुष्टि करें",
+    "close": "बंद करें",
+    "submit": "जमा करें",
+    "name": "नाम",
+    "email": "ईमेल",
+    "phone": "फोन",
+    "mobile": "मोबाइल",
+    "address": "पता",
+    "status": "स्थिति",
+    "actions": "कार्रवाई",
+    "createdAt": "पर बनाया गया",
+    "updatedAt": "पर अपडेट किया गया",
+    "noData": "कोई डेटा उपलब्ध नहीं",
+    "version": "संस्करण",
+    "copyright": "© 2025 बिक्रय प्रबंधन",
+    "salesManagementSystem": "बिक्रय प्रबंधन प्रणाली"
+  },
+  "layout": {
+    "toggleTheme": "थीम टॉगल करें",
+    "notifications": "सूचनाएं",
+    "settings": "सेटिंग्स",
+    "profile": "प्रोफ़ाइल",
+    "changeLanguage": "भाषा बदलें"
+  },
+
+  "dashboard": {
+    "title": "डैशबोर्ड",
+
+    "welcomeBack": "वापसी पर स्वागत है!",
+    "subtitle": "आज आपकी बिक्री में क्या हो रहा है",
+
+    "quickActions": {
+      "addCustomer": {
+        "title": "ग्राहक जोड़ें",
+        "subtitle": "नया ग्राहक पंजीकृत करें"
+      },
+      "newSale": {
+        "title": "नई बिक्रय",
+        "subtitle": "चालान बनाएँ"
+      },
+      "scheduleDemo": {
+        "title": "प्रदर्शन शेड्यूल करें",
+        "subtitle": "उत्पाद प्रदर्शन बुक करें"
+      },
+      "recordPayment": {
+        "title": "भुगतान दर्ज करें",
+        "subtitle": "भुगतान प्राप्त करें"
+      }
+    },
+
+    "totalSales": "कुल बिक्रय",
+
+    "totalCustomers": "कुल ग्राहक",
+
+    "totalPayments": "कुल भुगतान",
+
+    "pendingPayments": "लंबित भुगतान",
+    "pendingDemos": "लंबित प्रदर्शन",
+
+    "activeCustomers": "सक्रिय ग्राहक",
+    "transactions": "लेन-देन",
+    "outstandingAmount": "बकाया राशि",
+
+    "revenue": "राजस्व",
+
+    "orders": "आदेश",
+
+    "customers": "ग्राहक",
+
+    "growth": "वृद्धि",
+
+    "salesTrend": "बिक्रय प्रवृत्ति",
+
+    "salesTrendLast30Days": "बिक्रय प्रवृत्ति (पिछले 30 दिन)",
+    "recentSales": "हाल की बिक्रय",
+
+    "upcomingDemos": "आने वाले प्रदर्शन",
+
+    "paymentStatus": "भुगतान स्थिति",
+
+    "demoConversion": "प्रदर्शन रूपांतरण",
+    "conversionRate": "रूपांतरण दर",
+    "paid": "भुगतान किया गया",
+
+    "pending": "लंबित",
+
+    "overview": "अवलोकन",
+
+    "amount": "राशि",
+
+    "date": "तारीख",
+
+    "noRecentSales": "हाल की कोई बिक्रय नहीं मिली",
+    "noUpcomingDemos": "कोई आगामी प्रदर्शन निर्धारित नहीं",
+    "scheduleDemoCta": "प्रदर्शन शेड्यूल करें"
+  },
+
+  "customers": {
+    "title": "ग्राहक",
+    "addCustomer": "ग्राहक जोड़ें",
+    "editCustomer": "ग्राहक संपादित करें",
+    "deleteCustomer": "ग्राहक हटाएं",
+    "customerName": "ग्राहक का नाम",
+    "mobile": "मोबाइल",
+    "village": "गांव",
+    "taluka": "तहसील",
+    "district": "जिला",
+    "status": "स्थिति",
+    "active": "सक्रिय",
+    "inactive": "निष्क्रिय",
+    "confirmDelete": "क्या आप इस ग्राहक को हटाना चाहते हैं?",
+    "deletedSuccessfully": "ग्राहक सफलतापूर्वक हटा दिया गया",
+    "savedSuccessfully": "ग्राहक सफलतापूर्वक सहेजा गया",
+    "deleteError": "ग्राहक को हटाने में विफल",
+    "noCustomers": "कोई ग्राहक नहीं मिला"
+  },
+  "sales": {
+    "title": "बिक्रय",
+    "addSale": "बिक्रय जोड़ें",
+    "editSale": "बिक्रय संपादित करें",
+    "deleteSale": "बिक्रय हटाएं",
+    "customerName": "ग्राहक का नाम",
+    "amount": "राशि",
+    "quantity": "मात्रा",
+    "date": "तारीख",
+    "status": "स्थिति",
+    "pending": "लंबित",
+    "completed": "पूर्ण",
+    "cancelled": "रद्द",
+    "confirmDelete": "क्या आप इस बिक्रय को हटाना चाहते हैं?",
+    "deletedSuccessfully": "बिक्रय सफलतापूर्वक हटा दी गई",
+    "savedSuccessfully": "बिक्रय सफलतापूर्वक सहेजी गई",
+    "deleteError": "बिक्रय को हटाने में विफल",
+    "noSales": "कोई बिक्रय नहीं मिली"
+  },
+  "payments": {
+    "title": "भुगतान",
+    "addPayment": "भुगतान जोड़ें",
+    "editPayment": "भुगतान संपादित करें",
+    "deletePayment": "भुगतान हटाएं",
+    "customerName": "ग्राहक का नाम",
+    "amount": "राशि",
+    "date": "तारीख",
+    "method": "भुगतान विधि",
+    "status": "स्थिति",
+    "pending": "लंबित",
+    "completed": "पूर्ण",
+    "failed": "विफल",
+    "confirmDelete": "क्या आप इस भुगतान को हटाना चाहते हैं?",
+    "deletedSuccessfully": "भुगतान सफलतापूर्वक हटा दिया गया",
+    "savedSuccessfully": "भुगतान सफलतापूर्वक सहेजा गया",
+    "deleteError": "भुगतान को हटाने में विफल",
+    "noPayments": "कोई भुगतान नहीं मिला"
+  },
+  "demos": {
+    "title": "प्रदर्शन",
+    "addDemo": "प्रदर्शन जोड़ें",
+    "editDemo": "प्रदर्शन संपादित करें",
+    "deleteDemo": "प्रदर्शन हटाएं",
+    "customerName": "ग्राहक का नाम",
+    "date": "तारीख",
+    "time": "समय",
+    "status": "स्थिति",
+    "pending": "लंबित",
+    "completed": "पूर्ण",
+    "cancelled": "रद्द",
+    "notes": "नोट्स",
+    "confirmDelete": "क्या आप इस प्रदर्शन को हटाना चाहते हैं?",
+    "deletedSuccessfully": "प्रदर्शन सफलतापूर्वक हटा दिया गया",
+    "savedSuccessfully": "प्रदर्शन सफलतापूर्वक सहेजा गया",
+    "deleteError": "प्रदर्शन को हटाने में विफल",
+    "noDemos": "कोई प्रदर्शन नहीं मिला"
+  },
+  "distributors": {
+    "title": "वितरक",
+    "addDistributor": "वितरक जोड़ें",
+    "editDistributor": "वितरक संपादित करें",
+    "deleteDistributor": "वितरक हटाएं",
+    "distributorName": "वितरक का नाम",
+    "contactPerson": "संपर्क व्यक्ति",
+    "mobile": "मोबाइल",
+    "area": "क्षेत्र",
+    "status": "स्थिति",
+    "active": "सक्रिय",
+    "inactive": "निष्क्रिय",
+    "confirmDelete": "क्या आप इस वितरक को हटाना चाहते हैं?",
+    "deletedSuccessfully": "वितरक सफलतापूर्वक हटा दिया गया",
+    "savedSuccessfully": "वितरक सफलतापूर्वक सहेजा गया",
+    "deleteError": "वितरक को हटाने में विफल",
+    "noDistributors": "कोई वितरक नहीं मिला"
+  },
+  "reports": {
+    "title": "रिपोर्ट",
+    "generateReport": "रिपोर्ट जनरेट करें",
+    "salesReport": "बिक्रय रिपोर्ट",
+    "customerReport": "ग्राहक रिपोर्ट",
+    "paymentReport": "भुगतान रिपोर्ट",
+    "dateRange": "तारीख की सीमा",
+    "from": "से",
+    "to": "तक",
+    "export": "निर्यात करें",
+    "print": "प्रिंट करें",
+    "noReports": "कोई रिपोर्ट उपलब्ध नहीं"
+  },
+  "import": {
+    "title": "डेटा आयात",
+    "subtitle": "सिस्टम में डेटा आयात करने के लिए Excel फाइलें अपलोड करें",
+    "importData": "डेटा आयात करें",
+    "selectFile": "फाइल चुनें",
+    "clickToSelect": "फाइल चुनने के लिए क्लिक करें या ड्रैग और ड्रॉप करें",
+    "supportedFormats": "समर्थित प्रारूप: .xlsx, .xls",
+    "importType": "आयात प्रकार",
+    "customers": "ग्राहक",
+    "sales": "बिक्रय",
+    "payments": "भुगतान",
+    "distributors": "वितरक",
+    "upload": "अपलोड करें",
+    "uploading": "अपलोड हो रहा है...",
+    "uploadSuccess": "डेटा सफलतापूर्वक आयात किया गया",
+    "uploadError": "डेटा आयात करने में विफल",
+    "selectFileError": "कृपया एक फाइल चुनें",
+    "invalidFileType": "कृपया एक Excel फाइल (.xlsx या .xls) चुनें",
+    "fileUploaded": "फाइल सफलतापूर्वक अपलोड की गई",
+    "instructions": "अपलोड निर्देश",
+    "excelFormat": "Excel प्रारूप",
+    "excelFormatDesc": "सुनिश्चित करें कि आपकी Excel फाइल में उचित कॉलम हेडर हैं",
+    "dataStructure": "डेटा संरचना",
+    "dataStructureDesc": "सिस्टम स्वचालित रूप से बिक्रय, ग्राहक और वितरक डेटा का पता लगाएगा",
+    "fileSize": "फाइल आकार",
+    "fileSizeDesc": "अधिकतम फाइल आकार 10MB है",
+    "processing": "प्रसंस्करण",
+    "processingDesc": "अपलोड के बाद, डेटा स्वचालित रूप से संसाधित और आयात किया जाएगा"
+  },
+  "messages": {
+    "loading": "लोड हो रहा है...",
+    "success": "ऑपरेशन सफल",
+    "error": "एक त्रुटि हुई",
+    "confirmAction": "क्या आप सुनिश्चित हैं?",
+    "required": "यह फील्ड आवश्यक है",
+    "invalidEmail": "अमान्य ईमेल पता",
+    "invalidPhone": "अमान्य फोन नंबर"
+  },
+  "fields": {
+    "id": "आईडी",
+    "name": "नाम",
+    "email": "ईमेल",
+    "phone": "फोन",
+    "mobile": "मोबाइल",
+    "address": "पता",
+    "village": "गांव",
+    "taluka": "तहसील",
+    "district": "जिला",
+    "amount": "राशि",
+    "quantity": "मात्रा",
+    "date": "तारीख",
+    "time": "समय",
+    "status": "स्थिति",
+    "notes": "नोट्स",
+    "contactPerson": "संपर्क व्यक्ति",
+    "area": "क्षेत्र",
+    "description": "विवरण"
+  }
+}

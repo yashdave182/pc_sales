@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -17,7 +17,7 @@ import {
   InputAdornment,
   Grid,
   MenuItem,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -27,28 +27,31 @@ import {
   LocationOn as LocationOnIcon,
   Refresh as RefreshIcon,
   Group as GroupIcon,
-} from '@mui/icons-material';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { distributorAPI } from '../services/api';
-import type { Distributor } from '../types';
+} from "@mui/icons-material";
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { distributorAPI } from "../services/api";
+import type { Distributor } from "../types";
+import { useTranslation } from "../hooks/useTranslation";
 
 export default function Distributors() {
+  const { t, tf } = useTranslation();
   const [distributors, setDistributors] = useState<Distributor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingDistributor, setEditingDistributor] = useState<Distributor | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [editingDistributor, setEditingDistributor] =
+    useState<Distributor | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState<Partial<Distributor>>({
-    name: '',
-    village: '',
-    taluka: '',
-    district: '',
-    mantri_name: '',
-    mantri_mobile: '',
+    name: "",
+    village: "",
+    taluka: "",
+    district: "",
+    mantri_name: "",
+    mantri_mobile: "",
     sabhasad_count: 0,
     contact_in_group: 0,
-    status: 'Active',
+    status: "Active",
   });
 
   useEffect(() => {
@@ -62,8 +65,12 @@ export default function Distributors() {
       const data = await distributorAPI.getAll({ limit: 1000 });
       setDistributors(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load distributors');
-      console.error('Error loading distributors:', err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : t("distributors.loadError", "Failed to load distributors"),
+      );
+      console.error("Error loading distributors:", err);
     } finally {
       setLoading(false);
     }
@@ -76,15 +83,15 @@ export default function Distributors() {
     } else {
       setEditingDistributor(null);
       setFormData({
-        name: '',
-        village: '',
-        taluka: '',
-        district: '',
-        mantri_name: '',
-        mantri_mobile: '',
+        name: "",
+        village: "",
+        taluka: "",
+        district: "",
+        mantri_name: "",
+        mantri_mobile: "",
         sabhasad_count: 0,
         contact_in_group: 0,
-        status: 'Active',
+        status: "Active",
       });
     }
     setOpenDialog(true);
@@ -98,7 +105,7 @@ export default function Distributors() {
   const handleSubmit = async () => {
     try {
       if (!formData.name || !formData.mantri_name) {
-        setError('Name and Mantri Name are required');
+        setError("Name and Mantri Name are required");
         return;
       }
 
@@ -107,15 +114,19 @@ export default function Distributors() {
       loadDistributors();
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save distributor');
-      console.error('Error saving distributor:', err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : t("distributors.saveError", "Failed to save distributor"),
+      );
+      console.error("Error saving distributor:", err);
     }
   };
 
   const columns: GridColDef[] = [
     {
-      field: 'name',
-      headerName: 'Distributor Name',
+      field: "name",
+      headerName: t("distributors.distributorName"),
       flex: 1,
       minWidth: 200,
       renderCell: (params) => (
@@ -125,63 +136,67 @@ export default function Distributors() {
       ),
     },
     {
-      field: 'village',
-      headerName: 'Village',
+      field: "village",
+      headerName: tf("village"),
       width: 150,
       renderCell: (params) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <LocationOnIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-          <Typography variant="body2">{params.value || 'N/A'}</Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <LocationOnIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+          <Typography variant="body2">{params.value || "N/A"}</Typography>
         </Box>
       ),
     },
     {
-      field: 'mantri_name',
-      headerName: 'Mantri Name',
+      field: "mantri_name",
+      headerName: t("distributors.mantriName", "Mantri Name"),
       width: 180,
     },
     {
-      field: 'mantri_mobile',
-      headerName: 'Mantri Mobile',
+      field: "mantri_mobile",
+      headerName: "Mantri Mobile",
       width: 150,
       renderCell: (params) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <PhoneIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-          <Typography variant="body2">{params.value || 'N/A'}</Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <PhoneIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+          <Typography variant="body2">{params.value || "N/A"}</Typography>
         </Box>
       ),
     },
     {
-      field: 'sabhasad_count',
-      headerName: 'Sabhasad Count',
+      field: "sabhasad_count",
+      headerName: t("distributors.sabhasadCount", "Sabhasad Count"),
       width: 140,
       renderCell: (params) => (
         <Chip label={params.value || 0} size="small" color="primary" />
       ),
     },
     {
-      field: 'contact_in_group',
-      headerName: 'In Group',
+      field: "contact_in_group",
+      headerName: "In Group",
       width: 120,
       renderCell: (params) => (
         <Chip label={params.value || 0} size="small" color="secondary" />
       ),
     },
     {
-      field: 'status',
-      headerName: 'Status',
+      field: "status",
+      headerName: tf("status"),
       width: 100,
       renderCell: (params) => (
         <Chip
-          label={params.value}
+          label={
+            params.value === "Active"
+              ? t("distributors.active")
+              : t("distributors.inactive")
+          }
           size="small"
-          color={params.value === 'Active' ? 'success' : 'default'}
+          color={params.value === "Active" ? "success" : "default"}
         />
       ),
     },
     {
-      field: 'actions',
-      headerName: 'Actions',
+      field: "actions",
+      headerName: t("common.actions"),
       width: 120,
       sortable: false,
       renderCell: (params) => (
@@ -200,8 +215,8 @@ export default function Distributors() {
 
   const filteredDistributors = distributors.filter((distributor) =>
     Object.values(distributor).some((value) =>
-      value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-    )
+      value?.toString().toLowerCase().includes(searchTerm.toLowerCase()),
+    ),
   );
 
   return (
@@ -209,11 +224,11 @@ export default function Distributors() {
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-          <GroupIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-          Distributor Management
+          <GroupIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+          {t("distributors.title")}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Manage distributors and their performance
+          {t("distributors.subtitle", "Manage your distributor network")}
         </Typography>
       </Box>
 
@@ -226,9 +241,16 @@ export default function Distributors() {
       {/* Actions Bar */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
             <TextField
-              placeholder="Search distributors..."
+              placeholder={t("common.search")}
               size="small"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -246,7 +268,7 @@ export default function Distributors() {
               startIcon={<AddIcon />}
               onClick={() => handleOpenDialog()}
             >
-              Add Distributor
+              {t("distributors.addDistributor")}
             </Button>
             <IconButton onClick={loadDistributors} color="primary">
               <RefreshIcon />
@@ -258,14 +280,14 @@ export default function Distributors() {
       {/* Data Grid */}
       <Card>
         <CardContent>
-          <Box sx={{ height: 600, width: '100%' }}>
+          <Box sx={{ height: 600, width: "100%" }}>
             {loading ? (
               <Box
                 sx={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  height: '100%',
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  height: "100%",
                 }}
               >
                 <CircularProgress />
@@ -289,71 +311,81 @@ export default function Distributors() {
       </Card>
 
       {/* Add/Edit Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+      <Dialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>
-          {editingDistributor ? 'Edit Distributor' : 'Add New Distributor'}
+          {editingDistributor
+            ? t("distributors.editDistributor")
+            : t("distributors.addDistributor")}
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Distributor Name *"
+                label={`${t("distributors.distributorName")} *`}
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Mantri Name *"
+                label={t("distributors.mantriName", "Mantri Name")}
                 value={formData.mantri_name}
-                onChange={(e) => setFormData({ ...formData, mantri_name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, mantri_name: e.target.value })
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Mantri Mobile"
+                label={t("distributors.mantriMobile", "Mantri Mobile")}
                 value={formData.mantri_mobile}
-                onChange={(e) => setFormData({ ...formData, mantri_mobile: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, mantri_mobile: e.target.value })
+                }
                 InputProps={{
-                  startAdornment: <InputAdornment position="start">+91</InputAdornment>,
+                  startAdornment: (
+                    <InputAdornment position="start">+91</InputAdornment>
+                  ),
                 }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Village"
+                label={tf("village")}
                 value={formData.village}
-                onChange={(e) => setFormData({ ...formData, village: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Taluka"
-                value={formData.taluka}
-                onChange={(e) => setFormData({ ...formData, taluka: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="District"
-                value={formData.district}
-                onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Sabhasad Count"
-                value={formData.sabhasad_count}
                 onChange={(e) =>
-                  setFormData({ ...formData, sabhasad_count: Number(e.target.value) })
+                  setFormData({ ...formData, village: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label={tf("taluka")}
+                value={formData.taluka}
+                onChange={(e) =>
+                  setFormData({ ...formData, taluka: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label={tf("district")}
+                value={formData.district}
+                onChange={(e) =>
+                  setFormData({ ...formData, district: e.target.value })
                 }
               />
             </Grid>
@@ -361,10 +393,27 @@ export default function Distributors() {
               <TextField
                 fullWidth
                 type="number"
-                label="Contact in Group"
+                label={t("distributors.sabhasadCount", "Sabhasad Count")}
+                value={formData.sabhasad_count}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    sabhasad_count: Number(e.target.value),
+                  })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                fullWidth
+                type="number"
+                label={t("distributors.contactInGroup", "Contact in Group")}
                 value={formData.contact_in_group}
                 onChange={(e) =>
-                  setFormData({ ...formData, contact_in_group: Number(e.target.value) })
+                  setFormData({
+                    ...formData,
+                    contact_in_group: Number(e.target.value),
+                  })
                 }
               />
             </Grid>
@@ -372,20 +421,24 @@ export default function Distributors() {
               <TextField
                 fullWidth
                 select
-                label="Status"
+                label={tf("status")}
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, status: e.target.value })
+                }
               >
-                <MenuItem value="Active">Active</MenuItem>
-                <MenuItem value="Inactive">Inactive</MenuItem>
+                <MenuItem value="Active">{t("distributors.active")}</MenuItem>
+                <MenuItem value="Inactive">
+                  {t("distributors.inactive")}
+                </MenuItem>
               </TextField>
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
+          <Button onClick={handleCloseDialog}>{t("common.cancel")}</Button>
           <Button onClick={handleSubmit} variant="contained">
-            {editingDistributor ? 'Update' : 'Create'}
+            {t("common.save")}
           </Button>
         </DialogActions>
       </Dialog>

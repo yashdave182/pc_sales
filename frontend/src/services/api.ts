@@ -1,440 +1,291 @@
-// API Service for Sales Management System
-import axios, { AxiosInstance, AxiosError } from 'axios';
-import type {
-  Customer,
-  Product,
-  Sale,
-  SaleCreate,
-  SaleDetails,
-  Payment,
-  Demo,
-  Distributor,
-  DashboardMetrics,
-  SalesTrendData,
-  RecentSale,
-  UpcomingDemo,
-  PendingPayment,
-  ProductPerformance,
-  PaymentDistribution,
-  DemoConversionStats,
-  SalesSummary,
-  CustomerSummary,
-  ApiResponse,
-  PaginationParams,
-  FileUpload,
-  UploadResponse,
-} from '../types';
+import axios, { AxiosError } from "axios";
 
-// API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// Resolve API base URL with multiple fallbacks and optional window override
+const resolveApiBaseUrl = (): string => {
+  // 1) Runtime override from window (if provided via script tag or inline config)
+  const windowOverride =
+    typeof window !== "undefined"
+      ? (window as any).__API_BASE_URL__
+      : undefined;
 
-// Create axios instance
-const apiClient: AxiosInstance = axios.create({
+  // 2) Vite env vars (support both names)
+  const envBase =
+    (import.meta as any)?.env?.VITE_API_BASE_URL ||
+    (import.meta as any)?.env?.VITE_API_URL;
+
+  // 3) Default fallback
+  const fallback = "https://pc-sales-8phu.onrender.com";
+
+  const chosen = (windowOverride || envBase || fallback) as string;
+
+  // Normalize trailing slashes
+  return chosen.replace(/\/+$/, "");
+};
+
+// Create axios instance with base configuration
+const API_BASE_URL = resolveApiBaseUrl();
+
+// Log the chosen API base URL once at startup (useful for debugging mismatches)
+if (typeof console !== "undefined") {
+  // eslint-disable-next-line no-console
+  console.info(`[API] Using base URL: ${API_BASE_URL}`);
+}
+
+const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,
+
+  timeout: 30000, // 30 second timeout
+
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
-// Request interceptor
-apiClient.interceptors.request.use(
-  (config) => {
-    // Add any auth tokens here if needed
-    // const token = localStorage.getItem('token');
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Response interceptor
+// Add request interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    // Handle errors globally
-    if (error.response?.status === 401) {
-      // Handle unauthorized access
-      console.error('Unauthorized access');
-    } else if (error.response?.status === 500) {
-      console.error('Server error');
+    if (error.code === "ECONNABORTED" || error.message.includes("timeout")) {
+      const timeoutError = new Error(
+        "Request timeout - Server may be starting up",
+      );
+      (timeoutError as any).isTimeout = true;
+      (timeoutError as any).status = 3000;
+      throw timeoutError;
     }
-    return Promise.reject(error);
-  }
+
+    if (!error.response) {
+      const networkError = new Error("Network error - Unable to reach server");
+      (networkError as any).isNetworkError = true;
+      throw networkError;
+    }
+
+    throw error;
+  },
 );
 
-// Error handler
-const handleError = (error: any): never => {
-  if (axios.isAxiosError(error)) {
-    const message = error.response?.data?.detail || error.message || 'An error occurred';
-    throw new Error(message);
-  }
-  throw error;
-};
-
-// ==================== Dashboard APIs ====================
-
+// Dashboard API
 export const dashboardAPI = {
-  getMetrics: async (): Promise<DashboardMetrics> => {
-    try {
-      const response = await apiClient.get<DashboardMetrics>('/api/dashboard/metrics');
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  getMetrics: async () => {
+    const response = await apiClient.get("/api/dashboard/metrics");
+    return response.data;
+  },
+  getRecentSales: async (limit?: number) => {
+    const response = await apiClient.get("/api/dashboard/recent-sales", {
+      params: limit ? { limit } : undefined,
+    });
+    return response.data;
+  },
+  getTopProducts: async () => {
+    const response = await apiClient.get("/api/dashboard/top-products");
+    return response.data;
+  },
+  getTopCustomers: async () => {
+    const response = await apiClient.get("/api/dashboard/top-customers");
+    return response.data;
+  },
+  getSalesChart: async (period: string = "7d") => {
+    const response = await apiClient.get(
+      `/api/dashboard/sales-chart?period=${period}`,
+    );
+    return response.data;
   },
 
-  getSalesTrend: async (days: number = 30): Promise<SalesTrendData[]> => {
-    try {
-      const response = await apiClient.get<SalesTrendData[]>('/api/dashboard/sales-trend', {
-        params: { days },
-      });
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  getSalesTrend: async (days?: number) => {
+    const response = await apiClient.get("/api/dashboard/sales-trend", {
+      params: days ? { days } : undefined,
+    });
+    return response.data;
   },
 
-  getRecentSales: async (limit: number = 10): Promise<RecentSale[]> => {
-    try {
-      const response = await apiClient.get<RecentSale[]>('/api/dashboard/recent-sales', {
-        params: { limit },
-      });
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
-  },
+  getUpcomingDemos: async (limit?: number) => {
+    const response = await apiClient.get("/api/dashboard/upcoming-demos", {
+      params: limit ? { limit } : undefined,
+    });
 
-  getUpcomingDemos: async (limit: number = 10): Promise<UpcomingDemo[]> => {
-    try {
-      const response = await apiClient.get<UpcomingDemo[]>('/api/dashboard/upcoming-demos', {
-        params: { limit },
-      });
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+    return response.data;
   },
 };
 
-// ==================== Customer APIs ====================
-
+// Customer API
 export const customerAPI = {
-  getAll: async (params?: PaginationParams): Promise<ApiResponse<Customer[]>> => {
-    try {
-      const response = await apiClient.get<ApiResponse<Customer[]>>('/api/customers', { params });
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  getAll: async (params?: any) => {
+    const response = await apiClient.get("/api/customers", { params });
+    return response.data;
   },
-
-  getById: async (id: number): Promise<Customer> => {
-    try {
-      const response = await apiClient.get<Customer>(`/api/customers/${id}`);
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  getById: async (id: number) => {
+    const response = await apiClient.get(`/api/customers/${id}`);
+    return response.data;
   },
-
-  create: async (customer: Customer): Promise<ApiResponse<Customer>> => {
-    try {
-      const response = await apiClient.post<ApiResponse<Customer>>('/api/customers', customer);
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  create: async (data: any) => {
+    const response = await apiClient.post("/api/customers", data);
+    return response.data;
   },
-
-  update: async (id: number, customer: Customer): Promise<ApiResponse<Customer>> => {
-    try {
-      const response = await apiClient.put<ApiResponse<Customer>>(
-        `/api/customers/${id}`,
-        customer
-      );
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  update: async (id: number, data: any) => {
+    const response = await apiClient.put(`/api/customers/${id}`, data);
+    return response.data;
   },
-
-  delete: async (id: number): Promise<ApiResponse<void>> => {
-    try {
-      const response = await apiClient.delete<ApiResponse<void>>(`/api/customers/${id}`);
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  delete: async (id: number) => {
+    const response = await apiClient.delete(`/api/customers/${id}`);
+    return response.data;
   },
 };
 
-// ==================== Product APIs ====================
-
+// Product API
 export const productAPI = {
-  getAll: async (): Promise<Product[]> => {
-    try {
-      const response = await apiClient.get<Product[]>('/api/products');
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  getAll: async (params?: any) => {
+    const response = await apiClient.get("/api/products", { params });
+    return response.data;
   },
-
-  create: async (product: Product): Promise<ApiResponse<Product>> => {
-    try {
-      const response = await apiClient.post<ApiResponse<Product>>('/api/products', product);
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  getById: async (id: number) => {
+    const response = await apiClient.get(`/api/products/${id}`);
+    return response.data;
   },
-};
-
-// ==================== Sales APIs ====================
-
-export const salesAPI = {
-  getAll: async (params?: PaginationParams): Promise<Sale[]> => {
-    try {
-      const response = await apiClient.get<Sale[]>('/api/sales', { params });
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  create: async (data: any) => {
+    const response = await apiClient.post("/api/products", data);
+    return response.data;
   },
-
-  getById: async (id: number): Promise<SaleDetails> => {
-    try {
-      const response = await apiClient.get<SaleDetails>(`/api/sales/${id}`);
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  update: async (id: number, data: any) => {
+    const response = await apiClient.put(`/api/products/${id}`, data);
+    return response.data;
   },
-
-  create: async (sale: SaleCreate): Promise<ApiResponse<Sale>> => {
-    try {
-      const response = await apiClient.post<ApiResponse<Sale>>('/api/sales', sale);
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  delete: async (id: number) => {
+    const response = await apiClient.delete(`/api/products/${id}`);
+    return response.data;
   },
 };
 
-// ==================== Payment APIs ====================
-
-export const paymentAPI = {
-  getAll: async (params?: PaginationParams): Promise<Payment[]> => {
-    try {
-      const response = await apiClient.get<Payment[]>('/api/payments', { params });
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
-  },
-
-  getPending: async (): Promise<PendingPayment[]> => {
-    try {
-      const response = await apiClient.get<PendingPayment[]>('/api/payments/pending');
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
-  },
-
-  create: async (payment: Payment): Promise<ApiResponse<Payment>> => {
-    try {
-      const response = await apiClient.post<ApiResponse<Payment>>('/api/payments', payment);
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
-  },
-};
-
-// ==================== Demo APIs ====================
-
-export const demoAPI = {
-  getAll: async (params?: PaginationParams): Promise<Demo[]> => {
-    try {
-      const response = await apiClient.get<Demo[]>('/api/demos', { params });
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
-  },
-
-  create: async (demo: Demo): Promise<ApiResponse<Demo>> => {
-    try {
-      const response = await apiClient.post<ApiResponse<Demo>>('/api/demos', demo);
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
-  },
-
-  updateStatus: async (
-    id: number,
-    status: string,
-    notes?: string
-  ): Promise<ApiResponse<Demo>> => {
-    try {
-      const response = await apiClient.put<ApiResponse<Demo>>(`/api/demos/${id}`, {
-        conversion_status: status,
-        notes,
-      });
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
-  },
-};
-
-// ==================== Distributor APIs ====================
-
+// Distributor API
 export const distributorAPI = {
-  getAll: async (params?: PaginationParams): Promise<Distributor[]> => {
-    try {
-      const response = await apiClient.get<Distributor[]>('/api/distributors', { params });
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  getAll: async (params?: any) => {
+    const response = await apiClient.get("/api/distributors", { params });
+    return response.data;
   },
-
-  create: async (distributor: Distributor): Promise<ApiResponse<Distributor>> => {
-    try {
-      const response = await apiClient.post<ApiResponse<Distributor>>(
-        '/api/distributors',
-        distributor
-      );
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  getById: async (id: number) => {
+    const response = await apiClient.get(`/api/distributors/${id}`);
+    return response.data;
   },
-};
-
-// ==================== Reports APIs ====================
-
-export const reportsAPI = {
-  getSalesSummary: async (startDate?: string, endDate?: string): Promise<SalesSummary> => {
-    try {
-      const response = await apiClient.get<SalesSummary>('/api/reports/sales-summary', {
-        params: { start_date: startDate, end_date: endDate },
-      });
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  create: async (data: any) => {
+    const response = await apiClient.post("/api/distributors", data);
+    return response.data;
   },
-
-  getCustomerSummary: async (): Promise<CustomerSummary> => {
-    try {
-      const response = await apiClient.get<CustomerSummary>('/api/reports/customer-summary');
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  update: async (id: number, data: any) => {
+    const response = await apiClient.put(`/api/distributors/${id}`, data);
+    return response.data;
   },
-
-  getProductPerformance: async (): Promise<ProductPerformance[]> => {
-    try {
-      const response = await apiClient.get<ProductPerformance[]>(
-        '/api/reports/product-performance'
-      );
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  delete: async (id: number) => {
+    const response = await apiClient.delete(`/api/distributors/${id}`);
+    return response.data;
   },
 };
 
-// ==================== Analytics APIs ====================
-
-export const analyticsAPI = {
-  getPaymentDistribution: async (): Promise<PaymentDistribution[]> => {
-    try {
-      const response = await apiClient.get<PaymentDistribution[]>(
-        '/api/analytics/payment-distribution'
-      );
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+// Sales API
+export const salesAPI = {
+  getAll: async (params?: any) => {
+    const response = await apiClient.get("/api/sales", { params });
+    return response.data;
   },
-
-  getDemoConversion: async (): Promise<DemoConversionStats[]> => {
-    try {
-      const response = await apiClient.get<DemoConversionStats[]>(
-        '/api/analytics/demo-conversion'
-      );
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  getById: async (id: number) => {
+    const response = await apiClient.get(`/api/sales/${id}`);
+    return response.data;
+  },
+  create: async (data: any) => {
+    const response = await apiClient.post("/api/sales", data);
+    return response.data;
+  },
+  update: async (id: number, data: any) => {
+    const response = await apiClient.put(`/api/sales/${id}`, data);
+    return response.data;
+  },
+  delete: async (id: number) => {
+    const response = await apiClient.delete(`/api/sales/${id}`);
+    return response.data;
+  },
+  getPending: async () => {
+    const response = await apiClient.get("/api/sales/pending-payments");
+    return response.data;
   },
 };
 
-// ==================== File Upload APIs ====================
+// Payment API
+export const paymentAPI = {
+  getAll: async (params?: any) => {
+    const response = await apiClient.get("/api/payments", { params });
+    return response.data;
+  },
+  getById: async (id: number) => {
+    const response = await apiClient.get(`/api/payments/${id}`);
+    return response.data;
+  },
+  create: async (data: any) => {
+    const response = await apiClient.post("/api/payments", data);
+    return response.data;
+  },
+  update: async (id: number, data: any) => {
+    const response = await apiClient.put(`/api/payments/${id}`, data);
+    return response.data;
+  },
+  delete: async (id: number) => {
+    const response = await apiClient.delete(`/api/payments/${id}`);
+    return response.data;
+  },
+  getHistory: async (saleId: number) => {
+    const response = await apiClient.get(`/api/payments/sale/${saleId}`);
+    return response.data;
+  },
+  getPending: async () => {
+    const response = await apiClient.get("/api/payments/pending");
+    return response.data;
+  },
+};
 
+// Demo API
+export const demoAPI = {
+  getAll: async (params?: any) => {
+    const response = await apiClient.get("/api/demos", { params });
+    return response.data;
+  },
+  getById: async (id: number) => {
+    const response = await apiClient.get(`/api/demos/${id}`);
+    return response.data;
+  },
+  create: async (data: any) => {
+    const response = await apiClient.post("/api/demos", data);
+    return response.data;
+  },
+  update: async (id: number, data: any) => {
+    const response = await apiClient.put(`/api/demos/${id}`, data);
+    return response.data;
+  },
+  delete: async (id: number) => {
+    const response = await apiClient.delete(`/api/demos/${id}`);
+    return response.data;
+  },
+};
+
+// File/Import API
 export const fileAPI = {
-  upload: async (file: File): Promise<UploadResponse> => {
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await apiClient.post<UploadResponse>('/api/upload/excel', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  uploadFile: async (formData: FormData) => {
+    const response = await apiClient.post("/api/import/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
   },
-
-  getAll: async (): Promise<FileUpload[]> => {
-    try {
-      const response = await apiClient.get<FileUpload[]>('/api/files');
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  upload: async (formData: FormData) => {
+    const response = await apiClient.post("/api/import/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  },
+  getImportHistory: async () => {
+    const response = await apiClient.get("/api/import/history");
+    return response.data;
   },
 };
 
-// ==================== Health Check ====================
-
-export const healthAPI = {
-  check: async (): Promise<{ status: string; database: string }> => {
-    try {
-      const response = await apiClient.get('/health');
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
-  },
-};
-
-// Export all APIs
-export default {
-  dashboard: dashboardAPI,
-  customers: customerAPI,
-  products: productAPI,
-  sales: salesAPI,
-  payments: paymentAPI,
-  demos: demoAPI,
-  distributors: distributorAPI,
-  reports: reportsAPI,
-  analytics: analyticsAPI,
-  files: fileAPI,
-  health: healthAPI,
-};
+// Export the axios instance for direct use if needed
+export default apiClient;

@@ -7,9 +7,9 @@ import {
   Typography,
   CircularProgress,
   Alert,
-  useTheme,
-  Paper,
   Button,
+  Paper,
+  useTheme,
   Chip,
   Divider,
 } from "@mui/material";
@@ -27,6 +27,7 @@ import {
   ArrowForward,
   CheckCircle,
   Schedule,
+  Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import {
   LineChart,
@@ -42,6 +43,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "../hooks/useTranslation";
 import { dashboardAPI } from "../services/api";
 import type {
   DashboardMetrics,
@@ -154,6 +156,7 @@ function MetricCard({
 export default function Dashboard() {
   const theme = useTheme();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
@@ -172,9 +175,12 @@ export default function Dashboard() {
 
       const [metricsData, trendData, salesData, demosData] = await Promise.all([
         dashboardAPI.getMetrics(),
-        dashboardAPI.getSalesTrend(30),
-        dashboardAPI.getRecentSales(10),
-        dashboardAPI.getUpcomingDemos(10),
+
+        dashboardAPI.getSalesTrend(30), // days
+
+        dashboardAPI.getRecentSales(10), // limit
+
+        dashboardAPI.getUpcomingDemos(10), // limit
       ]);
 
       setMetrics(metricsData);
@@ -207,10 +213,52 @@ export default function Dashboard() {
   }
 
   if (error) {
+    const isNetworkError =
+      error.toLowerCase().includes("network") ||
+      error.toLowerCase().includes("reach server") ||
+      error.toLowerCase().includes("cors");
+
     return (
-      <Alert severity="error" sx={{ mb: 3 }}>
-        {error}
-      </Alert>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "60vh",
+        }}
+      >
+        <Paper
+          elevation={3}
+          sx={{
+            p: 4,
+            maxWidth: 500,
+            textAlign: "center",
+          }}
+        >
+          <Typography variant="h5" color="error" gutterBottom>
+            {isNetworkError
+              ? "Unable to Connect to Server"
+              : "Error Loading Dashboard"}
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+            {isNetworkError
+              ? "The backend server may be sleeping or unavailable. This is common with free-tier hosting. Please click refresh to wake it up."
+              : error}
+          </Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            size="large"
+            startIcon={<RefreshIcon />}
+            onClick={() => {
+              setError(null);
+              loadDashboardData();
+            }}
+          >
+            Refresh Page
+          </Button>
+        </Paper>
+      </Box>
     );
   }
 
@@ -220,8 +268,8 @@ export default function Dashboard() {
 
   // Prepare payment status data for pie chart
   const paymentStatusData = [
-    { name: "Paid", value: metrics.total_payments },
-    { name: "Pending", value: metrics.pending_amount },
+    { name: t("dashboard.paid"), value: metrics.total_payments },
+    { name: t("dashboard.pending"), value: metrics.pending_amount },
   ];
 
   return (
@@ -229,14 +277,14 @@ export default function Dashboard() {
       {/* Welcome Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-          👋 Welcome Back!
+          👋 {t("dashboard.welcomeBack")}
         </Typography>
         <Typography
           variant="body1"
           color="text.secondary"
           sx={{ fontSize: "1.05rem" }}
         >
-          Here's what's happening with your sales today
+          {t("dashboard.subtitle")}
         </Typography>
       </Box>
 
@@ -259,10 +307,10 @@ export default function Dashboard() {
             <CardContent>
               <PersonAdd sx={{ fontSize: 40, mb: 1, opacity: 0.9 }} />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Add Customer
+                {t("dashboard.quickActions.addCustomer.title")}
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-                Register new customer
+                {t("dashboard.quickActions.addCustomer.subtitle")}
               </Typography>
             </CardContent>
           </Card>
@@ -285,10 +333,10 @@ export default function Dashboard() {
             <CardContent>
               <ShoppingCart sx={{ fontSize: 40, mb: 1, opacity: 0.9 }} />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                New Sale
+                {t("dashboard.quickActions.newSale.title")}
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-                Create invoice
+                {t("dashboard.quickActions.newSale.subtitle")}
               </Typography>
             </CardContent>
           </Card>
@@ -311,10 +359,10 @@ export default function Dashboard() {
             <CardContent>
               <Science sx={{ fontSize: 40, mb: 1, opacity: 0.9 }} />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Schedule Demo
+                {t("dashboard.quickActions.scheduleDemo.title")}
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-                Book product demo
+                {t("dashboard.quickActions.scheduleDemo.subtitle")}
               </Typography>
             </CardContent>
           </Card>
@@ -337,10 +385,10 @@ export default function Dashboard() {
             <CardContent>
               <Payment sx={{ fontSize: 40, mb: 1, opacity: 0.9 }} />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Record Payment
+                {t("dashboard.quickActions.recordPayment.title")}
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-                Collect payment
+                {t("dashboard.quickActions.recordPayment.subtitle")}
               </Typography>
             </CardContent>
           </Card>
@@ -351,9 +399,9 @@ export default function Dashboard() {
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
           <MetricCard
-            title="Total Sales"
+            title={t("dashboard.totalSales")}
             value={`₹${metrics.total_sales.toLocaleString()}`}
-            subtitle={`${metrics.total_transactions} transactions`}
+            subtitle={`${metrics.total_transactions} ${t("dashboard.transactions")}`}
             icon={<AttachMoney sx={{ fontSize: 32 }} />}
             color="#1976d2"
             trend={12.5}
@@ -362,9 +410,9 @@ export default function Dashboard() {
 
         <Grid item xs={12} sm={6} md={3}>
           <MetricCard
-            title="Pending Payments"
+            title={t("dashboard.pendingPayments")}
             value={`₹${metrics.pending_amount.toLocaleString()}`}
-            subtitle="Outstanding amount"
+            subtitle={t("dashboard.outstandingAmount")}
             icon={<Receipt sx={{ fontSize: 32 }} />}
             color="#ed6c02"
           />
@@ -372,9 +420,9 @@ export default function Dashboard() {
 
         <Grid item xs={12} sm={6} md={3}>
           <MetricCard
-            title="Total Customers"
+            title={t("dashboard.totalCustomers")}
             value={metrics.total_customers}
-            subtitle="Active customers"
+            subtitle={t("dashboard.activeCustomers")}
             icon={<People sx={{ fontSize: 32 }} />}
             color="#2e7d32"
             trend={8.3}
@@ -383,9 +431,9 @@ export default function Dashboard() {
 
         <Grid item xs={12} sm={6} md={3}>
           <MetricCard
-            title="Demo Conversion"
+            title={t("dashboard.demoConversion")}
             value={`${metrics.conversion_rate}%`}
-            subtitle="Conversion rate"
+            subtitle={t("dashboard.conversionRate")}
             icon={<Timeline sx={{ fontSize: 32 }} />}
             color="#9c27b0"
             trend={5.2}
@@ -402,7 +450,7 @@ export default function Dashboard() {
               <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
                 <ShowChart sx={{ mr: 1, color: theme.palette.primary.main }} />
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Sales Trend (Last 30 Days)
+                  {t("dashboard.salesTrendLast30Days")}
                 </Typography>
               </Box>
               <ResponsiveContainer width="100%" height={300}>
@@ -448,7 +496,7 @@ export default function Dashboard() {
           <Card sx={{ height: "100%" }}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-                Payment Status
+                {t("dashboard.paymentStatus")}
               </Typography>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
@@ -457,9 +505,7 @@ export default function Dashboard() {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) =>
-                      `${name}: ${(percent * 100).toFixed(0)}%`
-                    }
+                    label={false}
                     outerRadius={100}
                     fill="#8884d8"
                     dataKey="value"
@@ -471,13 +517,23 @@ export default function Dashboard() {
                       />
                     ))}
                   </Pie>
+
                   <Tooltip
                     formatter={(value: number) => `₹${value.toLocaleString()}`}
                     contentStyle={{
                       backgroundColor: theme.palette.background.paper,
+
                       border: `1px solid ${theme.palette.divider}`,
+
                       borderRadius: 8,
                     }}
+                  />
+
+                  <Legend
+                    layout="horizontal"
+                    verticalAlign="bottom"
+                    align="center"
+                    wrapperStyle={{ fontSize: 12 }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -501,7 +557,7 @@ export default function Dashboard() {
                 }}
               >
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Recent Sales
+                  {t("dashboard.recentSales")}
                 </Typography>
                 <Button
                   size="small"
@@ -624,7 +680,7 @@ export default function Dashboard() {
                       }}
                     />
                     <Typography variant="body2" color="text.secondary">
-                      No recent sales found
+                      {t("dashboard.noRecentSales")}
                     </Typography>
                     <Button
                       variant="outlined"
@@ -654,7 +710,7 @@ export default function Dashboard() {
                 }}
               >
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Upcoming Demos
+                  {t("dashboard.upcomingDemos")}
                 </Typography>
                 <Button
                   size="small"
@@ -773,7 +829,7 @@ export default function Dashboard() {
                       color="text.secondary"
                       sx={{ mb: 1 }}
                     >
-                      No upcoming demos scheduled
+                      {t("dashboard.noUpcomingDemos")}
                     </Typography>
                     <Button
                       variant="outlined"
@@ -781,7 +837,7 @@ export default function Dashboard() {
                       sx={{ mt: 2 }}
                       onClick={() => navigate("/demos")}
                     >
-                      Schedule Demo
+                      {t("dashboard.scheduleDemoCta")}
                     </Button>
                   </Box>
                 )}

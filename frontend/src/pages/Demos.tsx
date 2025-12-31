@@ -19,8 +19,10 @@ import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { demoAPI } from "../services/api";
 import type { Demo } from "../types";
 import DemoDialog from "../components/DemoDialog";
+import { useTranslation } from "../hooks/useTranslation";
 
 export default function Demos() {
+  const { t, tf } = useTranslation();
   const [demos, setDemos] = useState<Demo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +39,11 @@ export default function Demos() {
       const data = await demoAPI.getAll({ limit: 1000 });
       setDemos(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load demos");
+      setError(
+        err instanceof Error
+          ? err.message
+          : t("demos.loadError", "Failed to load demos"),
+      );
     } finally {
       setLoading(false);
     }
@@ -46,7 +52,7 @@ export default function Demos() {
   const columns: GridColDef[] = [
     {
       field: "demo_id",
-      headerName: "Demo ID",
+      headerName: t("demos.demoId", "Demo ID"),
       width: 100,
       renderCell: (params) => (
         <Chip label={`#${params.value}`} size="small" color="primary" />
@@ -54,29 +60,29 @@ export default function Demos() {
     },
     {
       field: "customer_name",
-      headerName: "Customer",
+      headerName: t("customers.customerName"),
       flex: 1,
       minWidth: 200,
     },
     {
       field: "product_name",
-      headerName: "Product",
+      headerName: t("demos.product", "Product"),
       width: 200,
     },
     {
       field: "demo_date",
-      headerName: "Demo Date",
+      headerName: t("demos.date"),
       width: 120,
       renderCell: (params) => new Date(params.value).toLocaleDateString(),
     },
     {
       field: "demo_time",
-      headerName: "Time",
+      headerName: tf("time"),
       width: 100,
     },
     {
       field: "village",
-      headerName: "Village",
+      headerName: tf("village"),
       width: 150,
     },
     {
@@ -104,10 +110,10 @@ export default function Demos() {
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
           <ScienceIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-          Demo Management
+          {t("demos.title")}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Schedule and track product demonstrations
+          {t("demos.subtitle", "Schedule and track product demonstrations")}
         </Typography>
       </Box>
 
@@ -123,10 +129,9 @@ export default function Demos() {
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              size="large"
               onClick={() => setDialogOpen(true)}
             >
-              Schedule Demo
+              {t("demos.addDemo")}
             </Button>
             <IconButton onClick={loadDemos} color="primary">
               <RefreshIcon />

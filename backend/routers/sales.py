@@ -11,7 +11,14 @@ router = APIRouter()
 def get_sales(conn: sqlite3.Connection = Depends(get_db)):
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM sales ORDER BY created_at DESC")
+    cursor.execute("""
+        SELECT s.sale_id, s.invoice_no, s.customer_id, s.sale_date,
+               s.total_amount, s.total_liters, s.payment_status, s.notes, s.created_at,
+               c.name AS customer_name, c.village
+        FROM sales s
+        LEFT JOIN customers c ON s.customer_id = c.customer_id
+        ORDER BY s.created_at DESC
+    """)
 
     return [dict(row) for row in cursor.fetchall()]
 

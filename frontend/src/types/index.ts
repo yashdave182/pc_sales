@@ -132,7 +132,7 @@ export interface DashboardMetrics {
   pending_amount: number;
   total_customers: number;
   total_transactions: number;
-  conversion_rate: number;
+  demo_conversion_rate: number;
 }
 
 export interface SalesTrendData {
@@ -323,14 +323,14 @@ export interface DemoFilters {
 
 // Navigation types
 export type PageRoute =
-  | 'dashboard'
-  | 'customers'
-  | 'sales'
-  | 'payments'
-  | 'demos'
-  | 'distributors'
-  | 'reports'
-  | 'import';
+  | "dashboard"
+  | "customers"
+  | "sales"
+  | "payments"
+  | "demos"
+  | "distributors"
+  | "reports"
+  | "import";
 
 export interface NavItem {
   id: PageRoute;
@@ -349,12 +349,12 @@ export interface ThemeColors {
   info: string;
 }
 
-export type ThemeMode = 'light' | 'dark';
+export type ThemeMode = "light" | "dark";
 
 // Notification types
 export interface Notification {
   id: string;
-  type: 'success' | 'error' | 'warning' | 'info';
+  type: "success" | "error" | "warning" | "info";
   message: string;
   duration?: number;
 }
@@ -367,7 +367,7 @@ export interface TableColumn<T = any> {
   sortable?: boolean;
   filterable?: boolean;
   width?: number;
-  align?: 'left' | 'center' | 'right';
+  align?: "left" | "center" | "right";
   format?: (value: any) => string | number;
   render?: (row: T) => React.ReactNode;
 }

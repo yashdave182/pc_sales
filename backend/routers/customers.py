@@ -1,15 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException
 import sqlite3
+
 from database import get_db
+from fastapi import APIRouter, Depends, HTTPException
 from models import Customer
 
 router = APIRouter()
+
 
 @router.get("/")
 def get_customers(conn: sqlite3.Connection = Depends(get_db)):
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM customers ORDER BY created_at DESC")
-    return [dict(row) for row in cursor.fetchall()]
+    rows = [dict(row) for row in cursor.fetchall()]
+    return {"data": rows, "total": len(rows)}
+
 
 @router.get("/{customer_id}")
 def get_customer(customer_id: int, conn: sqlite3.Connection = Depends(get_db)):
@@ -19,6 +23,7 @@ def get_customer(customer_id: int, conn: sqlite3.Connection = Depends(get_db)):
     if not row:
         raise HTTPException(status_code=404, detail="Customer not found")
     return dict(row)
+
 
 @router.post("/")
 def create_customer(customer: Customer, conn: sqlite3.Connection = Depends(get_db)):

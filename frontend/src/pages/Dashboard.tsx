@@ -432,7 +432,7 @@ export default function Dashboard() {
         <Grid item xs={12} sm={6} md={3}>
           <MetricCard
             title={t("dashboard.demoConversion")}
-            value={`${metrics.conversion_rate}%`}
+            value={`${metrics?.demo_conversion_rate ?? 0}%`}
             subtitle={t("dashboard.conversionRate")}
             icon={<Timeline sx={{ fontSize: 32 }} />}
             color="#9c27b0"

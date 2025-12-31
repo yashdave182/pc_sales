@@ -55,40 +55,59 @@ def import_excel(
 
     file_path = save_uploaded_file(file)
 
-    excel_type = detect_excel_type(file_path)
-    print("Excel type detected as:", excel_type)
-
     try:
+        excel_type = detect_excel_type(file_path)
+        print("Excel type detected as:", excel_type)
+
         if excel_type == "DISTRIBUTORS":
             inserted = import_distributors_excel(file_path, conn)
             return {
                 "type": "Distributors",
                 "distributors_inserted": inserted,
+                "message": f"Successfully imported {inserted} distributors",
             }
+
         if excel_type == "CUSTOMERS":
             inserted = import_customers_excel(file_path, conn)
             return {
-                "type": "customers hello",
+                "type": "Customers",
                 "customers_inserted": inserted,
+                "message": f"Successfully imported {inserted} customers",
             }
 
         if excel_type == "SALES":
             sale_items = import_sales_excel(file_path, conn)
             demos = import_demo_excel(file_path, conn)
             return {
-                "type": "sales_workbook",
+                "type": "Sales",
                 "sale_items_inserted": sale_items,
                 "demos_inserted": demos,
+                "message": f"Successfully imported {sale_items} sale items and {demos} demos",
             }
 
+        # Format not recognized
         raise HTTPException(
             status_code=400,
-            detail="Excel format not recognized. Please upload a valid template.",
+            detail=(
+                "Excel format not recognized. "
+                "Please ensure your Excel file has the correct columns:\n\n"
+                "For CUSTOMERS: name, mobile, village, taluka\n"
+                "For DISTRIBUTORS: village, taluka, district, mantri name, mantri mobile, sabhasad, contact in group\n"
+                "For SALES: Multiple sheets with name, packing, qtn, rate, amt, dispatch date"
+            ),
         )
 
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
     except Exception as e:
+        # Catch any other errors during import
         conn.rollback()
+        import traceback
+
+        error_detail = traceback.format_exc()
+        print(f"Import error: {error_detail}")
         raise HTTPException(
             status_code=500,
-            detail=f"Import failed: {str(e)}",
+            detail=f"Import failed: {str(e)}. Please check that your Excel file matches the required format.",
         )

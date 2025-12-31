@@ -68,7 +68,13 @@ export default function DataImport() {
 
       clearInterval(progressInterval);
       setUploadProgress(100);
-      setSuccess(t("import.fileUploaded") + `: "${response.filename}"`);
+
+      // Show success message with import details
+      const successMsg =
+        response.message ||
+        t("import.fileUploaded") +
+          `: "${response.filename || selectedFile.name}"`;
+      setSuccess(successMsg);
       setSelectedFile(null);
 
       // Reset after 3 seconds
@@ -76,8 +82,17 @@ export default function DataImport() {
         setSuccess(null);
         setUploadProgress(0);
       }, 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("import.uploadError"));
+    } catch (err: any) {
+      // Extract error message from backend response
+      let errorMessage = t("import.uploadError");
+
+      if (err?.response?.data?.detail) {
+        errorMessage = err.response.data.detail;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
     } finally {
       setUploading(false);
     }
@@ -184,7 +199,7 @@ export default function DataImport() {
       </Card>
 
       {/* Instructions */}
-      <Card>
+      <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
             {t("import.instructions")}
@@ -227,6 +242,91 @@ export default function DataImport() {
               />
             </ListItem>
           </List>
+        </CardContent>
+      </Card>
+
+      {/* Required Excel Format */}
+      <Card>
+        <CardContent>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+            📋 Required Excel Column Format
+          </Typography>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Your Excel file must contain one of these formats. The system will
+            auto-detect the type based on columns.
+          </Alert>
+
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+              🧑‍🤝‍🧑 Customers Excel
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Required columns: <strong>name, mobile, village, taluka</strong>
+            </Typography>
+            <Box
+              component="code"
+              sx={{
+                display: "block",
+                p: 1,
+                bgcolor: "grey.100",
+                borderRadius: 1,
+                fontFamily: "monospace",
+                fontSize: "0.85rem",
+              }}
+            >
+              name | mobile | village | taluka | district
+            </Box>
+          </Box>
+
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+              🏪 Distributors Excel
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Required columns:{" "}
+              <strong>
+                village, taluka, district, mantri name, mantri mobile, sabhasad,
+                contact in group
+              </strong>
+            </Typography>
+            <Box
+              component="code"
+              sx={{
+                display: "block",
+                p: 1,
+                bgcolor: "grey.100",
+                borderRadius: 1,
+                fontFamily: "monospace",
+                fontSize: "0.85rem",
+              }}
+            >
+              name | village | taluka | district | mantri name | mantri mobile |
+              sabhasad | contact in group
+            </Box>
+          </Box>
+
+          <Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+              💰 Sales Excel (Multi-Sheet)
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Must have <strong>multiple sheets</strong>. Required columns:{" "}
+              <strong>name, packing, qtn, rate, amt, dispatch date</strong>
+            </Typography>
+            <Box
+              component="code"
+              sx={{
+                display: "block",
+                p: 1,
+                bgcolor: "grey.100",
+                borderRadius: 1,
+                fontFamily: "monospace",
+                fontSize: "0.85rem",
+              }}
+            >
+              inv no | name | packing | qtn | rate | amt | dispatch date
+            </Box>
+          </Box>
         </CardContent>
       </Card>
     </Box>

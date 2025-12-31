@@ -10,7 +10,7 @@ export const languages: Record<Language, string> = {
   gu: "ગુજરાતી",
 };
 
-export const translations: Record<Language, typeof en> = {
+export const translations: Record<Language, any> = {
   en,
   hi,
   gu,

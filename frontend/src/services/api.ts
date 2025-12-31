@@ -263,7 +263,25 @@ export const demoAPI = {
   },
 };
 
+export const automationAPI = {
+  getCallingList: async (params?: {
+    inactive_days?: number;
+    limit?: number;
+  }) => {
+    const response = await apiClient.get("/api/automation/calling-list", {
+      params,
+    });
+    return response.data;
+  },
+  getInactiveInsights: async (inactive_days?: number) => {
+    const response = await apiClient.get("/api/automation/insights/inactive", {
+      params: inactive_days ? { inactive_days } : undefined,
+    });
+    return response.data;
+  },
+};
 // File/Import API
+
 export const fileAPI = {
   uploadFile: async (formData: FormData) => {
     const response = await apiClient.post("/api/import/upload", formData, {

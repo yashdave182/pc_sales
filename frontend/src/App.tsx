@@ -7,15 +7,9 @@ import {
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
-
-// Error Boundary
 import { ErrorBoundary } from "./components/ErrorBoundary";
-
-// Layout
 import Layout from "./components/Layout";
 import QuickActions from "./components/QuickActions";
-
-// Pages
 import Dashboard from "./pages/Dashboard";
 import Customers from "./pages/Customers";
 import Sales from "./pages/Sales";
@@ -24,17 +18,15 @@ import Demos from "./pages/Demos";
 import Distributors from "./pages/Distributors";
 import Reports from "./pages/Reports";
 import DataImport from "./pages/DataImport";
-
-// Theme
+import CallingList from "./pages/CallingList";
 import { createAppTheme } from "./theme/theme";
 
-// Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
       retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000,
     },
   },
 });
@@ -67,6 +59,7 @@ function App() {
                 <Route path="/distributors" element={<Distributors />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/import" element={<DataImport />} />
+                <Route path="/calling-list" element={<CallingList />} />
                 <Route
                   path="*"
                   element={<Navigate to="/dashboard" replace />}

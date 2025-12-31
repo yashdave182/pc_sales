@@ -21,6 +21,7 @@ import {
   Menu,
   MenuItem,
 } from "@mui/material";
+
 import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
@@ -31,6 +32,7 @@ import {
   Group as GroupIcon,
   Assessment as AssessmentIcon,
   CloudUpload as CloudUploadIcon,
+  PhoneInTalk as PhoneInTalkIcon,
   Brightness4,
   Brightness7,
   Notifications,
@@ -38,6 +40,7 @@ import {
   AccountCircle,
   Language as LanguageIcon,
 } from "@mui/icons-material";
+
 import { useTranslation } from "../hooks/useTranslation";
 import { useLanguageStore } from "../store/languageStore";
 import type { Language } from "../i18n/i18n";
@@ -96,16 +99,29 @@ const navigationItems: NavItem[] = [
     icon: <GroupIcon />,
     path: "/distributors",
   },
+
   {
     id: "reports",
+
     labelKey: "nav.reports",
+
     icon: <AssessmentIcon />,
+
     path: "/reports",
+  },
+
+  {
+    id: "calling-list",
+    labelKey: "nav.callingList",
+    icon: <PhoneInTalkIcon />,
+    path: "/calling-list",
   },
   {
     id: "import",
+
     labelKey: "nav.import",
     icon: <CloudUploadIcon />,
+
     path: "/import",
   },
 ];

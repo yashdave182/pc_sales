@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends
 import sqlite3
+
 from database import get_db
+from fastapi import APIRouter, Depends
 
 router = APIRouter()
 
@@ -26,12 +27,27 @@ def dashboard_metrics(conn: sqlite3.Connection = Depends(get_db)):
 
     pending_amount = total_sales - total_payments
 
+    cursor.execute("""
+        SELECT
+          SUM(CASE WHEN LOWER(conversion_status) IN ('converted','won','purchase') THEN 1 ELSE 0 END),
+          COUNT(*)
+        FROM demos
+        WHERE conversion_status IS NOT NULL
+    """)
+    row = cursor.fetchone()
+    converted = int(row[0] or 0)
+    total_demos = int(row[1] or 0)
+    demo_conversion_rate = (
+        round((converted / total_demos) * 100, 2) if total_demos > 0 else 0.0
+    )
+
     return {
         "total_sales": total_sales,
         "total_payments": total_payments,
         "pending_amount": pending_amount,
         "total_customers": total_customers,
         "total_transactions": total_transactions,
+        "demo_conversion_rate": demo_conversion_rate,
     }
 
 

@@ -134,7 +134,35 @@
 
   "payments": {
     "title": "भुगतान",
-    "recordPayment": "भुगतान दर्ज करें"
+    "subtitle": "भुगतान रिकॉर्ड और ट्रैक करें",
+    "recordPayment": "भुगतान दर्ज करें",
+    "addPayment": "भुगतान जोड़ें",
+    "editPayment": "भुगतान संपादित करें",
+    "deletePayment": "भुगतान हटाएँ",
+    "customerName": "ग्राहक का नाम",
+    "amount": "राशि",
+    "date": "भुगतान तिथि",
+    "method": "भुगतान विधि",
+    "methodCash": "नकद",
+    "methodUpi": "UPI",
+    "methodBank": "बैंक ट्रांसफर",
+    "methodCheque": "चेक",
+    "methodCard": "कार्ड",
+    "status": "स्थिति",
+    "pending": "लंबित",
+    "completed": "पूर्ण",
+    "failed": "विफल",
+    "rrn": "RRN/संदर्भ",
+    "reference": "संदर्भ",
+    "selectInvoice": "बिक्री/चालान चुनें",
+    "history": "भुगतान इतिहास",
+    "totalPending": "कुल लंबित राशि",
+    "validationRequired": "बिक्री और राशि आवश्यक है",
+    "confirmDelete": "क्या आप वाकई इस भुगतान को हटाना चाहते हैं?",
+    "deletedSuccessfully": "भुगतान सफलतापूर्वक हटाया गया",
+    "savedSuccessfully": "भुगतान सफलतापूर्वक सहेजा गया",
+    "deleteError": "भुगतान हटाने में विफल",
+    "noPayments": "कोई भुगतान नहीं मिला"
   },
 
   "demos": {

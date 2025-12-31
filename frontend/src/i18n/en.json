@@ -231,19 +231,33 @@
   "payments": {
     "title": "Payments",
 
+    "subtitle": "Record and track payments",
+
     "addPayment": "Add Payment",
 
     "editPayment": "Edit Payment",
 
     "deletePayment": "Delete Payment",
 
+    "recordPayment": "Record Payment",
+
     "customerName": "Customer Name",
 
     "amount": "Amount",
 
-    "date": "Date",
+    "date": "Payment Date",
 
     "method": "Payment Method",
+
+    "methodCash": "Cash",
+
+    "methodUpi": "UPI",
+
+    "methodBank": "Bank Transfer",
+
+    "methodCheque": "Cheque",
+
+    "methodCard": "Card",
 
     "status": "Status",
 
@@ -252,6 +266,18 @@
     "completed": "Completed",
 
     "failed": "Failed",
+
+    "rrn": "RRN/Ref",
+
+    "reference": "Reference",
+
+    "selectInvoice": "Select Sale/Invoice",
+
+    "history": "Payment History",
+
+    "totalPending": "Total Pending Amount",
+
+    "validationRequired": "Sale and amount are required",
 
     "confirmDelete": "Are you sure you want to delete this payment?",
 

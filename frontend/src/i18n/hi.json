@@ -10,10 +10,11 @@
     "callingList": "कॉलिंग सूची",
     "import": "डेटा आयात"
   },
+
   "common": {
     "add": "जोड़ें",
     "edit": "संपादित करें",
-    "delete": "हटाएं",
+    "delete": "हटाएँ",
     "save": "सहेजें",
     "cancel": "रद्द करें",
     "search": "खोजें",
@@ -26,7 +27,7 @@
     "submit": "जमा करें",
     "name": "नाम",
     "email": "ईमेल",
-    "phone": "फोन",
+    "phone": "फ़ोन",
     "mobile": "मोबाइल",
     "address": "पता",
     "status": "स्थिति",
@@ -38,6 +39,7 @@
     "copyright": "© 2025 बिक्री प्रबंधन",
     "salesManagementSystem": "बिक्री प्रबंधन प्रणाली"
   },
+
   "layout": {
     "toggleTheme": "थीम बदलें",
     "notifications": "सूचनाएँ",
@@ -45,6 +47,7 @@
     "profile": "प्रोफ़ाइल",
     "changeLanguage": "भाषा बदलें"
   },
+
   "dashboard": {
     "title": "डैशबोर्ड",
     "welcomeBack": "वापसी पर स्वागत है!",
@@ -67,6 +70,7 @@
         "subtitle": "भुगतान प्राप्त करें"
       }
     },
+
     "totalSales": "कुल बिक्री",
     "totalCustomers": "कुल ग्राहक",
     "totalPayments": "कुल भुगतान",
@@ -75,26 +79,32 @@
     "activeCustomers": "सक्रिय ग्राहक",
     "transactions": "लेनदेन",
     "outstandingAmount": "बकाया राशि",
+
     "revenue": "राजस्व",
     "orders": "ऑर्डर",
     "customers": "ग्राहक",
     "growth": "वृद्धि",
+
     "salesTrend": "बिक्री प्रवृत्ति",
     "salesTrendLast30Days": "बिक्री प्रवृत्ति (पिछले 30 दिन)",
     "recentSales": "हाल की बिक्री",
     "upcomingDemos": "आगामी प्रदर्शन",
+
     "paymentStatus": "भुगतान स्थिति",
     "demoConversion": "प्रदर्शन रूपांतरण",
     "conversionRate": "रूपांतरण दर",
     "paid": "भुगतान",
     "pending": "लंबित",
+
     "overview": "सारांश",
     "amount": "राशि",
     "date": "तारीख",
+
     "noRecentSales": "कोई हाल की बिक्री नहीं मिली",
     "noUpcomingDemos": "कोई आगामी प्रदर्शन निर्धारित नहीं",
     "scheduleDemoCta": "प्रदर्शन शेड्यूल करें"
   },
+
   "customers": {
     "title": "ग्राहक",
     "addCustomer": "ग्राहक जोड़ें",
@@ -114,27 +124,67 @@
     "deleteError": "ग्राहक हटाने में विफल",
     "noCustomers": "कोई ग्राहक नहीं मिला"
   },
+
   "sales": {
     "title": "बिक्री",
     "addSale": "बिक्री जोड़ें",
     "editSale": "बिक्री संपादित करें",
     "deleteSale": "बिक्री हटाएँ"
   },
+
   "payments": {
     "title": "भुगतान",
     "recordPayment": "भुगतान दर्ज करें"
   },
+
   "demos": {
     "title": "प्रदर्शन",
     "scheduleDemo": "प्रदर्शन शेड्यूल करें"
   },
+
   "distributors": {
     "title": "वितरक"
   },
+
   "reports": {
-    "title": "रिपोर्ट"
+    "title": "रिपोर्ट",
+    "subtitle": "विस्तृत रिपोर्ट और इनसाइट्स बनाएँ",
+    "from": "से",
+    "to": "तक"
   },
+
   "import": {
     "title": "डेटा आयात"
+  },
+
+  "messages": {
+    "loading": "लोड हो रहा है...",
+    "success": "ऑपरेशन सफल",
+    "error": "एक त्रुटि हुई",
+    "confirmAction": "क्या आप सुनिश्चित हैं?",
+    "required": "यह फ़ील्ड आवश्यक है",
+    "invalidEmail": "अमान्य ईमेल पता",
+    "invalidPhone": "अमान्य फ़ोन नंबर"
+  },
+
+  "fields": {
+    "id": "आईडी",
+    "name": "नाम",
+    "email": "ईमेल",
+    "phone": "फ़ोन",
+    "mobile": "मोबाइल",
+    "address": "पता",
+    "village": "गाँव",
+    "taluka": "तहसील",
+    "district": "ज़िला",
+    "amount": "राशि",
+    "quantity": "मात्रा",
+    "date": "तारीख",
+    "time": "समय",
+    "status": "स्थिति",
+    "notes": "नोट्स",
+    "contactPerson": "संपर्क व्यक्ति",
+    "area": "क्षेत्र",
+    "description": "विवरण"
   }
 }

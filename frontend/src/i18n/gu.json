@@ -113,5 +113,60 @@
     "savedSuccessfully": "ગ્રાહક સફળતાપૂર્વક સંગ્રહિત",
     "deleteError": "ગ્રાહક કાઢવામાં નિષ્ફળ",
     "noCustomers": "કોઈ ગ્રાહકો મળ્યાં નથી"
+  },
+  "sales": {
+    "title": "વેચાણ",
+    "addSale": "વેચાણ ઉમેરો",
+    "editSale": "વેચાણ સંપાદિત કરો",
+    "deleteSale": "વેચાણ કાઢી નાખો"
+  },
+  "payments": {
+    "title": "ચૂકવણી",
+    "recordPayment": "ચૂકવણી નોંધાવો"
+  },
+  "demos": {
+    "title": "પ્રદર્શન",
+    "scheduleDemo": "પ્રદર્શન શેડ્યુલ કરો"
+  },
+  "distributors": {
+    "title": "વિતરણકર્તાઓ"
+  },
+  "reports": {
+    "title": "અહેવાલો",
+    "subtitle": "વिस्तૃત અહેવાલ અને ઇન્સાઇટ્સ બનાવો",
+    "from": "થી",
+    "to": "સુધી"
+  },
+  "import": {
+    "title": "ડેટા આયાત"
+  },
+  "messages": {
+    "loading": "લોડ થઈ રહ્યું છે...",
+    "success": "ક્રિયા સફળ",
+    "error": "એક ભૂલ આવી",
+    "confirmAction": "શું તમે ચોક્કસ છો?",
+    "required": "આ ક્ષેત્ર આવશ્યક છે",
+    "invalidEmail": "અમાન્ય ઈમેઈલ સરનામું",
+    "invalidPhone": "અમાન્ય ફોન નંબર"
+  },
+  "fields": {
+    "id": "આઈડી",
+    "name": "નામ",
+    "email": "ઈમેઈલ",
+    "phone": "ફોન",
+    "mobile": "મોબાઈલ",
+    "address": "સરનામું",
+    "village": "ગામ",
+    "taluka": "તાલુકો",
+    "district": "જિલ્લો",
+    "amount": "રકમ",
+    "quantity": "જથ્થો",
+    "date": "તારીખ",
+    "time": "સમય",
+    "status": "સ્થિતિ",
+    "notes": "નોટ્સ",
+    "contactPerson": "સંપર્ક વ્યક્તિ",
+    "area": "વિસ્તાર",
+    "description": "વર્ણન"
   }
 }

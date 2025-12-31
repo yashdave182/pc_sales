@@ -1,0 +1,11 @@
+from .customers import router as customers
+from .products import router as products
+from .sales import router as sales
+from .payments import router as payments
+from .demos import router as demos
+from .distributors import router as distributors
+from .dashboard import router as dashboard
+from .reports import router as reports
+from .analytics import router as analytics
+from .admin import router as admin
+from .imports import router as imports

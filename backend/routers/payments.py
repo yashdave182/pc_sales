@@ -11,7 +11,24 @@ router = APIRouter()
 def get_payments(conn: sqlite3.Connection = Depends(get_db)):
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM payments ORDER BY created_at DESC")
+    cursor.execute("""
+        SELECT p.payment_id,
+               p.sale_id,
+               s.invoice_no,
+               c.customer_id,
+               c.name AS customer_name,
+               p.payment_date,
+               p.payment_method,
+               p.amount,
+               p.rrn,
+               p.reference,
+               p.notes,
+               p.created_at
+        FROM payments p
+        LEFT JOIN sales s ON p.sale_id = s.sale_id
+        LEFT JOIN customers c ON s.customer_id = c.customer_id
+        ORDER BY p.created_at DESC
+    """)
 
     return [dict(row) for row in cursor.fetchall()]
 

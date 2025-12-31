@@ -284,7 +284,7 @@ export const automationAPI = {
 
 export const fileAPI = {
   uploadFile: async (formData: FormData) => {
-    const response = await apiClient.post("/api/import/upload", formData, {
+    const response = await apiClient.post("/api/imports/excel", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -292,7 +292,7 @@ export const fileAPI = {
     return response.data;
   },
   upload: async (formData: FormData) => {
-    const response = await apiClient.post("/api/import/upload", formData, {
+    const response = await apiClient.post("/api/imports/excel", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },

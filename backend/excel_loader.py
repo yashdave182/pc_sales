@@ -1,7 +1,8 @@
-import pandas as pd
-import sqlite3
 import re
+import sqlite3
 from typing import Optional
+
+import pandas as pd
 
 MOBILE_REGEX = re.compile(r"\b\d{10}\b")
 
@@ -9,11 +10,13 @@ MOBILE_REGEX = re.compile(r"\b\d{10}\b")
 # Helpers
 # -------------------------------------------------
 
+
 def normalize_date(val) -> Optional[str]:
     try:
         return pd.to_datetime(val, dayfirst=True).strftime("%Y-%m-%d")
     except:
         return None
+
 
 def to_int(v):
     try:
@@ -21,11 +24,13 @@ def to_int(v):
     except:
         return 0
 
+
 def to_float(v):
     try:
         return float(v)
     except:
         return 0.0
+
 
 def extract_packaging_liter(text):
     if not isinstance(text, str):
@@ -35,6 +40,7 @@ def extract_packaging_liter(text):
         if str(size) in t and "ltr" in t:
             return size
     return None
+
 
 # -------------------------------------------------
 # Product Resolver
@@ -52,9 +58,9 @@ def normalize(col: str) -> str:
 
 def detect_excel_type(file_path: str) -> str:
     import pandas as pd
+
     xls = pd.ExcelFile(file_path)
     print("EXCEL LOADER PATH:", file_path)
-
 
     # 1️⃣ SALES → multiple sheets (absolute rule)
     if len(xls.sheet_names) > 1:
@@ -106,8 +112,7 @@ def detect_excel_type(file_path: str) -> str:
     if SALES_REQUIRED.issubset(actual_cols):
         return "SALES"
 
-    return "UNKNOWN"  
-
+    return "UNKNOWN"
 
 
 def resolve_product(conn, packaging_name: str) -> Optional[int]:
@@ -117,8 +122,7 @@ def resolve_product(conn, packaging_name: str) -> Optional[int]:
 
     cur = conn.cursor()
     cur.execute(
-        "SELECT product_id FROM products WHERE capacity_ltr=? LIMIT 1",
-        (liter,)
+        "SELECT product_id FROM products WHERE capacity_ltr=? LIMIT 1", (liter,)
     )
     row = cur.fetchone()
     if row:
@@ -129,13 +133,15 @@ def resolve_product(conn, packaging_name: str) -> Optional[int]:
         INSERT INTO products (product_name, capacity_ltr, is_active)
         VALUES (?, ?, 1)
         """,
-        (f"Oil {liter} Ltr", liter)
+        (f"Oil {liter} Ltr", liter),
     )
     return cur.lastrowid
+
 
 # -------------------------------------------------
 # Customers Import
 # -------------------------------------------------
+
 
 def import_customers_excel(path: str, conn: sqlite3.Connection) -> int:
     df = pd.read_excel(path, header=None)
@@ -173,16 +179,18 @@ def import_customers_excel(path: str, conn: sqlite3.Connection) -> int:
             INSERT INTO customers (name, mobile, village, taluka)
             VALUES (?, ?, ?, ?)
             """,
-            (name, mobile, village, taluka)
+            (name, mobile, village, taluka),
         )
         inserted += 1
 
     conn.commit()
     return inserted
 
+
 # -------------------------------------------------
 # Sales + Sale Items Import (Sheet 0)
 # -------------------------------------------------
+
 
 def import_sales_excel(path: str, conn: sqlite3.Connection) -> int:
     xls = pd.ExcelFile(path)
@@ -194,14 +202,13 @@ def import_sales_excel(path: str, conn: sqlite3.Connection) -> int:
     item_count = 0
 
     for _, row in df.iterrows():
-
         # New invoice
         if pd.notna(row.get("name")):
             cur.execute(
                 """
                 INSERT INTO sales (invoice_no, customer_id, sale_date)
                 VALUES (
-                    ?, 
+                    ?,
                     (SELECT customer_id FROM customers WHERE name=? LIMIT 1),
                     ?
                 )
@@ -210,7 +217,7 @@ def import_sales_excel(path: str, conn: sqlite3.Connection) -> int:
                     row.get("inv no"),
                     str(row.get("name")).strip(),
                     normalize_date(row.get("dispatch date")),
-                )
+                ),
             )
             current_sale_id = cur.lastrowid
 
@@ -227,16 +234,18 @@ def import_sales_excel(path: str, conn: sqlite3.Connection) -> int:
                 (sale_id, product_id, quantity, rate, amount)
                 VALUES (?, ?, ?, ?, ?)
                 """,
-                (current_sale_id, product_id, qty, rate, amt)
+                (current_sale_id, product_id, qty, rate, amt),
             )
             item_count += 1
 
     conn.commit()
     return item_count
 
+
 # -------------------------------------------------
 # Demo Import (Sheet 1)
 # -------------------------------------------------
+
 
 def import_demo_excel(path: str, conn: sqlite3.Connection) -> int:
     xls = pd.ExcelFile(path)
@@ -265,12 +274,13 @@ def import_demo_excel(path: str, conn: sqlite3.Connection) -> int:
                 resolve_product(conn, row.get("packing")),
                 to_int(row.get("qtn")),
                 "Imported from Excel",
-            )
+            ),
         )
         count += 1
 
     conn.commit()
     return count
+
 
 def import_distributors_excel(path: str, conn: sqlite3.Connection) -> int:
     df = pd.read_excel(path)
@@ -286,18 +296,23 @@ def import_distributors_excel(path: str, conn: sqlite3.Connection) -> int:
         cur.execute(
             """
             INSERT INTO distributors
-            (name, village, taluka, district, mantri_name, mantri_mobile)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (name, village, taluka, district, mantri_name, mantri_mobile, sabhasad_count, contact_in_group)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 row.get("name") or "Unknown",
                 str(row.get("village")).lower(),
                 str(row.get("taluka")).lower(),
-                str(row.get("district")).lower() if row.get("district") else None,
-                row.get("mantri_name"),
-                row.get("mantri_mobile"),
-                row.get("")
-            )
+                str(row.get("district")).lower()
+                if pd.notna(row.get("district"))
+                else None,
+                row.get("mantriname") if pd.notna(row.get("mantriname")) else None,
+                row.get("mantrimobile") if pd.notna(row.get("mantrimobile")) else None,
+                to_int(row.get("sabhasad")) if pd.notna(row.get("sabhasad")) else 0,
+                to_int(row.get("contactingroup"))
+                if pd.notna(row.get("contactingroup"))
+                else 0,
+            ),
         )
         inserted += 1
 

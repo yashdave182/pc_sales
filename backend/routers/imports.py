@@ -1,16 +1,17 @@
 import os
 import shutil
 import sqlite3
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
+from pathlib import Path
 
 from database import get_db
 from excel_loader import (
     detect_excel_type,
     import_customers_excel,
-    import_sales_excel,
     import_demo_excel,
-    import_distributors_excel
+    import_distributors_excel,
+    import_sales_excel,
 )
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 router = APIRouter()
 
@@ -18,25 +19,27 @@ router = APIRouter()
 # Upload directory
 # ----------------------
 
-UPLOAD_DIR = "backend/data/uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+BASE_DIR = Path(__file__).resolve().parent.parent
+UPLOAD_DIR = BASE_DIR / "data" / "uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def save_uploaded_file(file: UploadFile) -> str:
     if not file.filename.endswith((".xls", ".xlsx")):
         raise HTTPException(status_code=400, detail="Only Excel files are allowed")
 
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
+    file_path = UPLOAD_DIR / file.filename
 
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    return file_path
+    return str(file_path)
 
 
 # ==========================================================
 # Unified Excel Import Endpoint
 # ==========================================================
+
 
 @router.post("/excel")
 def import_excel(
@@ -77,7 +80,6 @@ def import_excel(
                 "sale_items_inserted": sale_items,
                 "demos_inserted": demos,
             }
-        
 
         raise HTTPException(
             status_code=400,

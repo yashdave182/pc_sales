@@ -1,10 +1,19 @@
+
 from typing import Optional
 
+import requests
+
+
 from fastapi import APIRouter, Depends, HTTPException
+
 from models import Demo
+
 from supabase_db import SupabaseClient, get_supabase
 
+
+
 router = APIRouter()
+
 
 
 # ======================
@@ -58,11 +67,15 @@ def get_demos(
             else {}
         )
 
+
         distributors_response = (
+
             db.table("distributors")
-            .select("distributor_id, distributor_name")
+
+            .select("distributor_id, name")
             .execute()
         )
+
         distributors_dict = (
             {d["distributor_id"]: d for d in distributors_response.data}
             if distributors_response.data
@@ -76,19 +89,27 @@ def get_demos(
             product_id = demo.get("product_id")
             distributor_id = demo.get("distributor_id")
 
-            customer = customers_dict.get(customer_id, {})
-            product = products_dict.get(product_id, {})
+
             distributor = distributors_dict.get(distributor_id, {})
 
+
+
             result.append(
+
                 {
+
                     **demo,
+
                     "customer_name": customer.get("name"),
+
                     "customer_mobile": customer.get("mobile"),
+
                     "product_name": product.get("product_name"),
-                    "distributor_name": distributor.get("distributor_name"),
+
+                    "distributor_name": distributor.get("name"),
                 }
             )
+
 
         return result
     except Exception as e:
@@ -142,14 +163,25 @@ def create_demo(demo: Demo, db: SupabaseClient = Depends(get_supabase)):
             else None,
         }
 
+
         response = db.table("demos").insert(demo_data).execute()
 
+
+
         if not response.data:
+
             raise HTTPException(status_code=400, detail="Failed to create demo")
 
+
+
         return {"message": "Demo scheduled successfully", "demo": response.data[0]}
+
+    except requests.HTTPError as e:
+        detail = str(e)
+        raise HTTPException(status_code=400, detail=f"Supabase error: {detail}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creating demo: {str(e)}")
+
 
 
 # ======================
@@ -168,18 +200,31 @@ def update_demo_status(
         if notes is not None:
             update_data["notes"] = notes
 
+
         response = (
+
             db.table("demos").update(update_data).eq("demo_id", demo_id).execute()
+
         )
 
+
+
         if not response.data:
+
             raise HTTPException(status_code=404, detail="Demo not found")
 
+
+
         return {"message": "Demo updated successfully", "demo": response.data[0]}
+
+    except requests.HTTPError as e:
+        detail = str(e)
+        raise HTTPException(status_code=400, detail=f"Supabase error: {detail}")
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating demo: {str(e)}")
+
 
 
 # ======================
@@ -188,14 +233,25 @@ def update_demo_status(
 @router.delete("/{demo_id}")
 def delete_demo(demo_id: int, db: SupabaseClient = Depends(get_supabase)):
     """Delete a demo"""
-    try:
-        response = db.table("demos").delete().eq("demo_id", demo_id).execute()
 
-        if not response.data:
-            raise HTTPException(status_code=404, detail="Demo not found")
+        try:
 
-        return {"message": "Demo deleted successfully"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error deleting demo: {str(e)}")
+            response = db.table("demos").eq("demo_id", demo_id).delete().execute()
+
+
+
+            if not response.data:
+
+                raise HTTPException(status_code=404, detail="Demo not found")
+
+
+
+            return {"message": "Demo deleted successfully"}
+
+        except requests.HTTPError as e:
+            detail = str(e)
+            raise HTTPException(status_code=400, detail=f"Supabase error: {detail}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error deleting demo: {str(e)}")

@@ -133,10 +133,23 @@ export default function Customers() {
       await customerAPI.delete(id);
       loadCustomers();
       setError(null);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to delete customer",
-      );
+    } catch (err: any) {
+      // Handle specific error messages from backend
+      let errorMessage = "Failed to delete customer";
+
+      if (err.response?.data?.detail) {
+        // Backend returned a detailed error message
+        errorMessage = err.response.data.detail;
+      } else if (err.response?.status === 400) {
+        errorMessage =
+          "Cannot delete customer with existing records. Please delete related sales and demos first.";
+      } else if (err.response?.status === 404) {
+        errorMessage = "Customer not found. It may have been already deleted.";
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
       console.error("Error deleting customer:", err);
     }
   };

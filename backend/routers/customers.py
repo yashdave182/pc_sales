@@ -110,6 +110,48 @@ def update_customer(
 def delete_customer(customer_id: int, db: SupabaseClient = Depends(get_db)):
     """Delete a customer"""
     try:
+        # First check if customer exists
+        check_response = (
+            db.table("customers")
+            .select("customer_id")
+            .eq("customer_id", customer_id)
+            .execute()
+        )
+
+        if not check_response.data or len(check_response.data) == 0:
+            raise HTTPException(status_code=404, detail="Customer not found")
+
+        # Check for related sales
+        sales_check = (
+            db.table("sales")
+            .select("sale_id")
+            .eq("customer_id", customer_id)
+            .limit(1)
+            .execute()
+        )
+
+        if sales_check.data and len(sales_check.data) > 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot delete customer with existing sales records. Please delete related sales first.",
+            )
+
+        # Check for related demos
+        demos_check = (
+            db.table("demos")
+            .select("demo_id")
+            .eq("customer_id", customer_id)
+            .limit(1)
+            .execute()
+        )
+
+        if demos_check.data and len(demos_check.data) > 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot delete customer with existing demo records. Please delete related demos first.",
+            )
+
+        # If no related records, proceed with deletion
         response = (
             db.table("customers").delete().eq("customer_id", customer_id).execute()
         )
@@ -117,10 +159,12 @@ def delete_customer(customer_id: int, db: SupabaseClient = Depends(get_db)):
         if not response.data or len(response.data) == 0:
             raise HTTPException(status_code=404, detail="Customer not found")
 
-        return {"message": "Customer deleted"}
+        return {"message": "Customer deleted successfully"}
     except HTTPException:
         raise
     except Exception as e:
+        # Log the actual error for debugging
+        print(f"Error deleting customer {customer_id}: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"Error deleting customer: {str(e)}"
         )

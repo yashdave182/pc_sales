@@ -33,6 +33,7 @@ import {
   Assessment as AssessmentIcon,
   CloudUpload as CloudUploadIcon,
   PhoneInTalk as PhoneInTalkIcon,
+  LocalShipping as LocalShippingIcon,
   Brightness4,
   Brightness7,
   Notifications,
@@ -70,46 +71,17 @@ const navigationItems: NavItem[] = [
     path: "/dashboard",
   },
   {
-    id: "customers",
-    labelKey: "nav.customers",
-    icon: <PeopleIcon />,
-    path: "/customers",
+    id: "orders",
+    labelKey: "nav.orders",
+    icon: <LocalShippingIcon />,
+    path: "/orders",
   },
-  {
-    id: "sales",
-    labelKey: "nav.sales",
-    icon: <ShoppingCartIcon />,
-    path: "/sales",
-  },
-  {
-    id: "payments",
-    labelKey: "nav.payments",
-    icon: <PaymentIcon />,
-    path: "/payments",
-  },
-  {
-    id: "demos",
-    labelKey: "nav.demos",
-    icon: <ScienceIcon />,
-    path: "/demos",
-  },
-  {
-    id: "distributors",
-    labelKey: "nav.distributors",
-    icon: <GroupIcon />,
-    path: "/distributors",
-  },
-
   {
     id: "reports",
-
     labelKey: "nav.reports",
-
     icon: <AssessmentIcon />,
-
     path: "/reports",
   },
-
   {
     id: "calling-list",
     labelKey: "nav.callingList",
@@ -118,10 +90,8 @@ const navigationItems: NavItem[] = [
   },
   {
     id: "import",
-
     labelKey: "nav.import",
     icon: <CloudUploadIcon />,
-
     path: "/import",
   },
 ];

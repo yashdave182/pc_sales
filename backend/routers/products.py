@@ -1,31 +1,124 @@
-from fastapi import APIRouter, Depends
-import sqlite3
-from database import get_db
+from fastapi import APIRouter, Depends, HTTPException
 from models import Product
+from supabase_db import SupabaseClient, get_db
 
 router = APIRouter()
 
+
 @router.get("/")
-def get_products(conn: sqlite3.Connection = Depends(get_db)):
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM products WHERE is_active=1")
-    return [dict(row) for row in cursor.fetchall()]
+def get_products(db: SupabaseClient = Depends(get_db)):
+    """Get all active products"""
+    try:
+        response = db.table("products").select("*").eq("is_active", 1).execute()
+        return response.data
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching products: {str(e)}"
+        )
+
+
+@router.get("/all")
+def get_all_products(db: SupabaseClient = Depends(get_db)):
+    """Get all products including inactive ones"""
+    try:
+        response = db.table("products").select("*").execute()
+        return response.data
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching products: {str(e)}"
+        )
+
+
+@router.get("/{product_id}")
+def get_product(product_id: int, db: SupabaseClient = Depends(get_db)):
+    """Get a single product by ID"""
+    try:
+        response = (
+            db.table("products").select("*").eq("product_id", product_id).execute()
+        )
+
+        if not response.data or len(response.data) == 0:
+            raise HTTPException(status_code=404, detail="Product not found")
+
+        return response.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching product: {str(e)}")
+
 
 @router.post("/")
-def create_product(product: Product, conn: sqlite3.Connection = Depends(get_db)):
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        INSERT INTO products (product_name, packing_type, capacity_ltr, category, standard_rate)
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        (
-            product.product_name,
-            product.packing_type,
-            product.capacity_ltr,
-            product.category,
-            product.standard_rate,
-        ),
-    )
-    conn.commit()
-    return {"message": "Product created"}
+def create_product(product: Product, db: SupabaseClient = Depends(get_db)):
+    """Create a new product"""
+    try:
+        product_data = {
+            "product_name": product.product_name,
+            "packing_type": product.packing_type,
+            "capacity_ltr": product.capacity_ltr,
+            "category": product.category,
+            "standard_rate": product.standard_rate,
+            "is_active": product.is_active,
+        }
+
+        response = db.table("products").insert(product_data).execute()
+
+        if response.data and len(response.data) > 0:
+            return {"message": "Product created", "data": response.data[0]}
+        else:
+            return {"message": "Product created"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating product: {str(e)}")
+
+
+@router.put("/{product_id}")
+def update_product(
+    product_id: int, product: Product, db: SupabaseClient = Depends(get_db)
+):
+    """Update an existing product"""
+    try:
+        product_data = {
+            "product_name": product.product_name,
+            "packing_type": product.packing_type,
+            "capacity_ltr": product.capacity_ltr,
+            "category": product.category,
+            "standard_rate": product.standard_rate,
+            "is_active": product.is_active,
+        }
+
+        response = (
+            db.table("products")
+            .update(product_data)
+            .eq("product_id", product_id)
+            .execute()
+        )
+
+        if not response.data or len(response.data) == 0:
+            raise HTTPException(status_code=404, detail="Product not found")
+
+        return {"message": "Product updated", "data": response.data[0]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating product: {str(e)}")
+
+
+@router.delete("/{product_id}")
+def delete_product(product_id: int, db: SupabaseClient = Depends(get_db)):
+    """Delete a product (soft delete by setting is_active to 0)"""
+    try:
+        # Soft delete - set is_active to 0
+        response = (
+            db.table("products")
+            .update({"is_active": 0})
+            .eq("product_id", product_id)
+            .execute()
+        )
+
+        if not response.data or len(response.data) == 0:
+            raise HTTPException(status_code=404, detail="Product not found")
+
+        return {"message": "Product deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting product: {str(e)}")

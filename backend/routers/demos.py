@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
-import sqlite3
 from typing import Optional
 
-from database import get_db
+from fastapi import APIRouter, Depends, HTTPException
 from models import Demo
+from supabase_db import SupabaseClient, get_supabase
 
 router = APIRouter()
 
@@ -16,88 +15,141 @@ def get_demos(
     skip: int = 0,
     limit: int = 100,
     status: Optional[str] = None,
-    conn: sqlite3.Connection = Depends(get_db),
+    db: SupabaseClient = Depends(get_supabase),
 ):
-    query = """
-        SELECT d.*,
-               c.name AS customer_name,
-               c.mobile AS customer_mobile,
-               p.product_name,
-               dist.name AS distributor_name
-        FROM demos d
-        LEFT JOIN customers c ON d.customer_id = c.customer_id
-        LEFT JOIN products p ON d.product_id = p.product_id
-        LEFT JOIN distributors dist ON d.distributor_id = dist.distributor_id
-        WHERE 1=1
-    """
-    params = []
+    """Get all demos with related customer, product, and distributor information"""
+    try:
+        # Build query
+        query = (
+            db.table("demos")
+            .select("*")
+            .order("demo_date", desc=True)
+            .order("demo_time", desc=True)
+        )
 
-    if status:
-        query += " AND d.conversion_status = ?"
-        params.append(status)
+        # Filter by status if provided
+        if status:
+            query = query.eq("conversion_status", status)
 
-    query += " ORDER BY d.demo_date DESC, d.demo_time DESC LIMIT ? OFFSET ?"
-    params.extend([limit, skip])
+        # Apply pagination
+        query = query.limit(limit).offset(skip)
 
-    cursor = conn.cursor()
-    cursor.execute(query, params)
-    return [dict(row) for row in cursor.fetchall()]
+        demos_response = query.execute()
+
+        if not demos_response.data:
+            return []
+
+        # Get related data
+        customers_response = (
+            db.table("customers").select("customer_id, name, mobile").execute()
+        )
+        customers_dict = (
+            {c["customer_id"]: c for c in customers_response.data}
+            if customers_response.data
+            else {}
+        )
+
+        products_response = (
+            db.table("products").select("product_id, product_name").execute()
+        )
+        products_dict = (
+            {p["product_id"]: p for p in products_response.data}
+            if products_response.data
+            else {}
+        )
+
+        distributors_response = (
+            db.table("distributors")
+            .select("distributor_id, distributor_name")
+            .execute()
+        )
+        distributors_dict = (
+            {d["distributor_id"]: d for d in distributors_response.data}
+            if distributors_response.data
+            else {}
+        )
+
+        # Enrich demos with related data
+        result = []
+        for demo in demos_response.data:
+            customer_id = demo.get("customer_id")
+            product_id = demo.get("product_id")
+            distributor_id = demo.get("distributor_id")
+
+            customer = customers_dict.get(customer_id, {})
+            product = products_dict.get(product_id, {})
+            distributor = distributors_dict.get(distributor_id, {})
+
+            result.append(
+                {
+                    **demo,
+                    "customer_name": customer.get("name"),
+                    "customer_mobile": customer.get("mobile"),
+                    "product_name": product.get("product_name"),
+                    "distributor_name": distributor.get("distributor_name"),
+                }
+            )
+
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching demos: {str(e)}")
 
 
 # ======================
 # Get single demo
 # ======================
 @router.get("/{demo_id}")
-def get_demo(demo_id: int, conn: sqlite3.Connection = Depends(get_db)):
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM demos WHERE demo_id = ?", (demo_id,))
-    demo = cursor.fetchone()
+def get_demo(demo_id: int, db: SupabaseClient = Depends(get_supabase)):
+    """Get a single demo by ID"""
+    try:
+        response = db.table("demos").select("*").eq("demo_id", demo_id).execute()
 
-    if not demo:
-        raise HTTPException(status_code=404, detail="Demo not found")
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Demo not found")
 
-    return dict(demo)
+        return response.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching demo: {str(e)}")
 
 
 # ======================
 # Create demo
 # ======================
 @router.post("/")
-def create_demo(demo: Demo, conn: sqlite3.Connection = Depends(get_db)):
-    cursor = conn.cursor()
+def create_demo(demo: Demo, db: SupabaseClient = Depends(get_supabase)):
+    """Create a new demo"""
+    try:
+        demo_data = {
+            "customer_id": demo.customer_id,
+            "distributor_id": demo.distributor_id,
+            "demo_date": demo.demo_date,
+            "demo_time": demo.demo_time if hasattr(demo, "demo_time") else None,
+            "product_id": demo.product_id,
+            "quantity_provided": demo.quantity_provided
+            if hasattr(demo, "quantity_provided")
+            else None,
+            "follow_up_date": demo.follow_up_date
+            if hasattr(demo, "follow_up_date")
+            else None,
+            "conversion_status": demo.conversion_status
+            if hasattr(demo, "conversion_status")
+            else "Pending",
+            "notes": demo.notes if hasattr(demo, "notes") else None,
+            "demo_location": demo.demo_location
+            if hasattr(demo, "demo_location")
+            else None,
+        }
 
-    cursor.execute(
-        """
-        INSERT INTO demos (
-            customer_id,
-            distributor_id,
-            demo_date,
-            demo_time,
-            product_id,
-            quantity_provided,
-            follow_up_date,
-            conversion_status,
-            notes,
-            demo_location
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            demo.customer_id,
-            demo.distributor_id,
-            demo.demo_date,
-            demo.demo_time,
-            demo.product_id,
-            demo.quantity_provided,
-            demo.follow_up_date,
-            demo.conversion_status,
-            demo.notes,
-            demo.demo_location,
-        ),
-    )
+        response = db.table("demos").insert(demo_data).execute()
 
-    conn.commit()
-    return {"message": "Demo scheduled successfully"}
+        if not response.data:
+            raise HTTPException(status_code=400, detail="Failed to create demo")
+
+        return {"message": "Demo scheduled successfully", "demo": response.data[0]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating demo: {str(e)}")
 
 
 # ======================
@@ -108,36 +160,42 @@ def update_demo_status(
     demo_id: int,
     conversion_status: str,
     notes: Optional[str] = None,
-    conn: sqlite3.Connection = Depends(get_db),
+    db: SupabaseClient = Depends(get_supabase),
 ):
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        UPDATE demos
-        SET conversion_status = ?, notes = ?
-        WHERE demo_id = ?
-        """,
-        (conversion_status, notes, demo_id),
-    )
+    """Update demo conversion status"""
+    try:
+        update_data = {"conversion_status": conversion_status}
+        if notes is not None:
+            update_data["notes"] = notes
 
-    conn.commit()
+        response = (
+            db.table("demos").update(update_data).eq("demo_id", demo_id).execute()
+        )
 
-    if cursor.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Demo not found")
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Demo not found")
 
-    return {"message": "Demo updated successfully"}
+        return {"message": "Demo updated successfully", "demo": response.data[0]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating demo: {str(e)}")
 
 
 # ======================
 # Delete demo
 # ======================
 @router.delete("/{demo_id}")
-def delete_demo(demo_id: int, conn: sqlite3.Connection = Depends(get_db)):
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM demos WHERE demo_id = ?", (demo_id,))
-    conn.commit()
+def delete_demo(demo_id: int, db: SupabaseClient = Depends(get_supabase)):
+    """Delete a demo"""
+    try:
+        response = db.table("demos").delete().eq("demo_id", demo_id).execute()
 
-    if cursor.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Demo not found")
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Demo not found")
 
-    return {"message": "Demo deleted successfully"}
+        return {"message": "Demo deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting demo: {str(e)}")

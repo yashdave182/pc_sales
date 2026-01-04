@@ -1,6 +1,5 @@
 from contextlib import asynccontextmanager
 
-from database import init_db
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import (
@@ -21,7 +20,7 @@ from routers.automation import router as automation
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
+    # Supabase connection is handled per-request via dependency injection
     yield
 
 

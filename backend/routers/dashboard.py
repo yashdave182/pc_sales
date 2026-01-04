@@ -1,7 +1,8 @@
-import sqlite3
+from datetime import datetime, timedelta
+from typing import Optional
 
-from database import get_db
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from supabase_db import SupabaseClient, get_supabase
 
 router = APIRouter()
 
@@ -10,113 +11,231 @@ router = APIRouter()
 # Dashboard Metrics
 # ======================
 @router.get("/metrics")
-def dashboard_metrics(conn: sqlite3.Connection = Depends(get_db)):
-    cursor = conn.cursor()
+def dashboard_metrics(db: SupabaseClient = Depends(get_supabase)):
+    """Get dashboard metrics"""
+    try:
+        # Get total sales amount
+        sales_response = db.table("sales").select("total_amount").execute()
+        total_sales = (
+            sum(s.get("total_amount", 0) or 0 for s in sales_response.data)
+            if sales_response.data
+            else 0
+        )
 
-    cursor.execute("SELECT COALESCE(SUM(total_amount),0) FROM sales")
-    total_sales = cursor.fetchone()[0]
+        # Get total payments amount
+        payments_response = db.table("payments").select("amount").execute()
+        total_payments = (
+            sum(p.get("amount", 0) or 0 for p in payments_response.data)
+            if payments_response.data
+            else 0
+        )
 
-    cursor.execute("SELECT COALESCE(SUM(amount),0) FROM payments")
-    total_payments = cursor.fetchone()[0]
+        # Get total customers count
+        customers_response = db.table("customers").select("customer_id").execute()
+        total_customers = len(customers_response.data) if customers_response.data else 0
 
-    cursor.execute("SELECT COUNT(*) FROM customers")
-    total_customers = cursor.fetchone()[0]
+        # Get total transactions count
+        total_transactions = len(sales_response.data) if sales_response.data else 0
 
-    cursor.execute("SELECT COUNT(*) FROM sales")
-    total_transactions = cursor.fetchone()[0]
+        # Calculate pending amount
+        pending_amount = total_sales - total_payments
 
-    pending_amount = total_sales - total_payments
+        # Get demo conversion rate
+        demos_response = db.table("demos").select("conversion_status").execute()
+        if demos_response.data:
+            converted = sum(
+                1
+                for d in demos_response.data
+                if d.get("conversion_status", "").lower()
+                in ["converted", "won", "purchase"]
+            )
+            total_demos = len(demos_response.data)
+            demo_conversion_rate = (
+                round((converted / total_demos) * 100, 2) if total_demos > 0 else 0.0
+            )
+        else:
+            demo_conversion_rate = 0.0
 
-    cursor.execute("""
-        SELECT
-          SUM(CASE WHEN LOWER(conversion_status) IN ('converted','won','purchase') THEN 1 ELSE 0 END),
-          COUNT(*)
-        FROM demos
-        WHERE conversion_status IS NOT NULL
-    """)
-    row = cursor.fetchone()
-    converted = int(row[0] or 0)
-    total_demos = int(row[1] or 0)
-    demo_conversion_rate = (
-        round((converted / total_demos) * 100, 2) if total_demos > 0 else 0.0
-    )
-
-    return {
-        "total_sales": total_sales,
-        "total_payments": total_payments,
-        "pending_amount": pending_amount,
-        "total_customers": total_customers,
-        "total_transactions": total_transactions,
-        "demo_conversion_rate": demo_conversion_rate,
-    }
+        return {
+            "total_sales": total_sales,
+            "total_payments": total_payments,
+            "pending_amount": pending_amount,
+            "total_customers": total_customers,
+            "total_transactions": total_transactions,
+            "demo_conversion_rate": demo_conversion_rate,
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching dashboard metrics: {str(e)}"
+        )
 
 
 # ======================
 # Sales Trend
 # ======================
 @router.get("/sales-trend")
-def sales_trend(days: int = 30, conn: sqlite3.Connection = Depends(get_db)):
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        SELECT sale_date, SUM(total_amount) AS total_amount
-        FROM sales
-        WHERE sale_date >= date('now', ?)
-        GROUP BY sale_date
-        ORDER BY sale_date
-        """,
-        (f"-{days} days",),
-    )
-    return [dict(row) for row in cursor.fetchall()]
+def sales_trend(days: int = 30, db: SupabaseClient = Depends(get_supabase)):
+    """Get sales trend for the last N days"""
+    try:
+        # Calculate date threshold
+        date_threshold = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+
+        # Get sales after threshold
+        response = (
+            db.table("sales")
+            .select("sale_date, total_amount")
+            .gte("sale_date", date_threshold)
+            .execute()
+        )
+
+        if not response.data:
+            return []
+
+        # Group by date and sum amounts
+        trend_dict = {}
+        for sale in response.data:
+            sale_date = sale.get("sale_date")
+            total_amount = sale.get("total_amount", 0) or 0
+
+            if sale_date:
+                if sale_date not in trend_dict:
+                    trend_dict[sale_date] = 0
+                trend_dict[sale_date] += total_amount
+
+        # Convert to list and sort
+        result = [
+            {"sale_date": date, "total_amount": amount}
+            for date, amount in trend_dict.items()
+        ]
+        result.sort(key=lambda x: x["sale_date"])
+
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching sales trend: {str(e)}"
+        )
 
 
 # ======================
 # Recent Sales
 # ======================
 @router.get("/recent-sales")
-def recent_sales(limit: int = 10, conn: sqlite3.Connection = Depends(get_db)):
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        SELECT s.invoice_no,
-               c.name AS customer_name,
-               c.village,
-               s.total_amount,
-               s.sale_date,
-               s.payment_status
-        FROM sales s
-        JOIN customers c ON s.customer_id = c.customer_id
-        ORDER BY s.created_at DESC
-        LIMIT ?
-        """,
-        (limit,),
-    )
-    return [dict(row) for row in cursor.fetchall()]
+def recent_sales(limit: int = 10, db: SupabaseClient = Depends(get_supabase)):
+    """Get recent sales with customer information"""
+    try:
+        # Get recent sales
+        sales_response = (
+            db.table("sales")
+            .select("*")
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+
+        if not sales_response.data:
+            return []
+
+        # Get customers for joining
+        customers_response = (
+            db.table("customers").select("customer_id, name, village").execute()
+        )
+        customers_dict = (
+            {c["customer_id"]: c for c in customers_response.data}
+            if customers_response.data
+            else {}
+        )
+
+        # Build result with customer data
+        result = []
+        for sale in sales_response.data:
+            customer_id = sale.get("customer_id")
+            customer = customers_dict.get(customer_id, {})
+
+            result.append(
+                {
+                    "invoice_no": sale.get("invoice_no"),
+                    "customer_name": customer.get("name"),
+                    "village": customer.get("village"),
+                    "total_amount": sale.get("total_amount"),
+                    "sale_date": sale.get("sale_date"),
+                    "payment_status": sale.get("payment_status"),
+                }
+            )
+
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching recent sales: {str(e)}"
+        )
 
 
 # ======================
 # Upcoming Demos
 # ======================
 @router.get("/upcoming-demos")
-def upcoming_demos(limit: int = 10, conn: sqlite3.Connection = Depends(get_db)):
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        SELECT d.demo_id,
-               c.name AS customer_name,
-               c.village,
-               p.product_name,
-               d.demo_date,
-               d.demo_time,
-               d.conversion_status
-        FROM demos d
-        LEFT JOIN customers c ON d.customer_id = c.customer_id
-        LEFT JOIN products p ON d.product_id = p.product_id
-        WHERE date(d.demo_date) >= date('now')
-          AND LOWER(d.conversion_status) = 'scheduled'
-        ORDER BY d.demo_date, d.demo_time
-        LIMIT ?
-        """,
-        (limit,),
-    )
-    return [dict(row) for row in cursor.fetchall()]
+def upcoming_demos(limit: int = 10, db: SupabaseClient = Depends(get_supabase)):
+    """Get upcoming scheduled demos"""
+    try:
+        # Get current date
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        # Get upcoming demos
+        demos_response = (
+            db.table("demos")
+            .select("*")
+            .gte("demo_date", today)
+            .eq("conversion_status", "Scheduled")
+            .order("demo_date")
+            .order("demo_time")
+            .limit(limit)
+            .execute()
+        )
+
+        if not demos_response.data:
+            return []
+
+        # Get related data
+        customers_response = (
+            db.table("customers").select("customer_id, name, village").execute()
+        )
+        customers_dict = (
+            {c["customer_id"]: c for c in customers_response.data}
+            if customers_response.data
+            else {}
+        )
+
+        products_response = (
+            db.table("products").select("product_id, product_name").execute()
+        )
+        products_dict = (
+            {p["product_id"]: p for p in products_response.data}
+            if products_response.data
+            else {}
+        )
+
+        # Build result
+        result = []
+        for demo in demos_response.data:
+            customer_id = demo.get("customer_id")
+            product_id = demo.get("product_id")
+
+            customer = customers_dict.get(customer_id, {})
+            product = products_dict.get(product_id, {})
+
+            result.append(
+                {
+                    "demo_id": demo.get("demo_id"),
+                    "customer_name": customer.get("name"),
+                    "village": customer.get("village"),
+                    "product_name": product.get("product_name"),
+                    "demo_date": demo.get("demo_date"),
+                    "demo_time": demo.get("demo_time"),
+                    "conversion_status": demo.get("conversion_status"),
+                }
+            )
+
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching upcoming demos: {str(e)}"
+        )

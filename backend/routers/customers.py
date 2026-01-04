@@ -1,46 +1,126 @@
-import sqlite3
-
-from database import get_db
 from fastapi import APIRouter, Depends, HTTPException
 from models import Customer
+from supabase_db import SupabaseClient, get_db
 
 router = APIRouter()
 
 
 @router.get("/")
-def get_customers(conn: sqlite3.Connection = Depends(get_db)):
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM customers ORDER BY created_at DESC")
-    rows = [dict(row) for row in cursor.fetchall()]
-    return {"data": rows, "total": len(rows)}
+def get_customers(db: SupabaseClient = Depends(get_db)):
+    """Get all customers"""
+    try:
+        response = (
+            db.table("customers").select("*").order("created_at", desc=True).execute()
+        )
+        return {"data": response.data, "total": len(response.data)}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching customers: {str(e)}"
+        )
 
 
 @router.get("/{customer_id}")
-def get_customer(customer_id: int, conn: sqlite3.Connection = Depends(get_db)):
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM customers WHERE customer_id=?", (customer_id,))
-    row = cursor.fetchone()
-    if not row:
-        raise HTTPException(status_code=404, detail="Customer not found")
-    return dict(row)
+def get_customer(customer_id: int, db: SupabaseClient = Depends(get_db)):
+    """Get a single customer by ID"""
+    try:
+        response = (
+            db.table("customers").select("*").eq("customer_id", customer_id).execute()
+        )
+
+        if not response.data or len(response.data) == 0:
+            raise HTTPException(status_code=404, detail="Customer not found")
+
+        return response.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching customer: {str(e)}"
+        )
 
 
 @router.post("/")
-def create_customer(customer: Customer, conn: sqlite3.Connection = Depends(get_db)):
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        INSERT INTO customers (name, mobile, village, taluka, district, status)
-        VALUES (?, ?, ?, ?, ?, ?)
-        """,
-        (
-            customer.name,
-            customer.mobile,
-            customer.village,
-            customer.taluka,
-            customer.district,
-            customer.status,
-        ),
-    )
-    conn.commit()
-    return {"message": "Customer created"}
+def create_customer(customer: Customer, db: SupabaseClient = Depends(get_db)):
+    """Create a new customer"""
+    try:
+        customer_data = {
+            "name": customer.name,
+            "mobile": customer.mobile,
+            "village": customer.village,
+            "taluka": customer.taluka,
+            "district": customer.district,
+            "status": customer.status,
+        }
+
+        # Add customer_code if provided
+        if customer.customer_code:
+            customer_data["customer_code"] = customer.customer_code
+
+        response = db.table("customers").insert(customer_data).execute()
+
+        if response.data and len(response.data) > 0:
+            return {"message": "Customer created", "data": response.data[0]}
+        else:
+            return {"message": "Customer created"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error creating customer: {str(e)}"
+        )
+
+
+@router.put("/{customer_id}")
+def update_customer(
+    customer_id: int, customer: Customer, db: SupabaseClient = Depends(get_db)
+):
+    """Update an existing customer"""
+    try:
+        customer_data = {
+            "name": customer.name,
+            "mobile": customer.mobile,
+            "village": customer.village,
+            "taluka": customer.taluka,
+            "district": customer.district,
+            "status": customer.status,
+        }
+
+        # Add customer_code if provided
+        if customer.customer_code:
+            customer_data["customer_code"] = customer.customer_code
+
+        response = (
+            db.table("customers")
+            .update(customer_data)
+            .eq("customer_id", customer_id)
+            .execute()
+        )
+
+        if not response.data or len(response.data) == 0:
+            raise HTTPException(status_code=404, detail="Customer not found")
+
+        return {"message": "Customer updated", "data": response.data[0]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error updating customer: {str(e)}"
+        )
+
+
+@router.delete("/{customer_id}")
+def delete_customer(customer_id: int, db: SupabaseClient = Depends(get_db)):
+    """Delete a customer"""
+    try:
+        response = (
+            db.table("customers").delete().eq("customer_id", customer_id).execute()
+        )
+
+        if not response.data or len(response.data) == 0:
+            raise HTTPException(status_code=404, detail="Customer not found")
+
+        return {"message": "Customer deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error deleting customer: {str(e)}"
+        )

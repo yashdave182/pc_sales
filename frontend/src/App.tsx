@@ -19,6 +19,7 @@ import Distributors from "./pages/Distributors";
 import Reports from "./pages/Reports";
 import DataImport from "./pages/DataImport";
 import CallingList from "./pages/CallingList";
+import OrderManagement from "./pages/OrderManagement";
 import { createAppTheme } from "./theme/theme";
 
 const queryClient = new QueryClient({
@@ -60,6 +61,7 @@ function App() {
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/import" element={<DataImport />} />
                 <Route path="/calling-list" element={<CallingList />} />
+                <Route path="/orders" element={<OrderManagement />} />
                 <Route
                   path="*"
                   element={<Navigate to="/dashboard" replace />}

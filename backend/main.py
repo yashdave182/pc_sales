@@ -14,8 +14,9 @@ from routers import (
     products,
     reports,
     sales,
+    automation,
 )
-from routers.automation import router as automation
+
 
 
 @asynccontextmanager

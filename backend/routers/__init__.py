@@ -9,3 +9,4 @@ from .payments import router as payments
 from .products import router as products
 from .reports import router as reports
 from .sales import router as sales
+from .automation import router as automation

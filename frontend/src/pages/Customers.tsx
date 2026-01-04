@@ -366,7 +366,8 @@ export default function Customers() {
                   setFormData({ ...formData, name: e.target.value })
                 }
               />
-
+            </Grid>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label={`${tf("mobile")} *`}

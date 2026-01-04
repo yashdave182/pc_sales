@@ -234,24 +234,24 @@ def update_demo_status(
 def delete_demo(demo_id: int, db: SupabaseClient = Depends(get_supabase)):
     """Delete a demo"""
 
-        try:
+    try:
 
-            response = db.table("demos").eq("demo_id", demo_id).delete().execute()
+        response = db.table("demos").eq("demo_id", demo_id).delete().execute()
 
 
 
-            if not response.data:
+        if not response.data:
 
-                raise HTTPException(status_code=404, detail="Demo not found")
+            raise HTTPException(status_code=404, detail="Demo not found")
 
 
 
             return {"message": "Demo deleted successfully"}
 
-        except requests.HTTPError as e:
-            detail = str(e)
-            raise HTTPException(status_code=400, detail=f"Supabase error: {detail}")
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error deleting demo: {str(e)}")
+    except requests.HTTPError as e:
+        detail = str(e)
+        raise HTTPException(status_code=400, detail=f"Supabase error: {detail}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting demo: {str(e)}")

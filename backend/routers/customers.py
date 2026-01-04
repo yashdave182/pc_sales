@@ -152,9 +152,8 @@ def delete_customer(customer_id: int, db: SupabaseClient = Depends(get_db)):
                 detail="Cannot delete customer with existing demo records. Please delete related demos first.",
             )
 
-        # If no related records, proceed with deletion
         response = (
-            db.table("customers").delete().eq("customer_id", customer_id).execute()
+            db.table("customers").eq("customer_id", customer_id).delete().execute()
         )
 
         if not response.data or len(response.data) == 0:

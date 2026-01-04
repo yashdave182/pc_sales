@@ -1,3 +1,4 @@
+import requests
 from fastapi import APIRouter, Depends, HTTPException
 from models import Customer
 from supabase_db import SupabaseClient, get_db
@@ -160,6 +161,9 @@ def delete_customer(customer_id: int, db: SupabaseClient = Depends(get_db)):
             raise HTTPException(status_code=404, detail="Customer not found")
 
         return {"message": "Customer deleted successfully"}
+    except requests.HTTPError as e:
+        detail = str(e)
+        raise HTTPException(status_code=400, detail=f"Supabase error: {detail}")
     except HTTPException:
         raise
     except Exception as e:

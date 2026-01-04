@@ -226,18 +226,46 @@ class SupabaseTable:
 
     def delete(self):
         """Delete records"""
+
         # Build query string with filters
+
         query_params = {}
+
         for filter_str in self._filters:
             key = filter_str.split("=")[0]
+
             value = "=".join(filter_str.split("=")[1:])
+
             query_params[key] = value
 
-        response = requests.delete(self.url, params=query_params, headers=self.headers)
-        response.raise_for_status()
+        try:
+            response = requests.delete(
+                self.url, params=query_params, headers=self.headers
+            )
+
+            response.raise_for_status()
+
+        except requests.HTTPError as e:
+            err_text = (
+                e.response.text
+                if hasattr(e, "response") and e.response is not None
+                else str(e)
+            )
+            raise requests.HTTPError(
+                f"DELETE {self.url} failed: {err_text}", response=e.response
+            )
 
         # Return a new table instance so execute() can be called if needed
-        result = SupabaseTableResult(response.json())
+
+        # Some DELETE responses may have no content (204 No Content). Handle gracefully.
+        data = (
+            response.json()
+            if response.content is not None
+            and response.content.strip() != b""
+            and response.text.strip() != ""
+            else []
+        )
+        result = SupabaseTableResult(data)
         return result
 
 

@@ -43,6 +43,14 @@ import {
 } from "@mui/icons-material";
 import { customerAPI, salesAPI, paymentAPI } from "../services/api";
 
+interface Customer {
+  customer_id: number;
+  name: string;
+  mobile?: string;
+  village?: string;
+  [key: string]: any;
+}
+
 interface Order {
   sale_id: number;
   invoice_no: string;
@@ -74,7 +82,7 @@ interface OrderStatusUpdate {
 
 export default function OrderManagement() {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [customers, setCustomers] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -99,21 +107,22 @@ export default function OrderManagement() {
       ]);
 
       // Map customer data to sales
-      const customersMap = new Map(
-        customersResponse.data?.map((c: any) => [c.customer_id, c]) || []
+      const customersMap = new Map<number, Customer>(
+        customersResponse.data?.map((c: Customer) => [c.customer_id, c]) || [],
       );
 
       const ordersData = (salesResponse.data || salesResponse || []).map(
         (sale: any) => {
-          const customer = customersMap.get(sale.customer_id);
+          const customer =
+            customersMap.get(sale.customer_id) || ({} as Customer);
           return {
             ...sale,
-            customer_name: customer?.name || "Unknown",
-            customer_mobile: customer?.mobile || "N/A",
+            customer_name: customer.name || "Unknown",
+            customer_mobile: customer.mobile || "N/A",
             order_status: sale.order_status || "pending",
             shipment_status: sale.shipment_status || "not_shipped",
           };
-        }
+        },
       );
 
       setOrders(ordersData);
@@ -167,7 +176,7 @@ export default function OrderManagement() {
         label: "Dispatched",
         date: order.dispatch_date,
         completed: ["shipped", "in_transit", "delivered"].includes(
-          order.shipment_status || ""
+          order.shipment_status || "",
         ),
       },
       {
@@ -353,7 +362,9 @@ export default function OrderManagement() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
-                startAdornment: <SearchIcon sx={{ mr: 1, color: "grey.500" }} />,
+                startAdornment: (
+                  <SearchIcon sx={{ mr: 1, color: "grey.500" }} />
+                ),
               }}
             />
           </Grid>
@@ -364,7 +375,9 @@ export default function OrderManagement() {
                 value={statusFilter}
                 label="Shipment Status"
                 onChange={(e) => setStatusFilter(e.target.value)}
-                startAdornment={<FilterIcon sx={{ mr: 1, color: "grey.500" }} />}
+                startAdornment={
+                  <FilterIcon sx={{ mr: 1, color: "grey.500" }} />
+                }
               >
                 <MenuItem value="all">All Status</MenuItem>
                 <MenuItem value="not_shipped">Not Shipped</MenuItem>
@@ -413,9 +426,7 @@ export default function OrderManagement() {
             {filteredOrders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                  <Typography color="textSecondary">
-                    No orders found
-                  </Typography>
+                  <Typography color="textSecondary">No orders found</Typography>
                 </TableCell>
               </TableRow>
             ) : (
@@ -448,18 +459,21 @@ export default function OrderManagement() {
                   <TableCell>
                     <Chip
                       label={order.order_status || "Pending"}
-                      color={getOrderStatusColor(order.order_status || "pending")}
+                      color={getOrderStatusColor(
+                        order.order_status || "pending",
+                      )}
                       size="small"
                     />
                   </TableCell>
                   <TableCell>
                     <Chip
                       label={
-                        order.shipment_status?.replace(/_/g, " ").toUpperCase() ||
-                        "NOT SHIPPED"
+                        order.shipment_status
+                          ?.replace(/_/g, " ")
+                          .toUpperCase() || "NOT SHIPPED"
                       }
                       color={getShipmentStatusColor(
-                        order.shipment_status || "not_shipped"
+                        order.shipment_status || "not_shipped",
                       )}
                       size="small"
                       icon={
@@ -513,9 +527,7 @@ export default function OrderManagement() {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>
-          Order Details - {selectedOrder?.invoice_no}
-        </DialogTitle>
+        <DialogTitle>Order Details - {selectedOrder?.invoice_no}</DialogTitle>
         <DialogContent>
           {selectedOrder && (
             <Box>
@@ -536,7 +548,8 @@ export default function OrderManagement() {
                     Order Information
                   </Typography>
                   <Typography variant="body2">
-                    Date: {new Date(selectedOrder.sale_date).toLocaleDateString()}
+                    Date:{" "}
+                    {new Date(selectedOrder.sale_date).toLocaleDateString()}
                   </Typography>
                   <Typography variant="body2">
                     Amount: ₹{selectedOrder.total_amount?.toLocaleString()}
@@ -552,7 +565,10 @@ export default function OrderManagement() {
                   Order Timeline
                 </Typography>
                 <Stepper
-                  activeStep={getOrderSteps(selectedOrder).filter((s) => s.completed).length - 1}
+                  activeStep={
+                    getOrderSteps(selectedOrder).filter((s) => s.completed)
+                      .length - 1
+                  }
                   alternativeLabel
                 >
                   {getOrderSteps(selectedOrder).map((step, index) => (
@@ -573,7 +589,8 @@ export default function OrderManagement() {
               {selectedOrder.tracking_number && (
                 <Alert severity="info" sx={{ mt: 3 }}>
                   <Typography variant="body2">
-                    <strong>Tracking Number:</strong> {selectedOrder.tracking_number}
+                    <strong>Tracking Number:</strong>{" "}
+                    {selectedOrder.tracking_number}
                   </Typography>
                 </Alert>
               )}
@@ -612,7 +629,10 @@ export default function OrderManagement() {
                     value={orderUpdate.order_status}
                     label="Order Status"
                     onChange={(e) =>
-                      setOrderUpdate({ ...orderUpdate, order_status: e.target.value })
+                      setOrderUpdate({
+                        ...orderUpdate,
+                        order_status: e.target.value,
+                      })
                     }
                   >
                     <MenuItem value="pending">Pending</MenuItem>
@@ -652,7 +672,10 @@ export default function OrderManagement() {
                   type="date"
                   value={orderUpdate.shipment_date || ""}
                   onChange={(e) =>
-                    setOrderUpdate({ ...orderUpdate, shipment_date: e.target.value })
+                    setOrderUpdate({
+                      ...orderUpdate,
+                      shipment_date: e.target.value,
+                    })
                   }
                   InputLabelProps={{ shrink: true }}
                 />
@@ -665,7 +688,10 @@ export default function OrderManagement() {
                   type="date"
                   value={orderUpdate.dispatch_date || ""}
                   onChange={(e) =>
-                    setOrderUpdate({ ...orderUpdate, dispatch_date: e.target.value })
+                    setOrderUpdate({
+                      ...orderUpdate,
+                      dispatch_date: e.target.value,
+                    })
                   }
                   InputLabelProps={{ shrink: true }}
                 />
@@ -678,7 +704,10 @@ export default function OrderManagement() {
                   type="date"
                   value={orderUpdate.delivery_date || ""}
                   onChange={(e) =>
-                    setOrderUpdate({ ...orderUpdate, delivery_date: e.target.value })
+                    setOrderUpdate({
+                      ...orderUpdate,
+                      delivery_date: e.target.value,
+                    })
                   }
                   InputLabelProps={{ shrink: true }}
                 />
@@ -715,7 +744,11 @@ export default function OrderManagement() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setUpdateDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleSaveUpdate} variant="contained" color="primary">
+          <Button
+            onClick={handleSaveUpdate}
+            variant="contained"
+            color="primary"
+          >
             Save Changes
           </Button>
         </DialogActions>

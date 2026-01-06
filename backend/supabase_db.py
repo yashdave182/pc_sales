@@ -76,10 +76,17 @@ class SupabaseTable:
         self._order = None
         self._limit = None
         self._offset = None
+        self._count = None
 
-    def select(self, columns: str = "*"):
-        """Select specific columns"""
+    def select(self, columns: str = "*", count: str = None):
+        """Select specific columns
+
+        Args:
+            columns: Columns to select (default "*")
+            count: Count option - "exact", "planned", or "estimated"
+        """
         self._select_query = columns
+        self._count = count
         return self
 
     def eq(self, column: str, value: Any):
@@ -150,6 +157,12 @@ class SupabaseTable:
         self._offset = count
         return self
 
+    def range(self, start: int, end: int):
+        """Set range for pagination (alternative to limit/offset)"""
+        self._offset = start
+        self._limit = end - start + 1
+        return self
+
     def execute(self):
         """Execute the query"""
         params = {"select": self._select_query}
@@ -172,10 +185,23 @@ class SupabaseTable:
         if self._offset:
             params["offset"] = str(self._offset)
 
-        response = requests.get(self.url, params=params, headers=self.headers)
+        # Prepare headers with count preference if specified
+        headers = self.headers.copy()
+        if self._count:
+            headers["Prefer"] = f"count={self._count}"
+
+        response = requests.get(self.url, params=params, headers=headers)
         response.raise_for_status()
 
-        return SupabaseResponse(response.json())
+        # Extract count from Content-Range header if present
+        count = None
+        if "Content-Range" in response.headers:
+            # Format: "0-24/573" or "*/573"
+            content_range = response.headers["Content-Range"]
+            if "/" in content_range:
+                count = int(content_range.split("/")[1])
+
+        return SupabaseResponse(response.json(), count=count)
 
     def insert(
         self, data: Dict[str, Any] or List[Dict[str, Any]], upsert: bool = False
@@ -272,8 +298,9 @@ class SupabaseTable:
 class SupabaseResponse:
     """Wrapper for response data"""
 
-    def __init__(self, data):
+    def __init__(self, data, count=None):
         self.data = data
+        self.count = count
 
 
 class SupabaseTableResult:

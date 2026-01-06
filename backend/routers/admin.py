@@ -48,75 +48,91 @@ def get_activity_logs(
     Only accessible by admin users
     """
     try:
-        # Check if activity_logs table exists by attempting a simple query
-        test_query = db.table("activity_logs").select("id").limit(1)
-        test_response = test_query.execute()
-
         # Start with base query
         query = db.table("activity_logs").select("*")
 
-        # Apply filters
+        # Build count query separately
+        count_query = db.table("activity_logs").select("*", count="exact")
+
+        # Apply filters to both queries
         if user_email:
             query = query.eq("user_email", user_email)
+            count_query = count_query.eq("user_email", user_email)
 
         if action_type:
             query = query.eq("action_type", action_type)
+            count_query = count_query.eq("action_type", action_type)
 
         if entity_type:
             query = query.eq("entity_type", entity_type)
+            count_query = count_query.eq("entity_type", entity_type)
 
         if start_date:
             query = query.gte("created_at", start_date)
+            count_query = count_query.gte("created_at", start_date)
 
         if end_date:
             query = query.lte("created_at", end_date)
+            count_query = count_query.lte("created_at", end_date)
 
         # Order by most recent first
         query = query.order("created_at", desc=True)
 
         # Apply pagination
-        query = query.range(offset, offset + limit - 1)
+        if limit and offset is not None:
+            query = query.range(offset, offset + limit - 1)
+        elif limit:
+            query = query.limit(limit)
 
+        # Execute queries
         response = query.execute()
-
-        # Get total count for pagination
-        count_query = db.table("activity_logs").select("id", count="exact")
-        if user_email:
-            count_query = count_query.eq("user_email", user_email)
-        if action_type:
-            count_query = count_query.eq("action_type", action_type)
-        if entity_type:
-            count_query = count_query.eq("entity_type", entity_type)
-
         count_response = count_query.execute()
-        total = len(count_response.data) if count_response.data else 0
 
-        # Log the admin viewing activity logs
-        logger = get_activity_logger(db)
-        logger.log_view(
-            user_email=admin_email,
-            page_name="Activity Logs",
-            metadata={
-                "filters": {
-                    "user_email": user_email,
-                    "action_type": action_type,
-                    "entity_type": entity_type,
-                    "start_date": start_date,
-                    "end_date": end_date,
-                },
-                "limit": limit,
-                "offset": offset,
-            },
+        # Get total count from response
+        total = (
+            count_response.count
+            if hasattr(count_response, "count")
+            else len(count_response.data)
+            if count_response.data
+            else 0
         )
 
+        # Log the admin viewing activity logs (don't fail if this errors)
+        try:
+            logger = get_activity_logger(db)
+            logger.log_view(
+                user_email=admin_email,
+                page_name="Activity Logs",
+                metadata={
+                    "filters": {
+                        "user_email": user_email,
+                        "action_type": action_type,
+                        "entity_type": entity_type,
+                        "start_date": start_date,
+                        "end_date": end_date,
+                    },
+                    "limit": limit,
+                    "offset": offset,
+                },
+            )
+        except Exception as log_error:
+            # Don't fail the whole request if logging fails
+            print(f"Warning: Failed to log activity: {str(log_error)}")
+
         return {
-            "data": response.data,
+            "data": response.data or [],
             "total": total,
             "limit": limit,
             "offset": offset,
         }
 
     except Exception as e:
+        # Print detailed error for debugging
+        print(f"Error in get_activity_logs: {type(e).__name__}: {str(e)}")
+        import traceback
+
+        traceback.print_exc()
+
         error_msg = str(e).lower()
 
         # Check if it's a table not found error
@@ -147,10 +163,6 @@ def get_activity_stats(
     Only accessible by admin users
     """
     try:
-        # Check if table exists
-        test_query = db.table("activity_logs").select("id").limit(1)
-        test_query.execute()
-
         # Calculate date range
         end_date = datetime.utcnow()
         start_date = end_date - timedelta(days=days)
@@ -238,10 +250,6 @@ def get_all_users(
     Only accessible by admin users
     """
     try:
-        # Check if table exists
-        test_query = db.table("activity_logs").select("id").limit(1)
-        test_query.execute()
-
         # Get distinct user emails from activity logs
         response = db.table("activity_logs").select("user_email").execute()
 

@@ -3,7 +3,7 @@ Activity Logger Service
 Tracks all user activities and actions in the system
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from supabase_db import SupabaseClient
@@ -55,7 +55,7 @@ class ActivityLogger:
                 "metadata": metadata,
                 "ip_address": ip_address,
                 "user_agent": user_agent,
-                "created_at": datetime.utcnow().isoformat(),
+                "created_at": datetime.now(timezone.utc).isoformat(),
             }
 
             # Remove None values to keep the log clean

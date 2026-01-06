@@ -137,13 +137,23 @@ export default function Admin() {
   };
 
   const formatDate = (dateString: string) => {
+    // Parse the UTC timestamp and convert to IST
     const date = new Date(dateString);
-    return date.toLocaleString("en-IN", {
+
+    // Add 'Z' if not present to ensure UTC parsing
+    const utcDate = dateString.endsWith("Z")
+      ? new Date(dateString)
+      : new Date(dateString + "Z");
+
+    return utcDate.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
       year: "numeric",
       month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
     });
   };
 

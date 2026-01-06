@@ -50,12 +50,18 @@ def get_activity_logs(
     try:
         print(f"[DEBUG] Admin activity logs request - limit: {limit}, offset: {offset}")
 
-        # Start with base query
+        # Start with base query - exclude admin's VIEW activities
         query = db.table("activity_logs").select("*")
+        # Filter out admin viewing activity logs
+        query = query.neq("user_email", admin_email).neq("action_type", "VIEW")
         print("[DEBUG] Base query created")
 
         # Build count query separately
         count_query = db.table("activity_logs").select("*", count="exact")
+        # Apply same filters to count query
+        count_query = count_query.neq("user_email", admin_email).neq(
+            "action_type", "VIEW"
+        )
 
         # Apply filters to both queries
         if user_email:
@@ -111,27 +117,7 @@ def get_activity_logs(
             total = 0
             print(f"[DEBUG] No count or data, using default: {total}")
 
-        # Log the admin viewing activity logs (don't fail if this errors)
-        try:
-            logger = get_activity_logger(db)
-            logger.log_view(
-                user_email=admin_email,
-                page_name="Activity Logs",
-                metadata={
-                    "filters": {
-                        "user_email": user_email,
-                        "action_type": action_type,
-                        "entity_type": entity_type,
-                        "start_date": start_date,
-                        "end_date": end_date,
-                    },
-                    "limit": limit,
-                    "offset": offset,
-                },
-            )
-        except Exception as log_error:
-            # Don't fail the whole request if logging fails
-            print(f"Warning: Failed to log activity: {str(log_error)}")
+        # Don't log admin viewing activity logs to avoid clutter
 
         return {
             "data": response.data or [],

@@ -8,8 +8,11 @@ import { ThemeProvider, CssBaseline } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { AuthProvider } from "./contexts/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import QuickActions from "./components/QuickActions";
+import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Customers from "./pages/Customers";
 import Sales from "./pages/Sales";
@@ -20,6 +23,7 @@ import Reports from "./pages/Reports";
 import DataImport from "./pages/DataImport";
 import CallingList from "./pages/CallingList";
 import OrderManagement from "./pages/OrderManagement";
+import Admin from "./pages/Admin";
 import { createAppTheme } from "./theme/theme";
 
 const queryClient = new QueryClient({
@@ -46,29 +50,151 @@ function App() {
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <Router>
-            <Layout toggleTheme={toggleTheme} themeMode={mode}>
+            <AuthProvider>
               <Routes>
+                {/* Public Route */}
+                <Route path="/login" element={<Login />} />
+
+                {/* Protected Routes */}
                 <Route
                   path="/"
-                  element={<Navigate to="/dashboard" replace />}
+                  element={
+                    <ProtectedRoute>
+                      <Navigate to="/dashboard" replace />
+                    </ProtectedRoute>
+                  }
                 />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/customers" element={<Customers />} />
-                <Route path="/sales" element={<Sales />} />
-                <Route path="/payments" element={<Payments />} />
-                <Route path="/demos" element={<Demos />} />
-                <Route path="/distributors" element={<Distributors />} />
-                <Route path="/reports" element={<Reports />} />
-                <Route path="/import" element={<DataImport />} />
-                <Route path="/calling-list" element={<CallingList />} />
-                <Route path="/orders" element={<OrderManagement />} />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <Dashboard />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/customers"
+                  element={
+                    <ProtectedRoute>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <Customers />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/sales"
+                  element={
+                    <ProtectedRoute>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <Sales />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/payments"
+                  element={
+                    <ProtectedRoute>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <Payments />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/demos"
+                  element={
+                    <ProtectedRoute>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <Demos />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/distributors"
+                  element={
+                    <ProtectedRoute>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <Distributors />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/reports"
+                  element={
+                    <ProtectedRoute>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <Reports />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/import"
+                  element={
+                    <ProtectedRoute>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <DataImport />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/calling-list"
+                  element={
+                    <ProtectedRoute>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <CallingList />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/orders"
+                  element={
+                    <ProtectedRoute>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <OrderManagement />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <Admin />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="*"
-                  element={<Navigate to="/dashboard" replace />}
+                  element={
+                    <ProtectedRoute>
+                      <Navigate to="/dashboard" replace />
+                    </ProtectedRoute>
+                  }
                 />
               </Routes>
-              <QuickActions />
-            </Layout>
+            </AuthProvider>
           </Router>
         </ThemeProvider>
       </QueryClientProvider>

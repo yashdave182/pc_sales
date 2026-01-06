@@ -1,5 +1,8 @@
+from typing import Optional
+
 import requests
-from fastapi import APIRouter, Depends, HTTPException
+from activity_logger import get_activity_logger
+from fastapi import APIRouter, Depends, Header, HTTPException
 from models import Customer
 from supabase_db import SupabaseClient, get_db
 
@@ -41,7 +44,11 @@ def get_customer(customer_id: int, db: SupabaseClient = Depends(get_db)):
 
 
 @router.post("/")
-def create_customer(customer: Customer, db: SupabaseClient = Depends(get_db)):
+def create_customer(
+    customer: Customer,
+    db: SupabaseClient = Depends(get_db),
+    user_email: Optional[str] = Header(None, alias="x-user-email"),
+):
     """Create a new customer"""
     try:
         customer_data = {
@@ -60,7 +67,24 @@ def create_customer(customer: Customer, db: SupabaseClient = Depends(get_db)):
         response = db.table("customers").insert(customer_data).execute()
 
         if response.data and len(response.data) > 0:
-            return {"message": "Customer created", "data": response.data[0]}
+            created_customer = response.data[0]
+
+            # Log activity
+            if user_email:
+                logger = get_activity_logger(db)
+                logger.log_create(
+                    user_email=user_email,
+                    entity_type="customer",
+                    entity_name=customer.name,
+                    entity_id=created_customer.get("customer_id"),
+                    metadata={
+                        "customer_code": customer.customer_code,
+                        "mobile": customer.mobile,
+                        "village": customer.village,
+                    },
+                )
+
+            return {"message": "Customer created", "data": created_customer}
         else:
             return {"message": "Customer created"}
     except Exception as e:
@@ -71,7 +95,10 @@ def create_customer(customer: Customer, db: SupabaseClient = Depends(get_db)):
 
 @router.put("/{customer_id}")
 def update_customer(
-    customer_id: int, customer: Customer, db: SupabaseClient = Depends(get_db)
+    customer_id: int,
+    customer: Customer,
+    db: SupabaseClient = Depends(get_db),
+    user_email: Optional[str] = Header(None, alias="x-user-email"),
 ):
     """Update an existing customer"""
     try:
@@ -98,7 +125,24 @@ def update_customer(
         if not response.data or len(response.data) == 0:
             raise HTTPException(status_code=404, detail="Customer not found")
 
-        return {"message": "Customer updated", "data": response.data[0]}
+        updated_customer = response.data[0]
+
+        # Log activity
+        if user_email:
+            logger = get_activity_logger(db)
+            logger.log_update(
+                user_email=user_email,
+                entity_type="customer",
+                entity_name=customer.name,
+                entity_id=customer_id,
+                metadata={
+                    "customer_code": customer.customer_code,
+                    "mobile": customer.mobile,
+                    "village": customer.village,
+                },
+            )
+
+        return {"message": "Customer updated", "data": updated_customer}
     except HTTPException:
         raise
     except Exception as e:
@@ -108,19 +152,25 @@ def update_customer(
 
 
 @router.delete("/{customer_id}")
-def delete_customer(customer_id: int, db: SupabaseClient = Depends(get_db)):
+def delete_customer(
+    customer_id: int,
+    db: SupabaseClient = Depends(get_db),
+    user_email: Optional[str] = Header(None, alias="x-user-email"),
+):
     """Delete a customer"""
     try:
-        # First check if customer exists
+        # First check if customer exists and get customer name
         check_response = (
             db.table("customers")
-            .select("customer_id")
+            .select("customer_id, name")
             .eq("customer_id", customer_id)
             .execute()
         )
 
         if not check_response.data or len(check_response.data) == 0:
             raise HTTPException(status_code=404, detail="Customer not found")
+
+        customer_name = check_response.data[0].get("name", "Unknown")
 
         # Check for related sales
         sales_check = (
@@ -158,6 +208,16 @@ def delete_customer(customer_id: int, db: SupabaseClient = Depends(get_db)):
 
         if not response.data or len(response.data) == 0:
             raise HTTPException(status_code=404, detail="Customer not found")
+
+        # Log activity
+        if user_email:
+            logger = get_activity_logger(db)
+            logger.log_delete(
+                user_email=user_email,
+                entity_type="customer",
+                entity_name=customer_name,
+                entity_id=customer_id,
+            )
 
         return {"message": "Customer deleted successfully"}
     except requests.HTTPError as e:

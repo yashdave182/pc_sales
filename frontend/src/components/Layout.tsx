@@ -20,6 +20,7 @@ import {
   Badge,
   Menu,
   MenuItem,
+  ListItemAvatar,
 } from "@mui/material";
 
 import {
@@ -40,12 +41,15 @@ import {
   Settings,
   AccountCircle,
   Language as LanguageIcon,
+  Logout as LogoutIcon,
+  AdminPanelSettings as AdminIcon,
 } from "@mui/icons-material";
 
 import { useTranslation } from "../hooks/useTranslation";
 import { useLanguageStore } from "../store/languageStore";
 import type { Language } from "../i18n/i18n";
 import { languages } from "../i18n/i18n";
+import { useAuth } from "../contexts/AuthContext";
 
 const drawerWidth = 260;
 
@@ -69,6 +73,12 @@ const navigationItems: NavItem[] = [
     labelKey: "nav.dashboard",
     icon: <DashboardIcon />,
     path: "/dashboard",
+  },
+  {
+    id: "distributors",
+    labelKey: "nav.distributors",
+    icon: <GroupIcon />,
+    path: "/distributors",
   },
   {
     id: "orders",
@@ -96,6 +106,13 @@ const navigationItems: NavItem[] = [
   },
 ];
 
+const adminNavigationItem: NavItem = {
+  id: "admin",
+  labelKey: "nav.admin",
+  icon: <AdminIcon />,
+  path: "/admin",
+};
+
 export default function Layout({
   children,
   toggleTheme,
@@ -109,8 +126,12 @@ export default function Layout({
   const [languageAnchorEl, setLanguageAnchorEl] = useState<null | HTMLElement>(
     null,
   );
+  const [userMenuAnchorEl, setUserMenuAnchorEl] = useState<null | HTMLElement>(
+    null,
+  );
   const { t } = useTranslation();
   const { language, setLanguage } = useLanguageStore();
+  const { user, signOut } = useAuth();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -134,6 +155,24 @@ export default function Layout({
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang);
     handleLanguageMenuClose();
+  };
+
+  const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setUserMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleUserMenuClose = () => {
+    setUserMenuAnchorEl(null);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      handleUserMenuClose();
+      navigate("/login");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
   const isActive = (path: string) => location.pathname === path;
@@ -226,6 +265,55 @@ export default function Layout({
             </ListItem>
           );
         })}
+
+        {/* Admin Navigation Item - Only for admin@gmail.com */}
+        {user?.email === "admin@gmail.com" && (
+          <>
+            <Divider sx={{ my: 1 }} />
+            <ListItem disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton
+                onClick={() => handleNavigation(adminNavigationItem.path)}
+                sx={{
+                  borderRadius: 2,
+                  mx: 1,
+                  backgroundColor: isActive(adminNavigationItem.path)
+                    ? theme.palette.mode === "dark"
+                      ? "rgba(244, 67, 54, 0.16)"
+                      : "rgba(211, 47, 47, 0.08)"
+                    : "transparent",
+                  color: isActive(adminNavigationItem.path)
+                    ? "error.main"
+                    : "inherit",
+                  "&:hover": {
+                    backgroundColor:
+                      theme.palette.mode === "dark"
+                        ? "rgba(244, 67, 54, 0.08)"
+                        : "rgba(211, 47, 47, 0.04)",
+                  },
+                  transition: "all 0.2s",
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    color: isActive(adminNavigationItem.path)
+                      ? "error.main"
+                      : "inherit",
+                    minWidth: 40,
+                  }}
+                >
+                  {adminNavigationItem.icon}
+                </ListItemIcon>
+                <ListItemText
+                  primary={t(adminNavigationItem.labelKey, "Admin")}
+                  primaryTypographyProps={{
+                    fontWeight: isActive(adminNavigationItem.path) ? 600 : 500,
+                    fontSize: "0.95rem",
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          </>
+        )}
       </List>
 
       <Divider />
@@ -327,11 +415,49 @@ export default function Layout({
               </IconButton>
             </Tooltip>
 
-            <Tooltip title={t("layout.profile")}>
-              <IconButton color="inherit">
+            <Tooltip title={user?.email || t("layout.profile")}>
+              <IconButton color="inherit" onClick={handleUserMenuOpen}>
                 <AccountCircle />
               </IconButton>
             </Tooltip>
+
+            {/* User Menu */}
+            <Menu
+              anchorEl={userMenuAnchorEl}
+              open={Boolean(userMenuAnchorEl)}
+              onClose={handleUserMenuClose}
+              anchorOrigin={{
+                vertical: "bottom",
+                horizontal: "right",
+              }}
+              transformOrigin={{
+                vertical: "top",
+                horizontal: "right",
+              }}
+            >
+              <MenuItem disabled>
+                <ListItemAvatar>
+                  <Avatar sx={{ bgcolor: "primary.main" }}>
+                    {user?.email?.charAt(0).toUpperCase() || "U"}
+                  </Avatar>
+                </ListItemAvatar>
+                <Box>
+                  <Typography variant="subtitle2">
+                    {user?.email || "User"}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {t("layout.signedIn", "Signed In")}
+                  </Typography>
+                </Box>
+              </MenuItem>
+              <Divider />
+              <MenuItem onClick={handleLogout}>
+                <ListItemIcon>
+                  <LogoutIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>{t("layout.logout", "Logout")}</ListItemText>
+              </MenuItem>
+            </Menu>
           </Box>
         </Toolbar>
       </AppBar>

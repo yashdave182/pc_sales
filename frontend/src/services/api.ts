@@ -41,7 +41,22 @@ const apiClient = axios.create({
   },
 });
 
-// Add request interceptor for error handling
+// Add request interceptor to include user email in headers
+apiClient.interceptors.request.use(
+  (config) => {
+    // Get user email from localStorage (set after login)
+    const userEmail = localStorage.getItem("user_email");
+    if (userEmail) {
+      config.headers["x-user-email"] = userEmail;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  },
+);
+
+// Add response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
@@ -303,6 +318,80 @@ export const fileAPI = {
     const response = await apiClient.get("/api/import/history");
     return response.data;
   },
+};
+
+// Admin API
+export const adminAPI = {
+  getActivityLogs: async (params?: {
+    limit?: number;
+    offset?: number;
+    user_email?: string;
+    action_type?: string;
+    entity_type?: string;
+    start_date?: string;
+    end_date?: string;
+  }) => {
+    const response = await apiClient.get("/api/admin/activity-logs", {
+      params,
+      headers: {
+        "x-user-email": localStorage.getItem("admin_email") || "",
+      },
+    });
+    return response.data;
+  },
+
+  getActivityStats: async (days?: number) => {
+    const response = await apiClient.get("/api/admin/activity-logs/stats", {
+      params: days ? { days } : undefined,
+      headers: {
+        "x-user-email": localStorage.getItem("admin_email") || "",
+      },
+    });
+    return response.data;
+  },
+
+  getUsers: async () => {
+    const response = await apiClient.get("/api/admin/users", {
+      headers: {
+        "x-user-email": localStorage.getItem("admin_email") || "",
+      },
+    });
+    return response.data;
+  },
+
+  deleteActivityLog: async (logId: number) => {
+    const response = await apiClient.delete(
+      `/api/admin/activity-logs/${logId}`,
+      {
+        headers: {
+          "x-user-email": localStorage.getItem("admin_email") || "",
+        },
+      },
+    );
+    return response.data;
+  },
+
+  deleteOldActivityLogs: async (daysOld: number = 90) => {
+    const response = await apiClient.delete("/api/admin/activity-logs/bulk", {
+      params: { days_old: daysOld },
+      headers: {
+        "x-user-email": localStorage.getItem("admin_email") || "",
+      },
+    });
+    return response.data;
+  },
+};
+
+// Helper to set user email for requests
+export const setUserEmail = (email: string) => {
+  localStorage.setItem("user_email", email);
+  localStorage.setItem("admin_email", email); // Keep for backward compatibility
+};
+
+// Helper to clear user email on logout
+export const clearUserEmail = () => {
+  localStorage.removeItem("user_email");
+  localStorage.removeItem("admin_email");
 };
 
 // Export the axios instance for direct use if needed

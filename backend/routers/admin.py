@@ -48,8 +48,11 @@ def get_activity_logs(
     Only accessible by admin users
     """
     try:
+        print(f"[DEBUG] Admin activity logs request - limit: {limit}, offset: {offset}")
+
         # Start with base query
         query = db.table("activity_logs").select("*")
+        print("[DEBUG] Base query created")
 
         # Build count query separately
         count_query = db.table("activity_logs").select("*", count="exact")
@@ -85,17 +88,28 @@ def get_activity_logs(
             query = query.limit(limit)
 
         # Execute queries
+        print("[DEBUG] Executing main query...")
         response = query.execute()
+        print(
+            f"[DEBUG] Main query executed successfully, got {len(response.data) if response.data else 0} records"
+        )
+
+        print("[DEBUG] Executing count query...")
         count_response = count_query.execute()
+        print(f"[DEBUG] Count query executed successfully")
 
         # Get total count from response
-        total = (
-            count_response.count
-            if hasattr(count_response, "count")
-            else len(count_response.data)
-            if count_response.data
-            else 0
-        )
+        # Priority: 1. count attribute, 2. data length, 3. default to 0
+        total = 0
+        if hasattr(count_response, "count") and count_response.count is not None:
+            total = count_response.count
+            print(f"[DEBUG] Using count attribute: {total}")
+        elif count_response.data:
+            total = len(count_response.data)
+            print(f"[DEBUG] Using data length: {total}")
+        else:
+            total = 0
+            print(f"[DEBUG] No count or data, using default: {total}")
 
         # Log the admin viewing activity logs (don't fail if this errors)
         try:
@@ -128,12 +142,15 @@ def get_activity_logs(
 
     except Exception as e:
         # Print detailed error for debugging
-        print(f"Error in get_activity_logs: {type(e).__name__}: {str(e)}")
+        print(f"[ERROR] Error in get_activity_logs: {type(e).__name__}: {str(e)}")
+        print(f"[ERROR] Exception details: {repr(e)}")
         import traceback
 
+        print("[ERROR] Full traceback:")
         traceback.print_exc()
 
         error_msg = str(e).lower()
+        print(f"[ERROR] Error message (lowercase): {error_msg}")
 
         # Check if it's a table not found error
         if "relation" in error_msg and "does not exist" in error_msg:

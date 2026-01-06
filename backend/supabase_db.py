@@ -196,10 +196,13 @@ class SupabaseTable:
         # Extract count from Content-Range header if present
         count = None
         if "Content-Range" in response.headers:
-            # Format: "0-24/573" or "*/573"
+            # Format: "0-24/573" or "*/573" or "0-24/*"
             content_range = response.headers["Content-Range"]
             if "/" in content_range:
-                count = int(content_range.split("/")[1])
+                count_str = content_range.split("/")[1]
+                # Handle cases where count is "*" (unknown)
+                if count_str != "*" and count_str.isdigit():
+                    count = int(count_str)
 
         return SupabaseResponse(response.json(), count=count)
 

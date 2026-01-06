@@ -48,6 +48,10 @@ def get_activity_logs(
     Only accessible by admin users
     """
     try:
+        # Check if activity_logs table exists by attempting a simple query
+        test_query = db.table("activity_logs").select("id").limit(1)
+        test_response = test_query.execute()
+
         # Start with base query
         query = db.table("activity_logs").select("*")
 
@@ -113,9 +117,23 @@ def get_activity_logs(
         }
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error fetching activity logs: {str(e)}"
-        )
+        error_msg = str(e).lower()
+
+        # Check if it's a table not found error
+        if "relation" in error_msg and "does not exist" in error_msg:
+            raise HTTPException(
+                status_code=500,
+                detail="Activity logs table does not exist. Please run the database migration: backend/migrations/001_create_activity_logs.sql in your Supabase SQL Editor.",
+            )
+        elif "table" in error_msg or "column" in error_msg:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Database schema error: {str(e)}. Please ensure the activity_logs table is created correctly.",
+            )
+        else:
+            raise HTTPException(
+                status_code=500, detail=f"Error fetching activity logs: {str(e)}"
+            )
 
 
 @router.get("/activity-logs/stats")
@@ -129,6 +147,10 @@ def get_activity_stats(
     Only accessible by admin users
     """
     try:
+        # Check if table exists
+        test_query = db.table("activity_logs").select("id").limit(1)
+        test_query.execute()
+
         # Calculate date range
         end_date = datetime.utcnow()
         start_date = end_date - timedelta(days=days)
@@ -194,9 +216,16 @@ def get_activity_stats(
         return stats
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error fetching activity stats: {str(e)}"
-        )
+        error_msg = str(e).lower()
+        if "relation" in error_msg and "does not exist" in error_msg:
+            raise HTTPException(
+                status_code=500,
+                detail="Activity logs table does not exist. Please run the database migration first.",
+            )
+        else:
+            raise HTTPException(
+                status_code=500, detail=f"Error fetching activity stats: {str(e)}"
+            )
 
 
 @router.get("/users")
@@ -209,6 +238,10 @@ def get_all_users(
     Only accessible by admin users
     """
     try:
+        # Check if table exists
+        test_query = db.table("activity_logs").select("id").limit(1)
+        test_query.execute()
+
         # Get distinct user emails from activity logs
         response = db.table("activity_logs").select("user_email").execute()
 
@@ -265,7 +298,16 @@ def get_all_users(
         return {"users": user_details}
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching users: {str(e)}")
+        error_msg = str(e).lower()
+        if "relation" in error_msg and "does not exist" in error_msg:
+            raise HTTPException(
+                status_code=500,
+                detail="Activity logs table does not exist. Please run the database migration first.",
+            )
+        else:
+            raise HTTPException(
+                status_code=500, detail=f"Error fetching users: {str(e)}"
+            )
 
 
 @router.delete("/activity-logs/{log_id}")

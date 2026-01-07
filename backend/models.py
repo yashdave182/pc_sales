@@ -114,3 +114,21 @@ class Distributor(BaseModel):
     sabhasad_count: int = 0
     contact_in_group: int = 0
     status: str = "Active"
+
+
+# ======================
+# Notifications
+# ======================
+
+
+class Notification(BaseModel):
+    notification_id: Optional[int] = None
+    user_email: Optional[str] = None
+    title: str
+    message: str
+    notification_type: str  # info, success, warning, error
+    entity_type: Optional[str] = None  # sale, payment, demo, customer, etc.
+    entity_id: Optional[int] = None
+    action_url: Optional[str] = None
+    is_read: bool = False
+    created_at: Optional[str] = None

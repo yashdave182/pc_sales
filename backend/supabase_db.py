@@ -475,6 +475,22 @@ def init_supabase_db():
     );
 
     -- ===================================
+    -- Notifications Table
+    -- ===================================
+    CREATE TABLE IF NOT EXISTS notifications (
+        notification_id SERIAL PRIMARY KEY,
+        user_email VARCHAR(255),
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        notification_type VARCHAR(50) NOT NULL,
+        entity_type VARCHAR(50),
+        entity_id INTEGER,
+        action_url TEXT,
+        is_read BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- ===================================
     -- Indexes for Performance
     -- ===================================
     CREATE INDEX IF NOT EXISTS idx_customers_code ON customers(customer_code);
@@ -486,6 +502,9 @@ def init_supabase_db():
     CREATE INDEX IF NOT EXISTS idx_payments_sale ON payments(sale_id);
     CREATE INDEX IF NOT EXISTS idx_demos_customer ON demos(customer_id);
     CREATE INDEX IF NOT EXISTS idx_demos_status ON demos(conversion_status);
+    CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_email);
+    CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read);
+    CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC);
     """
 
     print("=" * 60)

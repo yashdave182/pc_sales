@@ -382,6 +382,70 @@ export const adminAPI = {
   },
 };
 
+// Notifications API
+export const notificationsAPI = {
+  getAll: async (params?: {
+    limit?: number;
+    offset?: number;
+    is_read?: boolean;
+    notification_type?: string;
+  }) => {
+    const response = await apiClient.get("/api/notifications", { params });
+    return response.data;
+  },
+
+  getUnreadCount: async () => {
+    const response = await apiClient.get("/api/notifications/unread-count");
+    return response.data;
+  },
+
+  getById: async (id: number) => {
+    const response = await apiClient.get(`/api/notifications/${id}`);
+    return response.data;
+  },
+
+  create: async (data: {
+    user_email?: string;
+    title: string;
+    message: string;
+    notification_type: string;
+    entity_type?: string;
+    entity_id?: number;
+    action_url?: string;
+  }) => {
+    const response = await apiClient.post("/api/notifications", data);
+    return response.data;
+  },
+
+  markAsRead: async (id: number) => {
+    const response = await apiClient.put(
+      `/api/notifications/${id}/mark-read`,
+      {},
+    );
+    return response.data;
+  },
+
+  markAllAsRead: async () => {
+    const response = await apiClient.put(
+      "/api/notifications/mark-all-read",
+      {},
+    );
+    return response.data;
+  },
+
+  delete: async (id: number) => {
+    const response = await apiClient.delete(`/api/notifications/${id}`);
+    return response.data;
+  },
+
+  deleteOld: async (daysOld: number = 30) => {
+    const response = await apiClient.delete(
+      `/api/notifications/delete-old?days_old=${daysOld}`,
+    );
+    return response.data;
+  },
+};
+
 // Helper to set user email for requests
 export const setUserEmail = (email: string) => {
   localStorage.setItem("user_email", email);

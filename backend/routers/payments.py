@@ -1,9 +1,11 @@
 from typing import Optional
 
 import requests
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from models import Payment
 from supabase_db import SupabaseClient, get_supabase
+
+from routers.notifications import create_notification_helper
 
 router = APIRouter()
 
@@ -225,7 +227,11 @@ def test_payment_creation(payment: Payment):
 
 
 @router.post("/")
-def create_payment(payment: Payment, db: SupabaseClient = Depends(get_supabase)):
+def create_payment(
+    payment: Payment,
+    db: SupabaseClient = Depends(get_supabase),
+    user_email: Optional[str] = Header(None, alias="x-user-email"),
+):
     """Create a new payment and update sale payment status"""
     try:
         # Debug: Print payment data
@@ -355,6 +361,40 @@ def create_payment(payment: Payment, db: SupabaseClient = Depends(get_supabase))
         if total_amount is not None:
             response_data["total_amount"] = total_amount
             response_data["pending_amount"] = max(0, total_amount - total_paid)
+
+        # Create notification for payment
+        if user_email:
+            try:
+                # Get sale invoice number
+                invoice_no = "Unknown"
+                customer_name = "Customer"
+                if sale_response.data:
+                    invoice_no = sale_response.data[0].get("invoice_no", "Unknown")
+                    customer_id = sale_response.data[0].get("customer_id")
+                    if customer_id:
+                        customer_response = (
+                            db.table("customers")
+                            .select("name")
+                            .eq("customer_id", customer_id)
+                            .execute()
+                        )
+                        if customer_response.data:
+                            customer_name = customer_response.data[0].get(
+                                "name", "Customer"
+                            )
+
+                create_notification_helper(
+                    db=db,
+                    user_email=user_email,
+                    title="Payment Recorded",
+                    message=f"Payment of ₹{payment.amount:,.2f} recorded for {invoice_no} - {customer_name}",
+                    notification_type="success",
+                    entity_type="payment",
+                    entity_id=created_payment.get("payment_id"),
+                    action_url=f"/payments",
+                )
+            except Exception as notif_err:
+                print(f"Warning: Failed to create notification: {str(notif_err)}")
 
         return response_data
 

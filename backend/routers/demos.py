@@ -1,9 +1,12 @@
 from typing import Optional
 
 import requests
-from fastapi import APIRouter, Depends, HTTPException
+from activity_logger import get_activity_logger
+from fastapi import APIRouter, Depends, Header, HTTPException
 from models import Demo
 from supabase_db import SupabaseClient, get_supabase
+
+from routers.notifications import create_notification_helper
 
 router = APIRouter()
 
@@ -154,7 +157,11 @@ def get_demo(demo_id: int, db: SupabaseClient = Depends(get_supabase)):
 # Create demo
 # ======================
 @router.post("/")
-def create_demo(demo: Demo, db: SupabaseClient = Depends(get_supabase)):
+def create_demo(
+    demo: Demo,
+    db: SupabaseClient = Depends(get_supabase),
+    user_email: Optional[str] = Header(None, alias="x-user-email"),
+):
     """Create a new demo"""
     try:
         # Validate required fields
@@ -198,7 +205,57 @@ def create_demo(demo: Demo, db: SupabaseClient = Depends(get_supabase)):
         if not response.data:
             raise HTTPException(status_code=400, detail="Failed to create demo")
 
-        return {"message": "Demo scheduled successfully", "demo": response.data[0]}
+        created_demo = response.data[0]
+
+        # Create notification for new demo
+        if user_email:
+            try:
+                # Get customer and product names for notification
+                customer_name = f"Customer ID: {demo.customer_id}"
+                product_name = f"Product ID: {demo.product_id}"
+
+                try:
+                    customer_response = (
+                        db.table("customers")
+                        .select("name")
+                        .eq("customer_id", demo.customer_id)
+                        .execute()
+                    )
+                    if customer_response.data:
+                        customer_name = customer_response.data[0].get(
+                            "name", customer_name
+                        )
+                except:
+                    pass
+
+                try:
+                    product_response = (
+                        db.table("products")
+                        .select("product_name")
+                        .eq("product_id", demo.product_id)
+                        .execute()
+                    )
+                    if product_response.data:
+                        product_name = product_response.data[0].get(
+                            "product_name", product_name
+                        )
+                except:
+                    pass
+
+                create_notification_helper(
+                    db=db,
+                    user_email=user_email,
+                    title="Demo Scheduled",
+                    message=f"Demo scheduled for {customer_name} - {product_name} on {demo.demo_date} at {demo.demo_time}",
+                    notification_type="info",
+                    entity_type="demo",
+                    entity_id=created_demo.get("demo_id"),
+                    action_url=f"/demos",
+                )
+            except Exception as notif_err:
+                print(f"Warning: Failed to create notification: {str(notif_err)}")
+
+        return {"message": "Demo scheduled successfully", "demo": created_demo}
 
     except requests.HTTPError as e:
         detail = str(e)

@@ -5,18 +5,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers import (
     admin,
     analytics,
+    automation,
     customers,
     dashboard,
     demos,
     distributors,
     imports,
+    notifications,
     payments,
     products,
     reports,
     sales,
-    automation,
 )
-
 
 
 @asynccontextmanager
@@ -52,3 +52,4 @@ app.include_router(analytics, prefix="/api/analytics")
 app.include_router(admin, prefix="/api/admin")
 app.include_router(imports, prefix="/api/imports")
 app.include_router(automation, prefix="/api/automation")
+app.include_router(notifications, prefix="/api/notifications")

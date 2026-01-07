@@ -14,21 +14,39 @@ router = APIRouter()
 def dashboard_metrics(db: SupabaseClient = Depends(get_supabase)):
     """Get dashboard metrics"""
     try:
-        # Get total sales amount
-        sales_response = db.table("sales").select("total_amount").execute()
-        total_sales = (
-            sum(s.get("total_amount", 0) or 0 for s in sales_response.data)
-            if sales_response.data
-            else 0
-        )
+        print("Fetching dashboard metrics...")
+        # Get all sales with their IDs for accurate calculation
+        sales_response = db.table("sales").select("sale_id, total_amount").execute()
+        total_sales = 0.0
+        sales_by_id = {}
 
-        # Get total payments amount
-        payments_response = db.table("payments").select("amount").execute()
-        total_payments = (
-            sum(p.get("amount", 0) or 0 for p in payments_response.data)
-            if payments_response.data
-            else 0
-        )
+        if sales_response.data:
+            for sale in sales_response.data:
+                sale_id = sale.get("sale_id")
+                amount = float(sale.get("total_amount", 0) or 0)
+                total_sales += amount
+                sales_by_id[sale_id] = amount
+
+        # Get all payments grouped by sale_id
+        payments_response = db.table("payments").select("sale_id, amount").execute()
+        total_payments = 0.0
+        paid_by_sale = {}
+
+        if payments_response.data:
+            for payment in payments_response.data:
+                sale_id = payment.get("sale_id")
+                amount = float(payment.get("amount", 0) or 0)
+                total_payments += amount
+                if sale_id:
+                    paid_by_sale[sale_id] = paid_by_sale.get(sale_id, 0.0) + amount
+
+        # Calculate actual pending amount (only from sales that have pending balance)
+        pending_amount = 0.0
+        for sale_id, sale_total in sales_by_id.items():
+            paid = paid_by_sale.get(sale_id, 0.0)
+            pending = sale_total - paid
+            if pending > 0:  # Only count positive pending amounts
+                pending_amount += pending
 
         # Get total customers count
         customers_response = db.table("customers").select("customer_id").execute()
@@ -36,9 +54,6 @@ def dashboard_metrics(db: SupabaseClient = Depends(get_supabase)):
 
         # Get total transactions count
         total_transactions = len(sales_response.data) if sales_response.data else 0
-
-        # Calculate pending amount
-        pending_amount = total_sales - total_payments
 
         # Get demo conversion rate
         demos_response = db.table("demos").select("conversion_status").execute()
@@ -56,14 +71,22 @@ def dashboard_metrics(db: SupabaseClient = Depends(get_supabase)):
         else:
             demo_conversion_rate = 0.0
 
-        return {
-            "total_sales": total_sales,
-            "total_payments": total_payments,
-            "pending_amount": pending_amount,
+        metrics_result = {
+            "total_sales": round(total_sales, 2),
+            "total_payments": round(total_payments, 2),
+            "pending_amount": round(max(0, pending_amount), 2),  # Ensure non-negative
             "total_customers": total_customers,
             "total_transactions": total_transactions,
             "demo_conversion_rate": demo_conversion_rate,
         }
+
+        print(
+            f"Dashboard metrics calculated: total_sales={metrics_result['total_sales']}, "
+            f"total_payments={metrics_result['total_payments']}, "
+            f"pending_amount={metrics_result['pending_amount']}"
+        )
+
+        return metrics_result
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error fetching dashboard metrics: {str(e)}"

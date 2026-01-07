@@ -1,12 +1,13 @@
 from .admin import router as admin
 from .analytics import router as analytics
+from .automation import router as automation
 from .customers import router as customers
 from .dashboard import router as dashboard
 from .demos import router as demos
 from .distributors import router as distributors
 from .imports import router as imports
+from .notifications import router as notifications
 from .payments import router as payments
 from .products import router as products
 from .reports import router as reports
 from .sales import router as sales
-from .automation import router as automation

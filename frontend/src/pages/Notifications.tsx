@@ -142,14 +142,14 @@ export default function Notifications() {
           headers: {
             "x-user-email": user.email,
           },
-        }
+        },
       );
 
       // Update local state
       setNotifications(
         notifications.map((n) =>
-          n.notification_id === notificationId ? { ...n, is_read: true } : n
-        )
+          n.notification_id === notificationId ? { ...n, is_read: true } : n,
+        ),
       );
       setUnreadCount(Math.max(0, unreadCount - 1));
     } catch (err: any) {
@@ -169,13 +169,11 @@ export default function Notifications() {
           headers: {
             "x-user-email": user.email,
           },
-        }
+        },
       );
 
       // Update local state
-      setNotifications(
-        notifications.map((n) => ({ ...n, is_read: true }))
-      );
+      setNotifications(notifications.map((n) => ({ ...n, is_read: true })));
       setUnreadCount(0);
     } catch (err: any) {
       console.error("Error marking all as read:", err);
@@ -193,12 +191,12 @@ export default function Notifications() {
           headers: {
             "x-user-email": user.email,
           },
-        }
+        },
       );
 
       // Update local state
       setNotifications(
-        notifications.filter((n) => n.notification_id !== notificationId)
+        notifications.filter((n) => n.notification_id !== notificationId),
       );
     } catch (err: any) {
       console.error("Error deleting notification:", err);
@@ -216,7 +214,7 @@ export default function Notifications() {
           headers: {
             "x-user-email": user.email,
           },
-        }
+        },
       );
 
       setError(null);
@@ -230,7 +228,7 @@ export default function Notifications() {
 
   const handleMenuOpen = (
     event: React.MouseEvent<HTMLElement>,
-    notification: Notification
+    notification: Notification,
   ) => {
     setAnchorEl(event.currentTarget);
     setSelectedNotification(notification);
@@ -282,20 +280,15 @@ export default function Notifications() {
             justifyContent: "space-between",
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <Badge badgeContent={unreadCount} color="error">
-              <NotificationsActiveIcon sx={{ fontSize: 40, color: "primary.main" }} />
-            </Badge>
-            <Box>
-              <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                {t("notifications.title", "Notifications")}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {unreadCount > 0
-                  ? `${unreadCount} unread notification${unreadCount > 1 ? "s" : ""}`
-                  : "All caught up!"}
-              </Typography>
-            </Box>
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>
+              {t("notifications.title", "Notifications")}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {unreadCount > 0
+                ? `${unreadCount} unread notification${unreadCount > 1 ? "s" : ""}`
+                : "All caught up!"}
+            </Typography>
           </Box>
 
           <Box sx={{ display: "flex", gap: 1 }}>
@@ -612,12 +605,10 @@ export default function Notifications() {
               }}
             >
               {getNotificationIcon(
-                selectedNotification?.notification_type || "info"
+                selectedNotification?.notification_type || "info",
               )}
             </Box>
-            <Typography variant="h6">
-              {selectedNotification?.title}
-            </Typography>
+            <Typography variant="h6">{selectedNotification?.title}</Typography>
           </Box>
         </DialogTitle>
         <DialogContent>
@@ -663,12 +654,13 @@ export default function Notifications() {
                 </Typography>
                 <Typography variant="body2">
                   {selectedNotification?.created_at &&
-                    new Date(
-                      selectedNotification.created_at
-                    ).toLocaleString("en-IN", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
+                    new Date(selectedNotification.created_at).toLocaleString(
+                      "en-IN",
+                      {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      },
+                    )}
                 </Typography>
               </Grid>
             </Grid>

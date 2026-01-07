@@ -6,12 +6,21 @@ router = APIRouter()
 
 
 @router.get("/")
-def get_payments(db: SupabaseClient = Depends(get_supabase)):
+def get_payments(
+    skip: int = 0,
+    limit: int = 100,
+    db: SupabaseClient = Depends(get_supabase),
+):
     """Get all payments with related sale and customer information"""
     try:
         # Get all payments
         payments_response = (
-            db.table("payments").select("*").order("created_at", desc=True).execute()
+            db.table("payments")
+            .select("*")
+            .order("created_at", desc=True)
+            .limit(limit)
+            .offset(skip)
+            .execute()
         )
 
         if not payments_response.data:
@@ -52,7 +61,7 @@ def get_payments(db: SupabaseClient = Depends(get_supabase)):
                     "customer_name": customer.get("name"),
                     "payment_date": payment.get("payment_date"),
                     "payment_method": payment.get("payment_method"),
-                    "amount": payment.get("amount"),
+                    "amount": payment.get("amount", 0),
                     "rrn": payment.get("rrn"),
                     "reference": payment.get("reference"),
                     "notes": payment.get("notes"),
@@ -95,7 +104,7 @@ def get_pending(db: SupabaseClient = Depends(get_supabase)):
         if payments_response.data:
             for payment in payments_response.data:
                 sale_id = payment.get("sale_id")
-                amount = payment.get("amount", 0)
+                amount = payment.get("amount", 0) or 0
                 paid_by_sale[sale_id] = paid_by_sale.get(sale_id, 0) + amount
 
         # Build result with pending amounts
@@ -112,18 +121,19 @@ def get_pending(db: SupabaseClient = Depends(get_supabase)):
                 customer = customers_dict.get(customer_id, {})
                 result.append(
                     {
+                        "sale_id": sale_id,
                         "invoice_no": sale.get("invoice_no"),
                         "customer_name": customer.get("name"),
                         "mobile": customer.get("mobile"),
-                        "date": sale.get("sale_date"),
-                        "amount": total_amount,
-                        "paid": paid_amount,
-                        "pending": pending_amount,
+                        "sale_date": sale.get("sale_date"),
+                        "total_amount": total_amount,
+                        "paid_amount": paid_amount,
+                        "pending_amount": pending_amount,
                     }
                 )
 
         # Sort by pending amount descending
-        result.sort(key=lambda x: x["pending"], reverse=True)
+        result.sort(key=lambda x: x["pending_amount"], reverse=True)
         return result
     except Exception as e:
         raise HTTPException(
@@ -153,25 +163,261 @@ def get_payment_history(sale_id: int, db: SupabaseClient = Depends(get_supabase)
         )
 
 
+@router.get("/{payment_id}")
+def get_payment(payment_id: int, db: SupabaseClient = Depends(get_supabase)):
+    """Get a single payment by ID"""
+    try:
+        response = (
+            db.table("payments").select("*").eq("payment_id", payment_id).execute()
+        )
+
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Payment not found")
+
+        payment = response.data[0]
+
+        # Get related sale and customer info
+        sale_id = payment.get("sale_id")
+        if sale_id:
+            sale_response = (
+                db.table("sales").select("*").eq("sale_id", sale_id).execute()
+            )
+            if sale_response.data:
+                sale = sale_response.data[0]
+                payment["invoice_no"] = sale.get("invoice_no")
+
+                customer_id = sale.get("customer_id")
+                if customer_id:
+                    customer_response = (
+                        db.table("customers")
+                        .select("*")
+                        .eq("customer_id", customer_id)
+                        .execute()
+                    )
+                    if customer_response.data:
+                        payment["customer_name"] = customer_response.data[0].get("name")
+
+        return payment
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching payment: {str(e)}")
+
+
 @router.post("/")
 def create_payment(payment: Payment, db: SupabaseClient = Depends(get_supabase)):
-    """Create a new payment"""
+    """Create a new payment and update sale payment status"""
     try:
+        # Validate required fields
+        if not payment.sale_id:
+            raise HTTPException(status_code=400, detail="Sale ID is required")
+
+        if not payment.amount or payment.amount <= 0:
+            raise HTTPException(
+                status_code=400, detail="Payment amount must be greater than 0"
+            )
+
+        if not payment.payment_date:
+            raise HTTPException(status_code=400, detail="Payment date is required")
+
+        if not payment.payment_method:
+            raise HTTPException(status_code=400, detail="Payment method is required")
+
+        # Get the sale to verify it exists and calculate payment status
+        sale_response = (
+            db.table("sales").select("*").eq("sale_id", payment.sale_id).execute()
+        )
+
+        if not sale_response.data:
+            raise HTTPException(status_code=404, detail="Sale not found")
+
+        sale = sale_response.data[0]
+        total_amount = sale.get("total_amount", 0) or 0
+
+        # Insert payment
         payment_data = {
             "sale_id": payment.sale_id,
             "payment_date": payment.payment_date,
             "payment_method": payment.payment_method,
             "amount": payment.amount,
-            "rrn": payment.rrn if hasattr(payment, "rrn") else None,
-            "reference": payment.reference if hasattr(payment, "reference") else None,
-            "notes": payment.notes if hasattr(payment, "notes") else None,
+            "rrn": payment.rrn if hasattr(payment, "rrn") and payment.rrn else None,
+            "reference": payment.reference
+            if hasattr(payment, "reference") and payment.reference
+            else None,
+            "notes": payment.notes
+            if hasattr(payment, "notes") and payment.notes
+            else None,
         }
 
-        response = db.table("payments").insert(payment_data).execute()
+        payment_response = db.table("payments").insert(payment_data).execute()
 
-        if not response.data:
+        if not payment_response.data:
             raise HTTPException(status_code=400, detail="Failed to create payment")
 
-        return {"message": "Payment added", "payment": response.data[0]}
+        created_payment = payment_response.data[0]
+
+        # Calculate total paid amount for this sale
+        all_payments = (
+            db.table("payments")
+            .select("amount")
+            .eq("sale_id", payment.sale_id)
+            .execute()
+        )
+
+        total_paid = sum(p.get("amount", 0) or 0 for p in (all_payments.data or []))
+
+        # Update sale payment status
+        if total_paid >= total_amount:
+            payment_status = "Paid"
+        elif total_paid > 0:
+            payment_status = "Partial"
+        else:
+            payment_status = "Pending"
+
+        db.table("sales").update({"payment_status": payment_status}).eq(
+            "sale_id", payment.sale_id
+        ).execute()
+
+        return {
+            "message": "Payment recorded successfully",
+            "payment": created_payment,
+            "payment_status": payment_status,
+            "total_paid": total_paid,
+            "total_amount": total_amount,
+            "pending_amount": max(0, total_amount - total_paid),
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creating payment: {str(e)}")
+
+
+@router.put("/{payment_id}")
+def update_payment(
+    payment_id: int, payment_data: dict, db: SupabaseClient = Depends(get_supabase)
+):
+    """Update a payment"""
+    try:
+        # Get existing payment to get sale_id
+        existing_payment = (
+            db.table("payments").select("*").eq("payment_id", payment_id).execute()
+        )
+
+        if not existing_payment.data:
+            raise HTTPException(status_code=404, detail="Payment not found")
+
+        sale_id = existing_payment.data[0].get("sale_id")
+
+        # Update payment
+        response = (
+            db.table("payments")
+            .update(payment_data)
+            .eq("payment_id", payment_id)
+            .execute()
+        )
+
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Payment not found")
+
+        # Recalculate sale payment status
+        if sale_id:
+            sale_response = (
+                db.table("sales").select("*").eq("sale_id", sale_id).execute()
+            )
+
+            if sale_response.data:
+                sale = sale_response.data[0]
+                total_amount = sale.get("total_amount", 0) or 0
+
+                # Calculate total paid
+                all_payments = (
+                    db.table("payments")
+                    .select("amount")
+                    .eq("sale_id", sale_id)
+                    .execute()
+                )
+
+                total_paid = sum(
+                    p.get("amount", 0) or 0 for p in (all_payments.data or [])
+                )
+
+                # Update payment status
+                if total_paid >= total_amount:
+                    payment_status = "Paid"
+                elif total_paid > 0:
+                    payment_status = "Partial"
+                else:
+                    payment_status = "Pending"
+
+                db.table("sales").update({"payment_status": payment_status}).eq(
+                    "sale_id", sale_id
+                ).execute()
+
+        return {"message": "Payment updated successfully", "payment": response.data[0]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating payment: {str(e)}")
+
+
+@router.delete("/{payment_id}")
+def delete_payment(payment_id: int, db: SupabaseClient = Depends(get_supabase)):
+    """Delete a payment and update sale payment status"""
+    try:
+        # Get payment to get sale_id before deleting
+        payment_response = (
+            db.table("payments").select("*").eq("payment_id", payment_id).execute()
+        )
+
+        if not payment_response.data:
+            raise HTTPException(status_code=404, detail="Payment not found")
+
+        sale_id = payment_response.data[0].get("sale_id")
+
+        # Delete payment
+        delete_response = (
+            db.table("payments").delete().eq("payment_id", payment_id).execute()
+        )
+
+        if not delete_response.data:
+            raise HTTPException(status_code=404, detail="Payment not found")
+
+        # Recalculate sale payment status
+        if sale_id:
+            sale_response = (
+                db.table("sales").select("*").eq("sale_id", sale_id).execute()
+            )
+
+            if sale_response.data:
+                sale = sale_response.data[0]
+                total_amount = sale.get("total_amount", 0) or 0
+
+                # Calculate remaining paid amount
+                all_payments = (
+                    db.table("payments")
+                    .select("amount")
+                    .eq("sale_id", sale_id)
+                    .execute()
+                )
+
+                total_paid = sum(
+                    p.get("amount", 0) or 0 for p in (all_payments.data or [])
+                )
+
+                # Update payment status
+                if total_paid >= total_amount:
+                    payment_status = "Paid"
+                elif total_paid > 0:
+                    payment_status = "Partial"
+                else:
+                    payment_status = "Pending"
+
+                db.table("sales").update({"payment_status": payment_status}).eq(
+                    "sale_id", sale_id
+                ).execute()
+
+        return {"message": "Payment deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting payment: {str(e)}")

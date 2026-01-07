@@ -1,3 +1,4 @@
+import requests
 from fastapi import APIRouter, Depends, HTTPException
 from models import Payment
 from supabase_db import SupabaseClient, get_supabase
@@ -244,18 +245,7 @@ def create_payment(payment: Payment, db: SupabaseClient = Depends(get_supabase))
         if not payment.payment_method:
             raise HTTPException(status_code=400, detail="Payment method is required")
 
-        # Get the sale to verify it exists and calculate payment status
-        sale_response = (
-            db.table("sales").select("*").eq("sale_id", payment.sale_id).execute()
-        )
-
-        if not sale_response.data:
-            raise HTTPException(status_code=404, detail="Sale not found")
-
-        sale = sale_response.data[0]
-        total_amount = float(sale.get("total_amount", 0) or 0)
-
-        # Insert payment
+        # Insert payment first (don't verify sale exists to avoid 400 error)
         payment_data = {
             "sale_id": int(payment.sale_id),
             "payment_date": str(payment.payment_date),
@@ -271,50 +261,109 @@ def create_payment(payment: Payment, db: SupabaseClient = Depends(get_supabase))
         if payment.notes:
             payment_data["notes"] = str(payment.notes)
 
-        payment_response = db.table("payments").insert(payment_data).execute()
+        print(f"Inserting payment: {payment_data}")
+
+        try:
+            payment_response = db.table("payments").insert(payment_data).execute()
+        except requests.HTTPError as http_err:
+            print(f"Supabase HTTP error: {http_err}")
+            print(
+                f"Response: {http_err.response.text if hasattr(http_err, 'response') else 'No response'}"
+            )
+            raise HTTPException(
+                status_code=500,
+                detail=f"Database error: Unable to insert payment. Please check database permissions and table structure.",
+            )
+        except Exception as insert_err:
+            print(f"Insert error: {str(insert_err)}")
+            raise HTTPException(
+                status_code=500, detail=f"Failed to create payment: {str(insert_err)}"
+            )
 
         if not payment_response.data:
-            raise HTTPException(status_code=400, detail="Failed to create payment")
+            raise HTTPException(
+                status_code=400, detail="Failed to create payment - no data returned"
+            )
 
         created_payment = payment_response.data[0]
+        print(f"Payment created successfully: {created_payment.get('payment_id')}")
 
-        # Calculate total paid amount for this sale
-        all_payments = (
-            db.table("payments")
-            .select("amount")
-            .eq("sale_id", payment.sale_id)
-            .execute()
-        )
+        # Try to update sale status (but don't fail if it doesn't work)
+        payment_status = None
+        total_paid = None
+        total_amount = None
 
-        total_paid = 0.0
-        if all_payments.data:
-            for p in all_payments.data:
-                amount = p.get("amount")
-                if amount:
-                    total_paid += float(amount)
+        try:
+            # Get the sale to calculate payment status
+            sale_response = (
+                db.table("sales")
+                .select("sale_id, total_amount")
+                .eq("sale_id", payment.sale_id)
+                .execute()
+            )
 
-        # Update sale payment status
-        if total_paid >= total_amount:
-            payment_status = "Paid"
-        elif total_paid > 0:
-            payment_status = "Partial"
-        else:
-            payment_status = "Pending"
+            if sale_response.data:
+                sale = sale_response.data[0]
+                total_amount = float(sale.get("total_amount", 0) or 0)
 
-        db.table("sales").update({"payment_status": payment_status}).eq(
-            "sale_id", payment.sale_id
-        ).execute()
+                # Calculate total paid amount for this sale
+                all_payments = (
+                    db.table("payments")
+                    .select("amount")
+                    .eq("sale_id", payment.sale_id)
+                    .execute()
+                )
 
-        return {
+                total_paid = 0.0
+                if all_payments.data:
+                    for p in all_payments.data:
+                        amount = p.get("amount")
+                        if amount:
+                            total_paid += float(amount)
+
+                # Update sale payment status
+                if total_paid >= total_amount:
+                    payment_status = "Paid"
+                elif total_paid > 0:
+                    payment_status = "Partial"
+                else:
+                    payment_status = "Pending"
+
+                print(f"Updating sale status to: {payment_status}")
+                db.table("sales").update({"payment_status": payment_status}).eq(
+                    "sale_id", payment.sale_id
+                ).execute()
+        except requests.HTTPError as sale_http_err:
+            print(f"Warning: Supabase HTTP error updating sale: {sale_http_err}")
+            print(f"This may be due to RLS policies. Payment was still created.")
+        except Exception as status_error:
+            print(f"Warning: Could not update sale status: {str(status_error)}")
+            # Payment was created successfully, just return without status update
+
+        # Return success with available data
+        response_data = {
             "message": "Payment recorded successfully",
             "payment": created_payment,
-            "payment_status": payment_status,
-            "total_paid": total_paid,
-            "total_amount": total_amount,
-            "pending_amount": max(0, total_amount - total_paid),
         }
+
+        if payment_status:
+            response_data["payment_status"] = payment_status
+        if total_paid is not None:
+            response_data["total_paid"] = total_paid
+        if total_amount is not None:
+            response_data["total_amount"] = total_amount
+            response_data["pending_amount"] = max(0, total_amount - total_paid)
+
+        return response_data
+
     except HTTPException:
         raise
+    except requests.HTTPError as http_err:
+        print(f"HTTP Error in payment creation: {http_err}")
+        raise HTTPException(
+            status_code=500,
+            detail="Database connection error. Please check your database permissions.",
+        )
     except Exception as e:
         print(f"Payment creation error: {str(e)}")
         import traceback

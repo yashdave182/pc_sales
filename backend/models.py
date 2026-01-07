@@ -1,10 +1,11 @@
-from pydantic import BaseModel
 from typing import List, Optional
 
+from pydantic import BaseModel
 
 # ======================
 # Customers
 # ======================
+
 
 class Customer(BaseModel):
     customer_id: Optional[int] = None
@@ -21,6 +22,7 @@ class Customer(BaseModel):
 # Products
 # ======================
 
+
 class Product(BaseModel):
     product_id: Optional[int] = None
     product_name: str
@@ -34,6 +36,7 @@ class Product(BaseModel):
 # ======================
 # Sales
 # ======================
+
 
 class Sale(BaseModel):
     sale_id: Optional[int] = None
@@ -64,6 +67,7 @@ class SaleCreate(BaseModel):
 # Payments
 # ======================
 
+
 class Payment(BaseModel):
     payment_id: Optional[int] = None
     sale_id: int
@@ -78,6 +82,7 @@ class Payment(BaseModel):
 # ======================
 # Demos
 # ======================
+
 
 class Demo(BaseModel):
     demo_id: Optional[int] = None
@@ -96,6 +101,7 @@ class Demo(BaseModel):
 # ======================
 # Distributors
 # ======================
+
 
 class Distributor(BaseModel):
     distributor_id: Optional[int] = None

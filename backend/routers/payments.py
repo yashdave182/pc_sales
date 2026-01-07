@@ -204,10 +204,31 @@ def get_payment(payment_id: int, db: SupabaseClient = Depends(get_supabase)):
         raise HTTPException(status_code=500, detail=f"Error fetching payment: {str(e)}")
 
 
+@router.post("/test")
+def test_payment_creation(payment: Payment):
+    """Test endpoint to validate payment data"""
+    return {
+        "status": "ok",
+        "received_data": {
+            "sale_id": payment.sale_id,
+            "payment_date": payment.payment_date,
+            "payment_method": payment.payment_method,
+            "amount": payment.amount,
+            "rrn": payment.rrn,
+            "reference": payment.reference,
+            "notes": payment.notes,
+        },
+    }
+
+
 @router.post("/")
 def create_payment(payment: Payment, db: SupabaseClient = Depends(get_supabase)):
     """Create a new payment and update sale payment status"""
     try:
+        # Debug: Print payment data
+        print(
+            f"Received payment request: sale_id={payment.sale_id}, amount={payment.amount}"
+        )
         # Validate required fields
         if not payment.sale_id:
             raise HTTPException(status_code=400, detail="Sale ID is required")
@@ -232,22 +253,23 @@ def create_payment(payment: Payment, db: SupabaseClient = Depends(get_supabase))
             raise HTTPException(status_code=404, detail="Sale not found")
 
         sale = sale_response.data[0]
-        total_amount = sale.get("total_amount", 0) or 0
+        total_amount = float(sale.get("total_amount", 0) or 0)
 
         # Insert payment
         payment_data = {
-            "sale_id": payment.sale_id,
-            "payment_date": payment.payment_date,
-            "payment_method": payment.payment_method,
-            "amount": payment.amount,
-            "rrn": payment.rrn if hasattr(payment, "rrn") and payment.rrn else None,
-            "reference": payment.reference
-            if hasattr(payment, "reference") and payment.reference
-            else None,
-            "notes": payment.notes
-            if hasattr(payment, "notes") and payment.notes
-            else None,
+            "sale_id": int(payment.sale_id),
+            "payment_date": str(payment.payment_date),
+            "payment_method": str(payment.payment_method),
+            "amount": float(payment.amount),
         }
+
+        # Add optional fields only if they have values
+        if payment.rrn:
+            payment_data["rrn"] = str(payment.rrn)
+        if payment.reference:
+            payment_data["reference"] = str(payment.reference)
+        if payment.notes:
+            payment_data["notes"] = str(payment.notes)
 
         payment_response = db.table("payments").insert(payment_data).execute()
 
@@ -264,7 +286,12 @@ def create_payment(payment: Payment, db: SupabaseClient = Depends(get_supabase))
             .execute()
         )
 
-        total_paid = sum(p.get("amount", 0) or 0 for p in (all_payments.data or []))
+        total_paid = 0.0
+        if all_payments.data:
+            for p in all_payments.data:
+                amount = p.get("amount")
+                if amount:
+                    total_paid += float(amount)
 
         # Update sale payment status
         if total_paid >= total_amount:
@@ -289,6 +316,10 @@ def create_payment(payment: Payment, db: SupabaseClient = Depends(get_supabase))
     except HTTPException:
         raise
     except Exception as e:
+        print(f"Payment creation error: {str(e)}")
+        import traceback
+
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error creating payment: {str(e)}")
 
 

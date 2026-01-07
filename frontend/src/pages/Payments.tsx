@@ -129,9 +129,25 @@ export default function Payments() {
         return;
       }
 
-      console.log("Submitting payment:", formData);
+      console.log("Submitting payment with data:", {
+        sale_id: formData.sale_id,
+        payment_date: formData.payment_date,
+        payment_method: formData.payment_method,
+        amount: formData.amount,
+        rrn: formData.rrn,
+        reference: formData.reference,
+        notes: formData.notes,
+      });
 
-      const response = await paymentAPI.create(formData as Payment);
+      const response = await paymentAPI.create({
+        sale_id: formData.sale_id,
+        payment_date: formData.payment_date,
+        payment_method: formData.payment_method,
+        amount: Number(formData.amount),
+        rrn: formData.rrn || undefined,
+        reference: formData.reference || undefined,
+        notes: formData.notes || undefined,
+      });
       console.log("Payment response:", response);
 
       handleCloseDialog();

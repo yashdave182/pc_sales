@@ -56,16 +56,23 @@ export default function Sales() {
     try {
       setLoading(true);
       setError(null);
+      console.log("Loading sales data...");
       const [salesData, customersData, productsData] = await Promise.all([
         salesAPI.getAll({ limit: 1000 }),
         customerAPI.getAll({ limit: 1000 }),
         productAPI.getAll(),
       ]);
+      console.log("Sales loaded:", salesData);
+      console.log("Customers loaded:", customersData);
+      console.log("Products loaded:", productsData);
       setSales(salesData);
       setCustomers(customersData.data || []);
       setProducts(productsData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("messages.error"));
+    } catch (err: any) {
+      console.error("Error loading sales data:", err);
+      const errorMessage =
+        err?.response?.data?.detail || err?.message || t("messages.error");
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -118,33 +125,61 @@ export default function Sales() {
 
   const handleSubmit = async () => {
     try {
-      if (!formData.customer_id) {
+      // Validate customer
+      if (!formData.customer_id || formData.customer_id === 0) {
         setError(t("sales.selectCustomer", "Please select a customer"));
         return;
       }
 
-      if (items.length === 0 || !items[0].product_id) {
+      // Validate items
+      if (items.length === 0) {
         setError(t("sales.addAtLeastOneItem", "Please add at least one item"));
         return;
+      }
+
+      // Validate each item
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (!item.product_id || item.product_id === 0) {
+          setError(`Item ${i + 1}: Please select a product`);
+          return;
+        }
+        if (!item.quantity || item.quantity <= 0) {
+          setError(`Item ${i + 1}: Quantity must be greater than 0`);
+          return;
+        }
+        if (!item.rate || item.rate <= 0) {
+          setError(`Item ${i + 1}: Rate must be greater than 0`);
+          return;
+        }
       }
 
       const saleData = {
         customer_id: formData.customer_id,
         sale_date: formData.sale_date,
-        items: items as SaleItem[],
-        notes: formData.notes,
+        items: items.map((item) => ({
+          product_id: item.product_id!,
+          quantity: item.quantity!,
+          rate: item.rate!,
+          amount: item.amount!,
+        })),
+        notes: formData.notes || undefined,
       };
 
-      await salesAPI.create(saleData);
+      console.log("Creating sale:", saleData);
+      const response = await salesAPI.create(saleData);
+      console.log("Sale created:", response);
+
       handleCloseDialog();
       loadData();
       setError(null);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : t("sales.createError", "Failed to create sale"),
-      );
+    } catch (err: any) {
+      console.error("Error creating sale:", err);
+      const errorMessage =
+        err?.response?.data?.detail ||
+        err?.message ||
+        t("sales.createError", "Failed to create sale");
+      setError(errorMessage);
     }
   };
 

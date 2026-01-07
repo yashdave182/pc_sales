@@ -16,6 +16,7 @@ import {
   CircularProgress,
   Chip,
   IconButton,
+  InputAdornment,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -53,21 +54,30 @@ export default function Payments() {
     try {
       setLoading(true);
       setError(null);
+      console.log("Loading payment data...");
       const [paymentsData, pendingData] = await Promise.all([
         paymentAPI.getAll({ limit: 1000 }),
         paymentAPI.getPending(),
       ]);
+      console.log("Payments loaded:", paymentsData);
+      console.log("Pending payments loaded:", pendingData);
       setPayments(paymentsData);
       setPendingPayments(pendingData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load data");
+    } catch (err: any) {
+      console.error("Error loading payment data:", err);
+      const errorMessage =
+        err?.response?.data?.detail || err?.message || "Failed to load data";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   const handleOpenDialog = (pendingPayment?: PendingPayment) => {
+    console.log("Opening payment dialog with data:", pendingPayment);
     if (pendingPayment) {
+      console.log("Sale ID:", pendingPayment.sale_id);
+      console.log("Pending Amount:", pendingPayment.pending_amount);
       setFormData({
         sale_id: pendingPayment.sale_id,
         payment_date: new Date().toISOString().split("T")[0],
@@ -97,20 +107,43 @@ export default function Payments() {
 
   const handleSubmit = async () => {
     try {
-      if (!formData.sale_id || !formData.amount) {
+      // Validate required fields
+      if (!formData.sale_id || formData.sale_id === 0) {
         setError(
-          t("payments.validationRequired", "Sale and amount are required"),
+          t("payments.validationRequired", "Please select a sale/invoice"),
         );
-
         return;
       }
 
-      await paymentAPI.create(formData as Payment);
+      if (!formData.amount || formData.amount <= 0) {
+        setError(
+          t("payments.validationRequired", "Please enter a valid amount"),
+        );
+        return;
+      }
+
+      if (!formData.payment_method) {
+        setError(
+          t("payments.validationRequired", "Please select a payment method"),
+        );
+        return;
+      }
+
+      console.log("Submitting payment:", formData);
+
+      const response = await paymentAPI.create(formData as Payment);
+      console.log("Payment response:", response);
+
       handleCloseDialog();
       loadData();
       setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to record payment");
+    } catch (err: any) {
+      console.error("Payment error:", err);
+      const errorMessage =
+        err?.response?.data?.detail ||
+        err?.message ||
+        "Failed to record payment";
+      setError(errorMessage);
     }
   };
 
@@ -534,7 +567,12 @@ export default function Payments() {
                 onChange={(e) =>
                   setFormData({ ...formData, amount: Number(e.target.value) })
                 }
-                InputProps={{ startAdornment: "₹" }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">₹</InputAdornment>
+                  ),
+                }}
+                inputProps={{ min: 0, step: 0.01 }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>

@@ -24,6 +24,7 @@ import DataImport from "./pages/DataImport";
 import CallingList from "./pages/CallingList";
 import OrderManagement from "./pages/OrderManagement";
 import Admin from "./pages/Admin";
+import Notifications from "./pages/Notifications";
 import { createAppTheme } from "./theme/theme";
 
 const queryClient = new QueryClient({
@@ -180,6 +181,17 @@ function App() {
                     <ProtectedRoute>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Admin />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/notifications"
+                  element={
+                    <ProtectedRoute>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <Notifications />
                         <QuickActions />
                       </Layout>
                     </ProtectedRoute>

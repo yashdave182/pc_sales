@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
@@ -50,6 +50,7 @@ import { useLanguageStore } from "../store/languageStore";
 import type { Language } from "../i18n/i18n";
 import { languages } from "../i18n/i18n";
 import { useAuth } from "../contexts/AuthContext";
+import { notificationsAPI } from "../services/api";
 
 const drawerWidth = 260;
 
@@ -132,6 +133,7 @@ export default function Layout({
   const { t } = useTranslation();
   const { language, setLanguage } = useLanguageStore();
   const { user, signOut } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -176,6 +178,35 @@ export default function Layout({
   };
 
   const isActive = (path: string) => location.pathname === path;
+
+  // Fetch unread notifications count
+  const fetchUnreadCount = async () => {
+    if (!user?.email) return;
+    try {
+      const response = await notificationsAPI.getUnreadCount();
+      setUnreadCount(response.data.count || 0);
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
+    }
+  };
+
+  // Fetch unread count on mount and periodically
+  useEffect(() => {
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000); // Every 30 seconds
+    return () => clearInterval(interval);
+  }, [user?.email]);
+
+  // Refresh unread count when navigating away from notifications page
+  useEffect(() => {
+    if (location.pathname !== "/notifications") {
+      fetchUnreadCount();
+    }
+  }, [location.pathname]);
+
+  const handleNotificationsClick = () => {
+    navigate("/notifications");
+  };
 
   const drawer = (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -402,8 +433,8 @@ export default function Layout({
             </Tooltip>
 
             <Tooltip title={t("layout.notifications")}>
-              <IconButton color="inherit">
-                <Badge badgeContent={3} color="error">
+              <IconButton color="inherit" onClick={handleNotificationsClick}>
+                <Badge badgeContent={unreadCount} color="error">
                   <Notifications />
                 </Badge>
               </IconButton>

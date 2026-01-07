@@ -1,6 +1,8 @@
 from datetime import datetime
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from activity_logger import get_activity_logger
+from fastapi import APIRouter, Depends, Header, HTTPException
 from models import SaleCreate
 from supabase_db import SupabaseClient, get_supabase
 
@@ -155,8 +157,12 @@ def sales_with_pending(db: SupabaseClient = Depends(get_supabase)):
 
 
 @router.post("/")
-def create_sale(sale: SaleCreate, db: SupabaseClient = Depends(get_supabase)):
-    """Create a new sale with items"""
+def create_sale(
+    sale: SaleCreate,
+    db: SupabaseClient = Depends(get_supabase),
+    user_email: Optional[str] = Header(None, alias="x-user-email"),
+):
+    """Create a new sale with items and auto-convert related demos"""
     try:
         # Validate input
         if not sale.customer_id:
@@ -238,10 +244,94 @@ def create_sale(sale: SaleCreate, db: SupabaseClient = Depends(get_supabase)):
                     status_code=400, detail="Failed to create sale items"
                 )
 
+        # Log activity
+        if user_email:
+            try:
+                logger = get_activity_logger(db)
+                customer_response = (
+                    db.table("customers")
+                    .select("name")
+                    .eq("customer_id", sale.customer_id)
+                    .execute()
+                )
+                customer_name = (
+                    customer_response.data[0].get("name")
+                    if customer_response.data
+                    else f"Customer ID: {sale.customer_id}"
+                )
+
+                logger.log_create(
+                    user_email=user_email,
+                    entity_type="sale",
+                    entity_name=f"{invoice_no} - {customer_name}",
+                    entity_id=sale_id,
+                    metadata={
+                        "invoice_no": invoice_no,
+                        "customer_id": sale.customer_id,
+                        "total_amount": total_amount,
+                        "items_count": len(sale_items_data),
+                    },
+                )
+            except Exception as log_err:
+                print(f"Warning: Failed to log activity: {str(log_err)}")
+
+        # Auto-convert demos for this customer
+        converted_demos = []
+        try:
+            # Check if this customer has any scheduled or pending demos
+            demos_response = (
+                db.table("demos")
+                .select("demo_id, product_id, conversion_status, demo_date")
+                .eq("customer_id", sale.customer_id)
+                .in_("conversion_status", ["Scheduled", "Pending", "Follow-up"])
+                .execute()
+            )
+
+            if demos_response.data:
+                # Get product IDs from the sale items
+                sale_product_ids = [item.product_id for item in sale.items]
+
+                # Update matching demos to "Converted"
+                for demo in demos_response.data:
+                    demo_product_id = demo.get("product_id")
+                    demo_id = demo.get("demo_id")
+
+                    # If the demo product matches any product in the sale, mark as converted
+                    if demo_product_id in sale_product_ids:
+                        try:
+                            update_response = (
+                                db.table("demos")
+                                .update(
+                                    {
+                                        "conversion_status": "Converted",
+                                        "notes": f"Auto-converted: Sale {invoice_no} created on {sale.sale_date}",
+                                    }
+                                )
+                                .eq("demo_id", demo_id)
+                                .execute()
+                            )
+
+                            if update_response.data:
+                                converted_demos.append(demo_id)
+                        except Exception as demo_update_err:
+                            print(
+                                f"Warning: Failed to update demo {demo_id}: {str(demo_update_err)}"
+                            )
+
+                if converted_demos:
+                    print(
+                        f"Auto-converted {len(converted_demos)} demo(s) for customer {sale.customer_id}: {converted_demos}"
+                    )
+
+        except Exception as demo_err:
+            print(f"Warning: Failed to auto-convert demos: {str(demo_err)}")
+
         return {
             "message": "Sale created successfully",
             "sale": created_sale,
             "items_count": len(sale_items_data),
+            "converted_demos": len(converted_demos),
+            "demo_ids": converted_demos if converted_demos else [],
         }
     except HTTPException:
         raise

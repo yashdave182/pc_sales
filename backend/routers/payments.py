@@ -1,3 +1,5 @@
+from typing import Optional
+
 import requests
 from fastapi import APIRouter, Depends, HTTPException
 from models import Payment

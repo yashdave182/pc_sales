@@ -55,21 +55,29 @@ def dashboard_metrics(db: SupabaseClient = Depends(get_supabase)):
         # Get total transactions count
         total_transactions = len(sales_response.data) if sales_response.data else 0
 
-        # Get demo conversion rate
+        # Get demo conversion rate (dynamic calculation based on actual conversions)
         demos_response = db.table("demos").select("conversion_status").execute()
+
+        demo_conversion_rate = 0.0
+        converted_count = 0
+        total_demos = 0
+
         if demos_response.data:
-            converted = sum(
-                1
-                for d in demos_response.data
-                if d.get("conversion_status", "").lower()
-                in ["converted", "won", "purchase"]
-            )
             total_demos = len(demos_response.data)
-            demo_conversion_rate = (
-                round((converted / total_demos) * 100, 2) if total_demos > 0 else 0.0
-            )
-        else:
-            demo_conversion_rate = 0.0
+
+            # Count converted demos (case-insensitive)
+            for demo in demos_response.data:
+                status = demo.get("conversion_status", "").lower()
+                if status in ["converted", "won", "purchase", "completed", "sold"]:
+                    converted_count += 1
+
+            # Calculate percentage
+            if total_demos > 0:
+                demo_conversion_rate = round((converted_count / total_demos) * 100, 2)
+
+        print(
+            f"Demo conversion: {converted_count}/{total_demos} = {demo_conversion_rate}%"
+        )
 
         metrics_result = {
             "total_sales": round(total_sales, 2),

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Button,
@@ -17,6 +18,10 @@ import {
   Chip,
   IconButton,
   Divider,
+  Tooltip,
+  ToggleButtonGroup,
+  ToggleButton,
+  InputAdornment,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -24,6 +29,8 @@ import {
   ShoppingCart as ShoppingCartIcon,
   Receipt as ReceiptIcon,
   Refresh as RefreshIcon,
+  PersonAdd as PersonAddIcon,
+  People as PeopleIcon,
 } from "@mui/icons-material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { salesAPI, customerAPI, productAPI } from "../services/api";
@@ -33,16 +40,28 @@ import { useTranslation } from "../hooks/useTranslation";
 
 export default function Sales() {
   const { t, tf } = useTranslation();
+  const navigate = useNavigate();
   const [sales, setSales] = useState<Sale[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [customerMode, setCustomerMode] = useState<"existing" | "new">(
+    "existing",
+  );
   const [formData, setFormData] = useState({
     customer_id: 0,
     sale_date: new Date().toISOString().split("T")[0],
     notes: "",
+  });
+  const [newCustomerData, setNewCustomerData] = useState({
+    name: "",
+    mobile: "",
+    village: "",
+    taluka: "",
+    district: "",
+    status: "Active",
   });
   const [items, setItems] = useState<Partial<SaleItem>[]>([
     { product_id: 0, quantity: 1, rate: 0, amount: 0 },
@@ -84,6 +103,15 @@ export default function Sales() {
       sale_date: new Date().toISOString().split("T")[0],
       notes: "",
     });
+    setNewCustomerData({
+      name: "",
+      mobile: "",
+      village: "",
+      taluka: "",
+      district: "",
+      status: "Active",
+    });
+    setCustomerMode("existing");
     setItems([{ product_id: 0, quantity: 1, rate: 0, amount: 0 }]);
     setOpenDialog(true);
   };
@@ -125,10 +153,45 @@ export default function Sales() {
 
   const handleSubmit = async () => {
     try {
-      // Validate customer
-      if (!formData.customer_id || formData.customer_id === 0) {
-        setError(t("sales.selectCustomer", "Please select a customer"));
-        return;
+      let customerId = formData.customer_id;
+
+      // If new customer mode, create customer first
+      if (customerMode === "new") {
+        // Validate new customer data
+        if (!newCustomerData.name || !newCustomerData.mobile) {
+          setError(
+            t(
+              "sales.customerNameMobileRequired",
+              "Customer name and mobile are required",
+            ),
+          );
+          return;
+        }
+
+        // Create new customer
+        try {
+          const newCustomer = await customerAPI.create(
+            newCustomerData as Customer,
+          );
+          customerId = newCustomer.customer_id;
+          // Reload customers list
+          const customersData = await customerAPI.getAll({ limit: 1000 });
+          setCustomers(customersData.data || []);
+        } catch (err: any) {
+          console.error("Error creating customer:", err);
+          const errorMessage =
+            err?.response?.data?.detail ||
+            err?.message ||
+            t("customers.createError", "Failed to create customer");
+          setError(errorMessage);
+          return;
+        }
+      } else {
+        // Validate existing customer selection
+        if (!customerId || customerId === 0) {
+          setError(t("sales.selectCustomer", "Please select a customer"));
+          return;
+        }
       }
 
       // Validate items
@@ -155,7 +218,7 @@ export default function Sales() {
       }
 
       const saleData = {
-        customer_id: formData.customer_id,
+        customer_id: customerId,
         sale_date: formData.sale_date,
         items: items.map((item) => ({
           product_id: item.product_id!,
@@ -227,19 +290,50 @@ export default function Sales() {
       field: "payment_status",
       headerName: t("dashboard.paymentStatus"),
       width: 140,
-      renderCell: (params) => (
-        <Chip
-          label={params.value}
-          size="small"
-          color={
-            params.value === "Paid"
-              ? "success"
-              : params.value === "Partial"
-                ? "warning"
-                : "error"
-          }
-        />
-      ),
+      renderCell: (params) => {
+        const isPending =
+          params.value === "Pending" || params.value === "Partial";
+        return (
+          <Tooltip
+            title={
+              isPending
+                ? t("sales.clickToAddPayment", "Click to add payment")
+                : ""
+            }
+          >
+            <Chip
+              label={params.value}
+              size="small"
+              color={
+                params.value === "Paid"
+                  ? "success"
+                  : params.value === "Partial"
+                    ? "warning"
+                    : "error"
+              }
+              onClick={
+                isPending
+                  ? () => {
+                      navigate("/payments", {
+                        state: { saleId: params.row.sale_id },
+                      });
+                    }
+                  : undefined
+              }
+              sx={{
+                cursor: isPending ? "pointer" : "default",
+                "&:hover": isPending
+                  ? {
+                      opacity: 0.8,
+                      transform: "scale(1.05)",
+                    }
+                  : {},
+                transition: "all 0.2s",
+              }}
+            />
+          </Tooltip>
+        );
+      },
     },
   ];
 
@@ -339,33 +433,151 @@ export default function Sales() {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                select
-                label={`${t("customers.customerName")} *`}
-                value={formData.customer_id}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    customer_id: Number(e.target.value),
-                  })
-                }
+            {/* Customer Mode Toggle */}
+            <Grid item xs={12}>
+              <Box
+                sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}
               >
-                <MenuItem value={0}>
-                  {t("sales.selectCustomer", "Select Customer")}
-                </MenuItem>
-                {customers.map((customer) => (
-                  <MenuItem
-                    key={customer.customer_id}
-                    value={customer.customer_id}
-                  >
-                    {customer.name} - {customer.village}
-                  </MenuItem>
-                ))}
-              </TextField>
+                <Typography variant="subtitle2" color="text.secondary">
+                  {t("sales.customerSelection", "Customer:")}
+                </Typography>
+                <ToggleButtonGroup
+                  value={customerMode}
+                  exclusive
+                  onChange={(e, newMode) => {
+                    if (newMode !== null) {
+                      setCustomerMode(newMode);
+                    }
+                  }}
+                  size="small"
+                  color="primary"
+                >
+                  <ToggleButton value="existing">
+                    <PeopleIcon sx={{ mr: 1, fontSize: 18 }} />
+                    {t("sales.existingCustomer", "Existing Customer")}
+                  </ToggleButton>
+                  <ToggleButton value="new">
+                    <PersonAddIcon sx={{ mr: 1, fontSize: 18 }} />
+                    {t("sales.newCustomer", "New Customer")}
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+              <Divider />
             </Grid>
-            <Grid item xs={12} sm={6}>
+
+            {/* Existing Customer Selection */}
+            {customerMode === "existing" && (
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  select
+                  label={`${t("customers.customerName")} *`}
+                  value={formData.customer_id}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      customer_id: Number(e.target.value),
+                    })
+                  }
+                >
+                  <MenuItem value={0}>
+                    {t("sales.selectCustomer", "Select Customer")}
+                  </MenuItem>
+                  {customers.map((customer) => (
+                    <MenuItem
+                      key={customer.customer_id}
+                      value={customer.customer_id}
+                    >
+                      {customer.name} - {customer.village}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+            )}
+
+            {/* New Customer Form */}
+            {customerMode === "new" && (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label={`${t("customers.customerName")} *`}
+                    value={newCustomerData.name}
+                    onChange={(e) =>
+                      setNewCustomerData({
+                        ...newCustomerData,
+                        name: e.target.value,
+                      })
+                    }
+                    placeholder={t(
+                      "sales.enterCustomerName",
+                      "Enter customer name",
+                    )}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label={`${tf("mobile")} *`}
+                    value={newCustomerData.mobile}
+                    onChange={(e) =>
+                      setNewCustomerData({
+                        ...newCustomerData,
+                        mobile: e.target.value,
+                      })
+                    }
+                    placeholder="9876543210"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">+91</InputAdornment>
+                      ),
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label={tf("village")}
+                    value={newCustomerData.village}
+                    onChange={(e) =>
+                      setNewCustomerData({
+                        ...newCustomerData,
+                        village: e.target.value,
+                      })
+                    }
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label={tf("taluka")}
+                    value={newCustomerData.taluka}
+                    onChange={(e) =>
+                      setNewCustomerData({
+                        ...newCustomerData,
+                        taluka: e.target.value,
+                      })
+                    }
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label={tf("district")}
+                    value={newCustomerData.district}
+                    onChange={(e) =>
+                      setNewCustomerData({
+                        ...newCustomerData,
+                        district: e.target.value,
+                      })
+                    }
+                  />
+                </Grid>
+              </>
+            )}
+
+            {/* Sale Date */}
+            <Grid item xs={12} sm={customerMode === "new" ? 12 : 6}>
               <TextField
                 fullWidth
                 type="date"

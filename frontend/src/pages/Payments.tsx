@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import {
   Box,
   Button,
@@ -31,6 +32,7 @@ import { useTranslation } from "../hooks/useTranslation";
 
 export default function Payments() {
   const { t, tf } = useTranslation();
+  const location = useLocation();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +51,19 @@ export default function Payments() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Handle navigation from sales page
+  useEffect(() => {
+    if (location.state?.saleId && pendingPayments.length > 0) {
+      const saleId = location.state.saleId;
+      const pendingPayment = pendingPayments.find((p) => p.sale_id === saleId);
+      if (pendingPayment) {
+        handleOpenDialog(pendingPayment);
+        // Clear the state to prevent reopening on refresh
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state, pendingPayments]);
 
   const loadData = async () => {
     try {

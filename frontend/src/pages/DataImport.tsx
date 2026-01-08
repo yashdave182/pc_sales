@@ -4,32 +4,140 @@ import {
   Button,
   Card,
   CardContent,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
   Typography,
   Alert,
   LinearProgress,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
+  Grid,
   IconButton,
   Chip,
+  InputAdornment,
+  Paper,
 } from "@mui/material";
 import {
   CloudUpload as CloudUploadIcon,
-  InsertDriveFile as FileIcon,
-  Delete as DeleteIcon,
+  People as PeopleIcon,
+  Payment as PaymentIcon,
+  SupportAgent as DemoIcon,
+  ShoppingCart as SalesIcon,
+  Close as CloseIcon,
+  AttachFile as AttachFileIcon,
   CheckCircle as CheckCircleIcon,
 } from "@mui/icons-material";
 import { fileAPI } from "../services/api";
 import { useTranslation } from "../hooks/useTranslation";
 
+type ImportType = "customer" | "payment" | "demos" | "sales";
+
+interface ImportDialog {
+  type: ImportType;
+  title: string;
+  icon: React.ReactNode;
+  fields: {
+    name: string;
+    label: string;
+    required: boolean;
+    type?: string;
+    multiline?: boolean;
+  }[];
+}
+
 export default function DataImport() {
   const { t } = useTranslation();
+  const [openDialog, setOpenDialog] = useState<ImportType | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [formData, setFormData] = useState<Record<string, string>>({});
+
+  const importDialogs: ImportDialog[] = [
+    {
+      type: "customer",
+      title: "Customer Import",
+      icon: <PeopleIcon sx={{ fontSize: 48, color: "primary.main" }} />,
+      fields: [
+        { name: "name", label: "Customer Name", required: true },
+        { name: "mobile", label: "Mobile Number", required: true },
+        { name: "village", label: "Village", required: false },
+        { name: "taluka", label: "Taluka", required: false },
+        { name: "district", label: "District", required: false },
+      ],
+    },
+    {
+      type: "payment",
+      title: "Payment Import",
+      icon: <PaymentIcon sx={{ fontSize: 48, color: "success.main" }} />,
+      fields: [
+        { name: "sale_id", label: "Sale ID", required: true },
+        {
+          name: "amount",
+          label: "Payment Amount",
+          required: true,
+          type: "number",
+        },
+        { name: "payment_method", label: "Payment Method", required: true },
+        {
+          name: "payment_date",
+          label: "Payment Date",
+          required: true,
+          type: "date",
+        },
+        { name: "reference", label: "Reference Number", required: false },
+        { name: "notes", label: "Notes", required: false, multiline: true },
+      ],
+    },
+    {
+      type: "demos",
+      title: "Demos Import",
+      icon: <DemoIcon sx={{ fontSize: 48, color: "warning.main" }} />,
+      fields: [
+        { name: "customer_name", label: "Customer Name", required: true },
+        { name: "mobile", label: "Mobile Number", required: true },
+        { name: "village", label: "Village", required: false },
+        { name: "demo_date", label: "Demo Date", required: true, type: "date" },
+        { name: "product", label: "Product Name", required: true },
+        { name: "notes", label: "Notes", required: false, multiline: true },
+      ],
+    },
+    {
+      type: "sales",
+      title: "Sales Import",
+      icon: <SalesIcon sx={{ fontSize: 48, color: "error.main" }} />,
+      fields: [
+        { name: "customer_name", label: "Customer Name", required: true },
+        { name: "mobile", label: "Customer Mobile", required: true },
+        { name: "village", label: "Village", required: false },
+        { name: "sale_date", label: "Sale Date", required: true, type: "date" },
+        { name: "product_name", label: "Product Name", required: true },
+        { name: "quantity", label: "Quantity", required: true, type: "number" },
+        { name: "rate", label: "Rate", required: true, type: "number" },
+        { name: "notes", label: "Notes", required: false, multiline: true },
+      ],
+    },
+  ];
+
+  const handleOpenDialog = (type: ImportType) => {
+    setOpenDialog(type);
+    setFormData({});
+    setSelectedFile(null);
+    setError(null);
+    setSuccess(null);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(null);
+    setFormData({});
+    setSelectedFile(null);
+    setError(null);
+    setSuccess(null);
+    setUploadProgress(0);
+  };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -38,15 +146,32 @@ export default function DataImport() {
         setSelectedFile(file);
         setError(null);
       } else {
-        setError(t("import.invalidFileType"));
+        setError("Please select a valid Excel file (.xlsx or .xls)");
         setSelectedFile(null);
       }
     }
   };
 
-  const handleUpload = async () => {
+  const handleFieldChange = (fieldName: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [fieldName]: value }));
+  };
+
+  const handleSubmit = async () => {
+    const currentDialog = importDialogs.find((d) => d.type === openDialog);
+    if (!currentDialog) return;
+
+    // Validate required fields
+    const missingFields = currentDialog.fields
+      .filter((field) => field.required && !formData[field.name])
+      .map((field) => field.label);
+
+    if (missingFields.length > 0) {
+      setError(`Please fill required fields: ${missingFields.join(", ")}`);
+      return;
+    }
+
     if (!selectedFile) {
-      setError(t("import.selectFileError"));
+      setError("Please select an Excel file to upload");
       return;
     }
 
@@ -60,31 +185,28 @@ export default function DataImport() {
         setUploadProgress((prev) => Math.min(prev + 10, 90));
       }, 200);
 
-      // Create FormData and append the file
-      const formData = new FormData();
-      formData.append("file", selectedFile);
+      // Create FormData and append the file and form data
+      const formDataToSend = new FormData();
+      formDataToSend.append("file", selectedFile);
+      formDataToSend.append("import_type", openDialog || "");
+      formDataToSend.append("data", JSON.stringify(formData));
 
-      const response = await fileAPI.upload(formData);
+      const response = await fileAPI.upload(formDataToSend);
 
       clearInterval(progressInterval);
       setUploadProgress(100);
 
-      // Show success message with import details
+      // Show success message
       const successMsg =
-        response.message ||
-        t("import.fileUploaded") +
-          `: "${response.filename || selectedFile.name}"`;
+        response.message || `${currentDialog.title} completed successfully!`;
       setSuccess(successMsg);
-      setSelectedFile(null);
 
-      // Reset after 3 seconds
+      // Reset after 2 seconds and close dialog
       setTimeout(() => {
-        setSuccess(null);
-        setUploadProgress(0);
-      }, 3000);
+        handleCloseDialog();
+      }, 2000);
     } catch (err: any) {
-      // Extract error message from backend response
-      let errorMessage = t("import.uploadError");
+      let errorMessage = "Upload failed. Please try again.";
 
       if (err?.response?.data?.detail) {
         errorMessage = err.response.data.detail;
@@ -98,237 +220,354 @@ export default function DataImport() {
     }
   };
 
+  const getCardColor = (type: ImportType) => {
+    switch (type) {
+      case "customer":
+        return "primary.main";
+      case "payment":
+        return "success.main";
+      case "demos":
+        return "warning.main";
+      case "sales":
+        return "error.main";
+      default:
+        return "primary.main";
+    }
+  };
+
   return (
     <Box>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
           <CloudUploadIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-          {t("import.title")}
+          Data Import
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          {t("import.subtitle")}
+          Select an import type and upload your Excel file
         </Typography>
       </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      {/* Import Cards Grid */}
+      <Grid container spacing={3}>
+        {importDialogs.map((dialog) => (
+          <Grid item xs={12} sm={6} md={3} key={dialog.type}>
+            <Card
+              sx={{
+                cursor: "pointer",
+                transition: "all 0.3s",
+                height: "100%",
+                "&:hover": {
+                  transform: "translateY(-8px)",
+                  boxShadow: 6,
+                },
+                border: 2,
+                borderColor: "transparent",
+                "&:hover .icon-container": {
+                  backgroundColor: getCardColor(dialog.type),
+                  "& svg": {
+                    color: "white",
+                  },
+                },
+              }}
+              onClick={() => handleOpenDialog(dialog.type)}
+            >
+              <CardContent
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  py: 4,
+                  height: "100%",
+                }}
+              >
+                <Box
+                  className="icon-container"
+                  sx={{
+                    mb: 2,
+                    p: 2,
+                    borderRadius: "50%",
+                    backgroundColor: "action.hover",
+                    transition: "all 0.3s",
+                  }}
+                >
+                  {dialog.icon}
+                </Box>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 600, textAlign: "center" }}
+                >
+                  {dialog.title}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 1, textAlign: "center" }}
+                >
+                  Click to import
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
 
-      {success && (
-        <Alert
-          severity="success"
-          sx={{ mb: 3 }}
-          onClose={() => setSuccess(null)}
+      {/* Instructions Card */}
+      <Card sx={{ mt: 4 }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+            📋 Instructions
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+                <CheckCircleIcon color="success" />
+                <Box>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Excel Format
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Upload .xlsx or .xls files only
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+                <CheckCircleIcon color="success" />
+                <Box>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Fill Details
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Complete all required fields before upload
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+                <CheckCircleIcon color="success" />
+                <Box>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Data Validation
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Ensure Excel data matches the required format
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+                <CheckCircleIcon color="success" />
+                <Box>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Processing Time
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Large files may take a few moments to process
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Import Dialog */}
+      {openDialog && (
+        <Dialog
+          open={Boolean(openDialog)}
+          onClose={handleCloseDialog}
+          maxWidth="md"
+          fullWidth
         >
-          {success}
-        </Alert>
-      )}
-
-      {/* Upload Area */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box
-            sx={{
-              border: "2px dashed",
-              borderColor: "primary.main",
-              borderRadius: 2,
-              p: 4,
-              textAlign: "center",
-              bgcolor: "background.default",
-              cursor: "pointer",
-              transition: "all 0.3s",
-              "&:hover": {
-                bgcolor: "action.hover",
-              },
-            }}
-            onClick={() => document.getElementById("file-input")?.click()}
+          <DialogTitle>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                {importDialogs.find((d) => d.type === openDialog)?.icon}
+                <Typography variant="h6">
+                  {importDialogs.find((d) => d.type === openDialog)?.title}
+                </Typography>
+              </Box>
+              <IconButton onClick={handleCloseDialog}>
+                <CloseIcon />
+              </IconButton>
+            </Box>
+          </DialogTitle>
+          <DialogContent
+            sx={{ maxHeight: "70vh", overflowY: "auto", pt: 3, px: 4 }}
           >
-            <CloudUploadIcon
-              sx={{ fontSize: 64, color: "primary.main", mb: 2 }}
-            />
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              {selectedFile ? selectedFile.name : t("import.clickToSelect")}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {t("import.supportedFormats")}
-            </Typography>
-            <input
-              id="file-input"
-              type="file"
-              accept=".xlsx,.xls"
-              style={{ display: "none" }}
-              onChange={handleFileSelect}
-            />
-          </Box>
-
-          {selectedFile && (
-            <Box sx={{ mt: 3, display: "flex", gap: 2, alignItems: "center" }}>
-              <Chip
-                icon={<FileIcon />}
-                label={`${selectedFile.name} (${(selectedFile.size / 1024).toFixed(1)} KB)`}
-                onDelete={() => setSelectedFile(null)}
-                color="primary"
-              />
-              <Button
-                variant="contained"
-                onClick={handleUpload}
-                disabled={uploading}
-                startIcon={<CloudUploadIcon />}
+            {error && (
+              <Alert
+                severity="error"
+                sx={{ mb: 3 }}
+                onClose={() => setError(null)}
               >
-                {t("import.upload")}
-              </Button>
-            </Box>
-          )}
+                {error}
+              </Alert>
+            )}
 
-          {uploading && (
-            <Box sx={{ mt: 3 }}>
-              <LinearProgress variant="determinate" value={uploadProgress} />
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ mt: 1, display: "block" }}
-              >
-                {t("import.uploading")} {uploadProgress}%
-              </Typography>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
+            {success && (
+              <Alert severity="success" sx={{ mb: 3 }}>
+                {success}
+              </Alert>
+            )}
 
-      {/* Instructions */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            {t("import.instructions")}
-          </Typography>
-          <List>
-            <ListItem>
-              <ListItemIcon>
-                <CheckCircleIcon color="success" />
-              </ListItemIcon>
-              <ListItemText
-                primary={t("import.excelFormat")}
-                secondary={t("import.excelFormatDesc")}
-              />
-            </ListItem>
-            <ListItem>
-              <ListItemIcon>
-                <CheckCircleIcon color="success" />
-              </ListItemIcon>
-              <ListItemText
-                primary={t("import.dataStructure")}
-                secondary={t("import.dataStructureDesc")}
-              />
-            </ListItem>
-            <ListItem>
-              <ListItemIcon>
-                <CheckCircleIcon color="success" />
-              </ListItemIcon>
-              <ListItemText
-                primary={t("import.fileSize")}
-                secondary={t("import.fileSizeDesc")}
-              />
-            </ListItem>
-            <ListItem>
-              <ListItemIcon>
-                <CheckCircleIcon color="success" />
-              </ListItemIcon>
-              <ListItemText
-                primary={t("import.processing")}
-                secondary={t("import.processingDesc")}
-              />
-            </ListItem>
-          </List>
-        </CardContent>
-      </Card>
+            {/* Input Fields */}
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+              {importDialogs
+                .find((d) => d.type === openDialog)
+                ?.fields.map((field) => (
+                  <Grid
+                    item
+                    xs={12}
+                    sm={field.multiline ? 12 : 6}
+                    key={field.name}
+                  >
+                    <TextField
+                      fullWidth
+                      label={field.required ? `${field.label} *` : field.label}
+                      type={field.type || "text"}
+                      multiline={field.multiline}
+                      rows={field.multiline ? 3 : 1}
+                      value={formData[field.name] || ""}
+                      onChange={(e) =>
+                        handleFieldChange(field.name, e.target.value)
+                      }
+                      placeholder={
+                        field.name === "mobile" || field.name.includes("mobile")
+                          ? "+91 9876543210"
+                          : undefined
+                      }
+                      InputLabelProps={
+                        field.type === "date" ||
+                        field.name === "mobile" ||
+                        field.name.includes("mobile")
+                          ? { shrink: true }
+                          : undefined
+                      }
+                      InputProps={
+                        field.name === "mobile" || field.name.includes("mobile")
+                          ? {
+                              startAdornment: (
+                                <InputAdornment
+                                  position="start"
+                                  sx={{ ml: 0.5 }}
+                                >
+                                  <Box
+                                    component="span"
+                                    sx={{
+                                      color: "text.secondary",
+                                      fontWeight: 500,
+                                      fontSize: "1rem",
+                                      minWidth: "32px",
+                                    }}
+                                  >
+                                    +91
+                                  </Box>
+                                </InputAdornment>
+                              ),
+                            }
+                          : undefined
+                      }
+                    />
+                  </Grid>
+                ))}
+            </Grid>
 
-      {/* Required Excel Format */}
-      <Card>
-        <CardContent>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            📋 Required Excel Column Format
-          </Typography>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Your Excel file must contain one of these formats. The system will
-            auto-detect the type based on columns.
-          </Alert>
-
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-              🧑‍🤝‍🧑 Customers Excel
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Required columns: <strong>name, mobile, village, taluka</strong>
-            </Typography>
-            <Box
-              component="code"
+            {/* File Upload Section */}
+            <Paper
+              elevation={0}
               sx={{
-                display: "block",
-                p: 1,
-                bgcolor: "grey.100",
-                borderRadius: 1,
-                fontFamily: "monospace",
-                fontSize: "0.85rem",
+                border: "2px dashed",
+                borderColor: selectedFile ? "success.main" : "primary.main",
+                borderRadius: 2,
+                p: 3,
+                textAlign: "center",
+                bgcolor: selectedFile ? "success.50" : "background.default",
+                cursor: "pointer",
+                transition: "all 0.3s",
+                "&:hover": {
+                  bgcolor: "action.hover",
+                },
               }}
+              onClick={() =>
+                document.getElementById(`file-input-${openDialog}`)?.click()
+              }
             >
-              name | mobile | village | taluka | district
-            </Box>
-          </Box>
+              {selectedFile ? (
+                <Box>
+                  <CheckCircleIcon
+                    sx={{ fontSize: 48, color: "success.main", mb: 1 }}
+                  />
+                  <Typography variant="h6" sx={{ mb: 1 }}>
+                    {selectedFile.name}
+                  </Typography>
+                  <Chip
+                    label={`${(selectedFile.size / 1024).toFixed(1)} KB`}
+                    size="small"
+                    color="success"
+                  />
+                </Box>
+              ) : (
+                <Box>
+                  <AttachFileIcon
+                    sx={{ fontSize: 48, color: "primary.main", mb: 1 }}
+                  />
+                  <Typography variant="h6" sx={{ mb: 1 }}>
+                    Click to select Excel file
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Supported formats: .xlsx, .xls
+                  </Typography>
+                </Box>
+              )}
+              <input
+                id={`file-input-${openDialog}`}
+                type="file"
+                accept=".xlsx,.xls"
+                style={{ display: "none" }}
+                onChange={handleFileSelect}
+              />
+            </Paper>
 
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-              🏪 Distributors Excel
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Required columns:{" "}
-              <strong>
-                village, taluka, district, mantri name, mantri mobile, sabhasad,
-                contact in group
-              </strong>
-            </Typography>
-            <Box
-              component="code"
-              sx={{
-                display: "block",
-                p: 1,
-                bgcolor: "grey.100",
-                borderRadius: 1,
-                fontFamily: "monospace",
-                fontSize: "0.85rem",
-              }}
+            {uploading && (
+              <Box sx={{ mt: 3 }}>
+                <LinearProgress variant="determinate" value={uploadProgress} />
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mt: 1, display: "block", textAlign: "center" }}
+                >
+                  Uploading... {uploadProgress}%
+                </Typography>
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ px: 4, pb: 3 }}>
+            <Button onClick={handleCloseDialog} disabled={uploading}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              variant="contained"
+              disabled={uploading || !selectedFile}
+              startIcon={<CloudUploadIcon />}
             >
-              name | village | taluka | district | mantri name | mantri mobile |
-              sabhasad | contact in group
-            </Box>
-          </Box>
-
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-              💰 Sales Excel (Multi-Sheet)
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Must have <strong>multiple sheets</strong>. Required columns:{" "}
-              <strong>name, packing, qtn, rate, amt, dispatch date</strong>
-            </Typography>
-            <Box
-              component="code"
-              sx={{
-                display: "block",
-                p: 1,
-                bgcolor: "grey.100",
-                borderRadius: 1,
-                fontFamily: "monospace",
-                fontSize: "0.85rem",
-              }}
-            >
-              inv no | name | packing | qtn | rate | amt | dispatch date
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
+              {uploading ? "Uploading..." : "Upload & Import"}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
     </Box>
   );
 }

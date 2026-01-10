@@ -52,6 +52,7 @@ export interface SaleItem {
 
 export interface SaleCreate {
   customer_id: number;
+  invoice_no?: string;
   sale_date: string;
   items: SaleItem[];
   notes?: string;

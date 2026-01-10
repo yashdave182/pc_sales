@@ -52,6 +52,7 @@ export default function Sales() {
   );
   const [formData, setFormData] = useState({
     customer_id: 0,
+    invoice_no: "",
     sale_date: new Date().toISOString().split("T")[0],
     notes: "",
   });
@@ -100,6 +101,7 @@ export default function Sales() {
   const handleOpenDialog = () => {
     setFormData({
       customer_id: 0,
+      invoice_no: "",
       sale_date: new Date().toISOString().split("T")[0],
       notes: "",
     });
@@ -219,6 +221,7 @@ export default function Sales() {
 
       const saleData = {
         customer_id: customerId,
+        invoice_no: formData.invoice_no || undefined,
         sale_date: formData.sale_date,
         items: items.map((item) => ({
           product_id: item.product_id!,
@@ -587,6 +590,17 @@ export default function Sales() {
                   setFormData({ ...formData, sale_date: e.target.value })
                 }
                 InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label={tf("invoice_no")}
+                value={formData.invoice_no}
+                onChange={(e) =>
+                  setFormData({ ...formData, invoice_no: e.target.value })
+                }
+                placeholder={t("sales.invoiceNoPlaceholder", "Leave empty for auto-generation")}
               />
             </Grid>
             <Grid item xs={12}>

@@ -58,6 +58,7 @@ class SaleItem(BaseModel):
 
 class SaleCreate(BaseModel):
     customer_id: int
+    invoice_no: Optional[str] = None
     sale_date: str
     items: List[SaleItem]
     notes: Optional[str] = None

@@ -202,7 +202,14 @@ def create_sale(
             total_liters += capacity * item.quantity
 
         # Generate invoice number
-        invoice_no = generate_invoice_no(db)
+        if sale.invoice_no:
+             # Check if invoice number already exists
+            existing_sale = db.table("sales").select("sale_id").eq("invoice_no", sale.invoice_no).execute()
+            if existing_sale.data:
+                raise HTTPException(status_code=400, detail=f"Invoice number {sale.invoice_no} already exists")
+            invoice_no = sale.invoice_no
+        else:
+            invoice_no = generate_invoice_no(db)
 
         # Create sale record
         sale_data = {

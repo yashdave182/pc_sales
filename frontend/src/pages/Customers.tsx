@@ -45,6 +45,7 @@ export default function Customers() {
     village: "",
     taluka: "",
     district: "",
+    adhar_no: "",
     status: "Active",
   });
 
@@ -80,6 +81,7 @@ export default function Customers() {
         village: "",
         taluka: "",
         district: "",
+        adhar_no: "",
         status: "Active",
       });
     }
@@ -95,6 +97,7 @@ export default function Customers() {
       village: "",
       taluka: "",
       district: "",
+      adhar_no: "",
       status: "Active",
     });
   };
@@ -423,6 +426,17 @@ export default function Customers() {
                 onChange={(e) =>
                   setFormData({ ...formData, district: e.target.value })
                 }
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Adhar No"
+                value={formData.adhar_no || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, adhar_no: e.target.value })
+                }
+                placeholder="Enter 12-digit Aadhar"
               />
             </Grid>
             <Grid item xs={12} sm={6}>

@@ -57,6 +57,7 @@ def create_customer(
             "village": customer.village,
             "taluka": customer.taluka,
             "district": customer.district,
+            "adhar_no": customer.adhar_no,
             "status": customer.status,
         }
 
@@ -108,6 +109,7 @@ def update_customer(
             "village": customer.village,
             "taluka": customer.taluka,
             "district": customer.district,
+            "adhar_no": customer.adhar_no,
             "status": customer.status,
         }
 

@@ -15,6 +15,7 @@ class Customer(BaseModel):
     village: Optional[str] = None
     taluka: Optional[str] = None
     district: Optional[str] = None
+    adhar_no: Optional[str] = None
     status: str = "Active"
 
 

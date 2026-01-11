@@ -8,6 +8,7 @@ export interface Customer {
   village?: string;
   taluka?: string;
   district?: string;
+  adhar_no?: string;
   status?: string;
   created_date?: string;
   updated_date?: string;

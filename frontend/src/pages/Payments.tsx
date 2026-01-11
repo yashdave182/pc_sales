@@ -18,6 +18,7 @@ import {
   Chip,
   IconButton,
   InputAdornment,
+  Paper,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -549,6 +550,33 @@ export default function Payments() {
                   </MenuItem>
                 ))}
               </TextField>
+
+              {/* Purchase Summary Box */}
+              {formData.sale_id > 0 && (() => {
+                const selectedSale = pendingPayments.find(p => p.sale_id === formData.sale_id);
+                if (selectedSale) {
+                  return (
+                    <Paper variant="outlined" sx={{ mt: 2, p: 2, bgcolor: 'background.default' }}>
+                      <Typography variant="subtitle2" gutterBottom>Purchase Summary</Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={4}>
+                          <Typography variant="caption" color="text.secondary">Total Amount</Typography>
+                          <Typography variant="body1" fontWeight="bold">₹{selectedSale.total_amount.toLocaleString()}</Typography>
+                        </Grid>
+                        <Grid item xs={4}>
+                          <Typography variant="caption" color="text.secondary">Paid Amount</Typography>
+                          <Typography variant="body1" color="success.main">₹{selectedSale.paid_amount.toLocaleString()}</Typography>
+                        </Grid>
+                        <Grid item xs={4}>
+                          <Typography variant="caption" color="text.secondary">Pending</Typography>
+                          <Typography variant="body1" color="error.main">₹{selectedSale.pending_amount.toLocaleString()}</Typography>
+                        </Grid>
+                      </Grid>
+                    </Paper>
+                  );
+                }
+                return null;
+              })()}
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField

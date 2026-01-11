@@ -61,7 +61,9 @@ export default function Sales() {
     mobile: "",
     village: "",
     taluka: "",
+    taluka: "",
     district: "",
+    adhar_no: "",
     status: "Active",
   });
   const [items, setItems] = useState<Partial<SaleItem>[]>([
@@ -110,7 +112,9 @@ export default function Sales() {
       mobile: "",
       village: "",
       taluka: "",
+      taluka: "",
       district: "",
+      adhar_no: "",
       status: "Active",
     });
     setCustomerMode("existing");
@@ -172,13 +176,29 @@ export default function Sales() {
 
         // Create new customer
         try {
-          const newCustomer = await customerAPI.create(
-            newCustomerData as Customer,
+          // CHECK FOR DUPLICATE CUSTOMER FIRST
+          // Local check since we have all customers loaded
+          const existingCustomer = customers.find(
+            c => c.mobile === newCustomerData.mobile || (newCustomerData.name && c.name.toLowerCase() === newCustomerData.name.toLowerCase() && c.mobile === newCustomerData.mobile)
           );
-          customerId = newCustomer.customer_id;
-          // Reload customers list
-          const customersData = await customerAPI.getAll({ limit: 1000 });
-          setCustomers(customersData.data || []);
+
+          if (existingCustomer) {
+            // Use existing customer
+            customerId = existingCustomer.customer_id;
+            // Notify user (optional, using alert for now or console)
+            console.log("Duplicate customer found, using existing: " + existingCustomer.name);
+            if (!window.confirm(`Customer with mobile ${newCustomerData.mobile} already exists (${existingCustomer.name}). Use existing customer?`)) {
+              return;
+            }
+          } else {
+            const newCustomer = await customerAPI.create(
+              newCustomerData as Customer,
+            );
+            customerId = newCustomer.customer_id;
+            // Reload customers list
+            const customersData = await customerAPI.getAll({ limit: 1000 });
+            setCustomers(customersData.data || []);
+          }
         } catch (err: any) {
           console.error("Error creating customer:", err);
           const errorMessage =
@@ -317,19 +337,19 @@ export default function Sales() {
               onClick={
                 isPending
                   ? () => {
-                      navigate("/payments", {
-                        state: { saleId: params.row.sale_id },
-                      });
-                    }
+                    navigate("/payments", {
+                      state: { saleId: params.row.sale_id },
+                    });
+                  }
                   : undefined
               }
               sx={{
                 cursor: isPending ? "pointer" : "default",
                 "&:hover": isPending
                   ? {
-                      opacity: 0.8,
-                      transform: "scale(1.05)",
-                    }
+                    opacity: 0.8,
+                    transform: "scale(1.05)",
+                  }
                   : {},
                 transition: "all 0.2s",
               }}
@@ -592,6 +612,24 @@ export default function Sales() {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
+            {/* Aadhar No for New Customer */}
+            {customerMode === "new" && (
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Adhar No"
+                  value={newCustomerData.adhar_no || ""}
+                  onChange={(e) =>
+                    setNewCustomerData({
+                      ...newCustomerData,
+                      adhar_no: e.target.value,
+                    })
+                  }
+                  placeholder="12-digit Aadhar"
+                />
+              </Grid>
+            )}
+
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
@@ -738,6 +776,6 @@ export default function Sales() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </Box >
   );
 }

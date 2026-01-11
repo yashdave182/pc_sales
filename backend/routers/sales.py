@@ -252,24 +252,29 @@ def create_sale(
         created_sale = sale_response.data[0]
         sale_id = created_sale.get("sale_id")
         
-        # Generate sale_code in MMyy#### format based on this month's sequence
-        now = datetime.now()
-        month_year_prefix = now.strftime("%m%y")  # e.g., "0126" for Jan 2026
-        first_day = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        
-        # Count sales created this month (including this one)
-        count_response = (
-            db.table("sales")
-            .select("sale_id", count="exact")
-            .gte("created_at", first_day.isoformat())
-            .execute()
-        )
-        sequence = count_response.count if count_response.count else 1
-        sale_code = f"{month_year_prefix}{sequence:04d}"
-        
-        # Update the sale with the generated sale_code
-        db.table("sales").update({"sale_code": sale_code}).eq("sale_id", sale_id).execute()
-        created_sale["sale_code"] = sale_code  # Add to response
+        # Generate and store sale_code in MMyy#### format (optional - only if column exists)
+        try:
+            now = datetime.now()
+            month_year_prefix = now.strftime("%m%y")  # e.g., "0126" for Jan 2026
+            first_day = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            
+            # Count sales created this month (including this one)
+            count_response = (
+                db.table("sales")
+                .select("sale_id", count="exact")
+                .gte("created_at", first_day.isoformat())
+                .execute()
+            )
+            sequence = count_response.count if count_response.count else 1
+            sale_code = f"{month_year_prefix}{sequence:04d}"
+            
+            # Update the sale with the generated sale_code
+            db.table("sales").update({"sale_code": sale_code}).eq("sale_id", sale_id).execute()
+            created_sale["sale_code"] = sale_code  # Add to response
+        except Exception as e:
+            # Column doesn't exist yet - skip sale_code generation
+            print(f"Could not set sale_code: {e}")
+            pass
 
         # Insert sale items
         sale_items_data = []

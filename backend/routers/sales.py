@@ -78,41 +78,6 @@ def get_sales(db: SupabaseClient = Depends(get_supabase)):
         raise HTTPException(status_code=500, detail=f"Error fetching sales: {str(e)}")
 
 
-        created_at = sale.get("created_at")
-        sale_id = sale.get("sale_id")
-        
-        if not created_at:
-            # Fallback if no created_at
-            return f"0000{sale_id:04d}"
-        
-        # Parse created_at timestamp
-        if isinstance(created_at, str):
-            dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-        else:
-            dt = created_at
-            
-        month_year = dt.strftime("%m%y")  # e.g., "0126" for Jan 2026
-        
-        # Get the sequence number for this sale within its month
-        first_day = dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        
-        # Count sales before and including this one in the same month
-        response = (
-            db.table("sales")
-            .select("sale_id", count="exact")
-            .gte("created_at", first_day.isoformat())
-            .lte("sale_id", sale_id)
-            .execute()
-        )
-        
-        sequence = response.count if response.count else 1
-        
-        return f"{month_year}{sequence:04d}"
-        
-    except Exception as e:
-        # Fallback to simple format
-        return f"0000{sale.get('sale_id', 0):04d}"
-
 
 @router.get("/pending-payments")
 def sales_with_pending(db: SupabaseClient = Depends(get_supabase)):

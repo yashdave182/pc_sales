@@ -372,6 +372,7 @@ def init_supabase_db():
         village TEXT,
         taluka TEXT,
         district TEXT,
+        adhar_no TEXT,
         status TEXT DEFAULT 'Active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );

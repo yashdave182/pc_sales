@@ -61,7 +61,6 @@ export default function Sales() {
     mobile: "",
     village: "",
     taluka: "",
-    taluka: "",
     district: "",
     adhar_no: "",
     status: "Active",
@@ -111,7 +110,6 @@ export default function Sales() {
       name: "",
       mobile: "",
       village: "",
-      taluka: "",
       taluka: "",
       district: "",
       adhar_no: "",
@@ -184,7 +182,7 @@ export default function Sales() {
 
           if (existingCustomer) {
             // Use existing customer
-            customerId = existingCustomer.customer_id;
+            customerId = existingCustomer.customer_id || 0;
             // Notify user (optional, using alert for now or console)
             console.log("Duplicate customer found, using existing: " + existingCustomer.name);
             if (!window.confirm(`Customer with mobile ${newCustomerData.mobile} already exists (${existingCustomer.name}). Use existing customer?`)) {

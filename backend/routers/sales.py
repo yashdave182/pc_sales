@@ -48,48 +48,80 @@ def get_sales(db: SupabaseClient = Depends(get_supabase)):
     """Get all sales with customer information"""
     try:
         # Get sales
-        sales_response = (
-            db.table("sales").select("*").order("created_at", desc=True).execute()
-        )
+        sales_response = db.table("sales").select("*").order("created_at", desc=True).execute()
 
         if not sales_response.data:
             return []
 
-        # Get all customers for joining
-        customers_response = (
-            db.table("customers").select("customer_id, name, village").execute()
-        )
-        customers_dict = (
-            {c["customer_id"]: c for c in customers_response.data}
-            if customers_response.data
-            else {}
-        )
+        sales = sales_response.data
 
-        # Enrich sales with customer data
+        # Get customers to join data
+        customers_response = db.table("customers").select("*").execute()
+        customers_dict = {c["customer_id"]: c for c in customers_response.data}
+
+        # Enrich sales with customer data and formatted sale code
         result = []
-        for sale in sales_response.data:
-            customer_id = sale.get("customer_id")
-            customer = customers_dict.get(customer_id, {})
-
+        for sale in sales:
+            customer = customers_dict.get(sale["customer_id"], {})
+            
+            # Format sale_id as MMyy#### based on created_at and monthly sequence
+            sale_code = format_sale_id_as_code(db, sale)
+            
             result.append(
                 {
-                    "sale_id": sale.get("sale_id"),
-                    "invoice_no": sale.get("invoice_no"),
-                    "customer_id": customer_id,
-                    "sale_date": sale.get("sale_date"),
-                    "total_amount": sale.get("total_amount", 0),
-                    "total_liters": sale.get("total_liters", 0),
-                    "payment_status": sale.get("payment_status", "Pending"),
-                    "notes": sale.get("notes"),
-                    "created_at": sale.get("created_at"),
-                    "customer_name": customer.get("name"),
-                    "village": customer.get("village"),
+                    **sale,
+                    "sale_code": sale_code,  # Formatted display code
+                    "customer_name": customer.get("name", ""),
+                    "village": customer.get("village", ""),
+                    "mobile": customer.get("mobile", ""),
                 }
             )
 
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching sales: {str(e)}")
+
+
+def format_sale_id_as_code(db: SupabaseClient, sale: dict) -> str:
+    """
+    Format sale_id as MMyy#### based on created_at and sequence within that month
+    Example: 01260001 for first sale in January 2026
+    """
+    try:
+        created_at = sale.get("created_at")
+        sale_id = sale.get("sale_id")
+        
+        if not created_at:
+            # Fallback if no created_at
+            return f"0000{sale_id:04d}"
+        
+        # Parse created_at timestamp
+        if isinstance(created_at, str):
+            dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+        else:
+            dt = created_at
+            
+        month_year = dt.strftime("%m%y")  # e.g., "0126" for Jan 2026
+        
+        # Get the sequence number for this sale within its month
+        first_day = dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        
+        # Count sales before and including this one in the same month
+        response = (
+            db.table("sales")
+            .select("sale_id", count="exact")
+            .gte("created_at", first_day.isoformat())
+            .lte("sale_id", sale_id)
+            .execute()
+        )
+        
+        sequence = response.count if response.count else 1
+        
+        return f"{month_year}{sequence:04d}"
+        
+    except Exception as e:
+        # Fallback to simple format
+        return f"0000{sale.get('sale_id', 0):04d}"
 
 
 @router.get("/pending-payments")

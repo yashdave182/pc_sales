@@ -175,17 +175,20 @@ export default function Sales() {
         // Create new customer
         try {
           // CHECK FOR DUPLICATE CUSTOMER FIRST
-          // Local check since we have all customers loaded
+          // Check if customer with same name+village+mobile exists
           const existingCustomer = customers.find(
-            c => c.mobile === newCustomerData.mobile || (newCustomerData.name && c.name.toLowerCase() === newCustomerData.name.toLowerCase() && c.mobile === newCustomerData.mobile)
+            c =>
+              c.mobile === newCustomerData.mobile &&
+              c.name.toLowerCase().trim() === newCustomerData.name.toLowerCase().trim() &&
+              (c.village || "").toLowerCase().trim() === (newCustomerData.village || "").toLowerCase().trim()
           );
 
           if (existingCustomer) {
             // Use existing customer
             customerId = existingCustomer.customer_id || 0;
-            // Notify user (optional, using alert for now or console)
+            // Notify user
             console.log("Duplicate customer found, using existing: " + existingCustomer.name);
-            if (!window.confirm(`Customer with mobile ${newCustomerData.mobile} already exists (${existingCustomer.name}). Use existing customer?`)) {
+            if (!window.confirm(`Customer "${existingCustomer.name}" from ${existingCustomer.village || 'N/A'} with mobile ${newCustomerData.mobile} already exists. Use existing customer?`)) {
               return;
             }
           } else {

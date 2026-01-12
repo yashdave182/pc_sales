@@ -24,6 +24,7 @@ import DataImport from "./pages/DataImport";
 import CallingList from "./pages/CallingList";
 import OrderManagement from "./pages/OrderManagement";
 import Admin from "./pages/Admin";
+import ProductPricing from "./pages/ProductPricing";
 import Notifications from "./pages/Notifications";
 import { createAppTheme } from "./theme/theme";
 
@@ -181,6 +182,17 @@ function App() {
                     <ProtectedRoute>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Admin />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/product-pricing"
+                  element={
+                    <ProtectedRoute>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <ProductPricing />
                         <QuickActions />
                       </Layout>
                     </ProtectedRoute>

@@ -389,3 +389,134 @@ def delete_old_activity_logs(
         raise HTTPException(
             status_code=500, detail=f"Error deleting old activity logs: {str(e)}"
         )
+
+
+@router.put("/update-product-price/{product_id}")
+def update_product_price(
+    product_id: int,
+    price_data: dict,
+    admin_email: str = Depends(verify_admin),
+    db: SupabaseClient = Depends(get_db),
+):
+    """
+    Update the default price for a product
+    Only accessible by admin users
+    """
+    try:
+        standard_rate = price_data.get("standard_rate")
+        
+        if standard_rate is None:
+            raise HTTPException(
+                status_code=400, detail="standard_rate is required"
+            )
+
+        # Update the product price
+        response = (
+            db.table("products")
+            .update({"standard_rate": standard_rate})
+            .eq("product_id", product_id)
+            .execute()
+        )
+
+        if not response.data or len(response.data) == 0:
+            raise HTTPException(status_code=404, detail="Product not found")
+
+        product = response.data[0]
+
+        # Log this admin action
+        logger = get_activity_logger(db)
+        logger.log_activity(
+            user_email=admin_email,
+            action_type="UPDATE",
+            action_description=f"Updated price for product '{product.get('product_name', 'Unknown')}' to ₹{standard_rate}",
+            entity_type="product",
+            entity_id=product_id,
+            entity_name=product.get("product_name"),
+            metadata={"old_rate": product.get("standard_rate"), "new_rate": standard_rate},
+        )
+
+        return {
+            "message": "Product price updated successfully",
+            "data": product,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error updating product price: {str(e)}"
+        )
+
+
+@router.post("/update-product-prices-bulk")
+def update_product_prices_bulk(
+    bulk_data: dict,
+    admin_email: str = Depends(verify_admin),
+    db: SupabaseClient = Depends(get_db),
+):
+    """
+    Update multiple product prices at once
+    Only accessible by admin users
+    """
+    try:
+        updates = bulk_data.get("updates", [])
+        
+        if not updates:
+            raise HTTPException(
+                status_code=400, detail="No updates provided"
+            )
+
+        updated_count = 0
+        errors = []
+
+        for update in updates:
+            product_id = update.get("product_id")
+            standard_rate = update.get("standard_rate")
+
+            if product_id is None or standard_rate is None:
+                errors.append(f"Invalid update data: {update}")
+                continue
+
+            try:
+                response = (
+                    db.table("products")
+                    .update({"standard_rate": standard_rate})
+                    .eq("product_id", product_id)
+                    .execute()
+                )
+
+                if response.data and len(response.data) > 0:
+                    updated_count += 1
+                else:
+                    errors.append(f"Product {product_id} not found")
+
+            except Exception as e:
+                errors.append(f"Error updating product {product_id}: {str(e)}")
+
+        # Log this admin action
+        logger = get_activity_logger(db)
+        logger.log_activity(
+            user_email=admin_email,
+            action_type="UPDATE",
+            action_description=f"Bulk updated prices for {updated_count} products",
+            entity_type="product",
+            metadata={
+                "updated_count": updated_count,
+                "total_requested": len(updates),
+                "errors": errors if errors else None,
+            },
+        )
+
+        return {
+            "message": f"Successfully updated {updated_count} product prices",
+            "updated_count": updated_count,
+            "total_requested": len(updates),
+            "errors": errors if errors else None,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error updating product prices: {str(e)}"
+        )

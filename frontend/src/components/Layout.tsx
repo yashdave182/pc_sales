@@ -43,6 +43,7 @@ import {
   Language as LanguageIcon,
   Logout as LogoutIcon,
   AdminPanelSettings as AdminIcon,
+  AttachMoney as MoneyIcon,
 } from "@mui/icons-material";
 
 import { useTranslation } from "../hooks/useTranslation";
@@ -343,6 +344,48 @@ export default function Layout({
                 />
               </ListItemButton>
             </ListItem>
+            <ListItem disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton
+                onClick={() => handleNavigation("/product-pricing")}
+                sx={{
+                  borderRadius: 2,
+                  mx: 1,
+                  backgroundColor: isActive("/product-pricing")
+                    ? theme.palette.mode === "dark"
+                      ? "rgba(76, 175, 80, 0.16)"
+                      : "rgba(56, 142, 60, 0.08)"
+                    : "transparent",
+                  color: isActive("/product-pricing")
+                    ? "success.main"
+                    : "inherit",
+                  "&:hover": {
+                    backgroundColor:
+                      theme.palette.mode === "dark"
+                        ? "rgba(76, 175, 80, 0.08)"
+                        : "rgba(56, 142, 60, 0.04)",
+                  },
+                  transition: "all 0.2s",
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    color: isActive("/product-pricing")
+                      ? "success.main"
+                      : "inherit",
+                    minWidth: 40,
+                  }}
+                >
+                  <MoneyIcon />
+                </ListItemIcon>
+                <ListItemText
+                  primary={t("nav.productPricing", "Product Pricing")}
+                  primaryTypographyProps={{
+                    fontWeight: isActive("/product-pricing") ? 600 : 500,
+                    fontSize: "0.95rem",
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
           </>
         )}
       </List>
@@ -392,13 +435,17 @@ export default function Layout({
             component="div"
             sx={{ flexGrow: 1, fontWeight: 600 }}
           >
-            {navigationItems.find((item) => item.path === location.pathname)
-              ? t(
-                  navigationItems.find(
-                    (item) => item.path === location.pathname,
-                  )?.labelKey || "nav.dashboard",
-                )
-              : t("nav.dashboard")}
+            {location.pathname === "/admin"
+              ? t("nav.admin", "Admin")
+              : location.pathname === "/product-pricing"
+                ? t("nav.productPricing", "Product Pricing")
+                : navigationItems.find((item) => item.path === location.pathname)
+                  ? t(
+                    navigationItems.find(
+                      (item) => item.path === location.pathname,
+                    )?.labelKey || "nav.dashboard",
+                  )
+                  : t("nav.dashboard")}
           </Typography>
 
           {/* Actions */}

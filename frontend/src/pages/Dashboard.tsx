@@ -531,7 +531,11 @@ export default function Dashboard() {
                   </Tooltip>
                 </Box>
               </Box>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer
+                width="100%"
+                height={300}
+                key={`chart-${salesTrend.length}-${salesDateRange.start}-${salesDateRange.end}`}
+              >
                 <LineChart data={salesTrend}>
                   <CartesianGrid
                     strokeDasharray="3 3"

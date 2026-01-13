@@ -213,22 +213,26 @@ export default function Dashboard() {
 
   const loadSalesTrendByDateRange = async () => {
     try {
+      console.log("Loading sales trend with date range:", salesDateRange);
+
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pc-sales-8phu.onrender.com";
-      const response = await fetch(
-        `${API_BASE_URL}/api/reports/sales-trend?interval=daily&start_date=${salesDateRange.start}&end_date=${salesDateRange.end}`,
-        {
-          headers: {
-            "x-user-email": "admin@gmail.com",
-          },
-        }
-      );
+      const url = `${API_BASE_URL}/api/reports/sales-trend?interval=daily&start_date=${salesDateRange.start}&end_date=${salesDateRange.end}`;
+
+      console.log("Fetching from URL:", url);
+
+      const response = await fetch(url, {
+        headers: {
+          "x-user-email": "admin@gmail.com",
+        },
+      });
 
       if (!response.ok) {
-        console.error("Failed to fetch sales trend");
+        console.error("Failed to fetch sales trend, status:", response.status);
         return;
       }
 
       const data = await response.json();
+      console.log("Received sales trend data:", data);
 
       // Transform data for the chart
       const chartData = (data.trends || []).map((trend: any) => ({
@@ -237,6 +241,7 @@ export default function Dashboard() {
         sales_count: trend.sales_count,
       }));
 
+      console.log("Transformed chart data:", chartData);
       setSalesTrend(chartData);
     } catch (err) {
       console.error("Error loading sales trend:", err);

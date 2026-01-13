@@ -709,16 +709,22 @@ class ReportGenerator:
         elements.append(Paragraph(self.company_name, company_style))
         elements.append(Spacer(1, 0.2 * inch))
 
-        # Invoice Title with background
-        invoice_title_data = [["TAX INVOICE"]]
+        # Invoice Title with background - centered
+        invoice_title_style = ParagraphStyle(
+            name="InvoiceTitle",
+            fontSize=18,
+            textColor=colors.HexColor("#1e3a8a"),
+            alignment=TA_CENTER,
+            fontName="Helvetica-Bold",
+        )
+        
+        invoice_title_data = [[Paragraph("TAX INVOICE", invoice_title_style)]]
         invoice_title_table = Table(invoice_title_data, colWidths=[6.8 * inch])
         invoice_title_table.setStyle(
             TableStyle([
                 ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#eff6ff")),
-                ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor("#1e3a8a")),
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, -1), 18),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                 ("TOPPADDING", (0, 0), (-1, -1), 12),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
                 ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#3b82f6")),

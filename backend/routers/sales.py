@@ -456,3 +456,87 @@ def delete_sale(sale_id: int, db: SupabaseClient = Depends(get_supabase)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting sale: {str(e)}")
+
+
+@router.get("/{sale_id}/invoice-pdf")
+def get_invoice_pdf(
+    sale_id: int,
+    db: SupabaseClient = Depends(get_supabase),
+    user_email: Optional[str] = Header(None, alias="x-user-email"),
+):
+    """Generate and download invoice PDF for a sale"""
+    try:
+        from fastapi.responses import StreamingResponse
+        from reports import ReportGenerator
+        import io
+
+        # Get sale data
+        sale_response = db.table("sales").select("*").eq("sale_id", sale_id).execute()
+
+        if not sale_response.data:
+            raise HTTPException(status_code=404, detail="Sale not found")
+
+        sale = sale_response.data[0]
+
+        # Get customer data
+        customer_response = (
+            db.table("customers")
+            .select("*")
+            .eq("customer_id", sale["customer_id"])
+            .execute()
+        )
+
+        if not customer_response.data:
+            raise HTTPException(status_code=404, detail="Customer not found")
+
+        customer = customer_response.data[0]
+
+        # Get sale items with product names
+        items_response = (
+            db.table("sale_items").select("*").eq("sale_id", sale_id).execute()
+        )
+
+        if not items_response.data:
+            raise HTTPException(status_code=404, detail="No items found for this sale")
+
+        # Get product details for items
+        products_response = (
+            db.table("products").select("product_id, product_name").execute()
+        )
+        products_dict = (
+            {p["product_id"]: p for p in products_response.data}
+            if products_response.data
+            else {}
+        )
+
+        # Enrich items with product names
+        items = []
+        for item in items_response.data:
+            product = products_dict.get(item.get("product_id"), {})
+            items.append(
+                {
+                    **item,
+                    "product_name": product.get("product_name", "Unknown Product"),
+                }
+            )
+
+        # Generate PDF
+        report_generator = ReportGenerator("Sales Management System")
+        pdf_bytes = report_generator.generate_invoice_pdf(sale, customer, items)
+
+        # Return as streaming response
+        invoice_no = sale.get("invoice_no", "invoice")
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=invoice_{invoice_no}.pdf"
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error generating invoice PDF: {str(e)}"
+        )

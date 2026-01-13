@@ -12,6 +12,10 @@ import {
   useTheme,
   Chip,
   Divider,
+  TextField,
+  MenuItem,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import {
   TrendingUp,
@@ -38,7 +42,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   Legend,
   ResponsiveContainer,
 } from "recharts";
@@ -163,28 +167,34 @@ export default function Dashboard() {
   const [salesTrend, setSalesTrend] = useState<SalesTrendData[]>([]);
   const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
   const [upcomingDemos, setUpcomingDemos] = useState<UpcomingDemo[]>([]);
+  const [salesInterval, setSalesInterval] = useState("daily");
+  const [salesDateRange, setSalesDateRange] = useState({
+    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      .toISOString()
+      .split("T")[0],
+    end: new Date().toISOString().split("T")[0],
+  });
 
   useEffect(() => {
     loadDashboardData();
   }, []);
+
+  useEffect(() => {
+    loadSalesTrend();
+  }, [salesInterval, salesDateRange]);
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const [metricsData, trendData, salesData, demosData] = await Promise.all([
+      const [metricsData, salesData, demosData] = await Promise.all([
         dashboardAPI.getMetrics(),
-
-        dashboardAPI.getSalesTrend(30), // days
-
         dashboardAPI.getRecentSales(10), // limit
-
         dashboardAPI.getUpcomingDemos(10), // limit
       ]);
 
       setMetrics(metricsData);
-      setSalesTrend(trendData);
       setRecentSales(salesData);
       setUpcomingDemos(demosData);
     } catch (err) {
@@ -194,6 +204,32 @@ export default function Dashboard() {
       console.error("Dashboard error:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSalesTrend = async () => {
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pc-sales-8phu.onrender.com";
+      const response = await fetch(
+        `${API_BASE_URL}/api/reports/sales-trend?interval=${salesInterval}&start_date=${salesDateRange.start}&end_date=${salesDateRange.end}`,
+        {
+          headers: {
+            "x-user-email": "admin@gmail.com", // Using a consistent email for dashboard access
+          },
+        }
+      );
+      const data = await response.json();
+
+      // Transform data for the chart
+      const chartData = (data.trends || []).map((trend: any) => ({
+        sale_date: trend.period,
+        total_amount: trend.total_amount,
+        sales_count: trend.sales_count,
+      }));
+
+      setSalesTrend(chartData);
+    } catch (err) {
+      console.error("Error loading sales trend:", err);
     }
   };
 
@@ -447,11 +483,49 @@ export default function Dashboard() {
         <Grid item xs={12} lg={8}>
           <Card>
             <CardContent>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                <ShowChart sx={{ mr: 1, color: theme.palette.primary.main }} />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  {t("dashboard.salesTrendLast30Days")}
-                </Typography>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 2 }}>
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <ShowChart sx={{ mr: 1, color: theme.palette.primary.main }} />
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Sales Trend Analysis
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+                  <TextField
+                    select
+                    size="small"
+                    value={salesInterval}
+                    onChange={(e) => setSalesInterval(e.target.value)}
+                    sx={{ minWidth: 120 }}
+                  >
+                    <MenuItem value="daily">Daily</MenuItem>
+                    <MenuItem value="weekly">Weekly</MenuItem>
+                    <MenuItem value="monthly">Monthly</MenuItem>
+                  </TextField>
+                  <TextField
+                    type="date"
+                    size="small"
+                    label="From"
+                    value={salesDateRange.start}
+                    onChange={(e) => setSalesDateRange({ ...salesDateRange, start: e.target.value })}
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ minWidth: 140 }}
+                  />
+                  <TextField
+                    type="date"
+                    size="small"
+                    label="To"
+                    value={salesDateRange.end}
+                    onChange={(e) => setSalesDateRange({ ...salesDateRange, end: e.target.value })}
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ minWidth: 140 }}
+                  />
+                  <Tooltip title="Refresh">
+                    <IconButton size="small" onClick={loadSalesTrend} color="primary">
+                      <RefreshIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
               </Box>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={salesTrend}>
@@ -468,7 +542,7 @@ export default function Dashboard() {
                     stroke={theme.palette.text.secondary}
                     style={{ fontSize: "12px" }}
                   />
-                  <Tooltip
+                  <RechartsTooltip
                     contentStyle={{
                       backgroundColor: theme.palette.background.paper,
                       border: `1px solid ${theme.palette.divider}`,
@@ -518,7 +592,7 @@ export default function Dashboard() {
                     ))}
                   </Pie>
 
-                  <Tooltip
+                  <RechartsTooltip
                     formatter={(value: number) => `₹${value.toLocaleString()}`}
                     contentStyle={{
                       backgroundColor: theme.palette.background.paper,

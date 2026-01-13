@@ -676,3 +676,226 @@ class ReportGenerator:
 
         buffer.seek(0)
         return buffer.getvalue()
+
+    def generate_invoice_pdf(
+        self,
+        sale_data: Dict,
+        customer_data: Dict,
+        items_data: List[Dict],
+    ) -> bytes:
+        """Generate a professional invoice PDF for a sale"""
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=0.75 * inch,
+            leftMargin=0.75 * inch,
+            topMargin=0.5 * inch,
+            bottomMargin=0.5 * inch,
+        )
+        elements = []
+
+        # Invoice Header - Company Name
+        company_style = ParagraphStyle(
+            name="CompanyHeader",
+            fontSize=22,
+            textColor=colors.HexColor("#1e40af"),
+            alignment=TA_CENTER,
+            fontName="Helvetica-Bold",
+            spaceAfter=5,
+        )
+        elements.append(Paragraph(self.company_name, company_style))
+
+        # Invoice Title
+        invoice_style = ParagraphStyle(
+            name="InvoiceTitle",
+            fontSize=16,
+            textColor=colors.HexColor("#374151"),
+            alignment=TA_CENTER,
+            fontName="Helvetica-Bold",
+            spaceAfter=20,
+        )
+        elements.append(Paragraph("TAX INVOICE", invoice_style))
+        elements.append(Spacer(1, 0.2 * inch))
+
+        # Invoice Details and Customer Info Side by Side
+        invoice_no = sale_data.get("invoice_no", "N/A")
+        sale_date = sale_data.get("sale_date", "N/A")
+        
+        # Format date nicely
+        try:
+            date_obj = datetime.strptime(sale_date, "%Y-%m-%d")
+            formatted_date = date_obj.strftime("%B %d, %Y")
+        except:
+            formatted_date = sale_date
+
+        # Create two-column layout for invoice details and customer info
+        info_table_data = [
+            [
+                Paragraph(
+                    f"<b>Invoice No:</b> {invoice_no}<br/>"
+                    f"<b>Date:</b> {formatted_date}<br/>"
+                    f"<b>Payment Status:</b> {sale_data.get('payment_status', 'Pending')}",
+                    self.styles["Normal"],
+                ),
+                Paragraph(
+                    f"<b>Bill To:</b><br/>"
+                    f"{customer_data.get('name', 'N/A')}<br/>"
+                    f"Mobile: {customer_data.get('mobile', 'N/A')}<br/>"
+                    f"Village: {customer_data.get('village', 'N/A')}<br/>"
+                    f"Taluka: {customer_data.get('taluka', 'N/A')}, "
+                    f"District: {customer_data.get('district', 'N/A')}",
+                    self.styles["Normal"],
+                ),
+            ]
+        ]
+
+        info_table = Table(info_table_data, colWidths=[3 * inch, 3.5 * inch])
+        info_table.setStyle(
+            TableStyle(
+                [
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ]
+            )
+        )
+        elements.append(info_table)
+        elements.append(Spacer(1, 0.3 * inch))
+
+        # Items Table Header
+        elements.append(
+            Paragraph(
+                "<b>Product Details</b>",
+                ParagraphStyle(
+                    name="SectionHeader",
+                    fontSize=12,
+                    textColor=colors.HexColor("#1e40af"),
+                    fontName="Helvetica-Bold",
+                    spaceAfter=10,
+                ),
+            )
+        )
+
+        # Items Table
+        items_table_data = [
+            ["#", "Product", "Quantity", "Rate (₹)", "Amount (₹)"]
+        ]
+
+        for idx, item in enumerate(items_data, 1):
+            items_table_data.append(
+                [
+                    str(idx),
+                    item.get("product_name", "N/A"),
+                    f"{item.get('quantity', 0):.2f}",
+                    f"₹{item.get('rate', 0):,.2f}",
+                    f"₹{item.get('amount', 0):,.2f}",
+                ]
+            )
+
+        # Create items table
+        items_table = Table(
+            items_table_data,
+            colWidths=[0.5 * inch, 3 * inch, 1 * inch, 1.25 * inch, 1.5 * inch],
+        )
+        items_table.setStyle(
+            TableStyle(
+                [
+                    # Header styling
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e40af")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, 0), 10),
+                    ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
+                    ("TOPPADDING", (0, 0), (-1, 0), 10),
+                    # Body styling
+                    ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                    ("FONTSIZE", (0, 1), (-1, -1), 9),
+                    ("ALIGN", (0, 1), (0, -1), "CENTER"),  # Serial number centered
+                    ("ALIGN", (1, 1), (1, -1), "LEFT"),  # Product name left aligned
+                    ("ALIGN", (2, 1), (-1, -1), "RIGHT"),  # Numbers right aligned
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+                    ("TOPPADDING", (0, 1), (-1, -1), 8),
+                    ("BOTTOMPADDING", (0, 1), (-1, -1), 8),
+                ]
+            )
+        )
+        elements.append(items_table)
+        elements.append(Spacer(1, 0.3 * inch))
+
+        # Totals Section
+        total_amount = sale_data.get("total_amount", 0)
+        total_liters = sale_data.get("total_liters", 0)
+
+        # Create totals table (right-aligned)
+        totals_data = [
+            ["Total Liters:", f"{total_liters:.2f} L"],
+            ["Subtotal:", f"₹{total_amount:,.2f}"],
+        ]
+
+        # Add any discounts or taxes here if applicable
+        # For now, grand total is same as subtotal
+        totals_data.append(
+            ["", ""]  # Spacer row
+        )
+        totals_data.append(
+            ["Grand Total:", f"₹{total_amount:,.2f}"]
+        )
+
+        totals_table = Table(
+            totals_data,
+            colWidths=[1.5 * inch, 1.5 * inch],
+            hAlign="RIGHT",
+        )
+        totals_table.setStyle(
+            TableStyle(
+                [
+                    ("ALIGN", (0, 0), (0, -1), "RIGHT"),
+                    ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+                    ("FONTNAME", (0, 0), (-1, -2), "Helvetica"),
+                    ("FONTSIZE", (0, 0), (-1, -2), 10),
+                    ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, -1), (-1, -1), 12),
+                    ("TEXTCOLOR", (0, -1), (-1, -1), colors.HexColor("#1e40af")),
+                    ("LINEABOVE", (0, -1), (-1, -1), 2, colors.HexColor("#1e40af")),
+                    ("TOPPADDING", (0, -1), (-1, -1), 10),
+                ]
+            )
+        )
+        elements.append(totals_table)
+        elements.append(Spacer(1, 0.4 * inch))
+
+        # Notes section
+        if sale_data.get("notes"):
+            elements.append(
+                Paragraph(
+                    f"<b>Notes:</b> {sale_data.get('notes')}",
+                    self.styles["Normal"],
+                )
+            )
+            elements.append(Spacer(1, 0.2 * inch))
+
+        # Footer
+        elements.append(Spacer(1, 0.5 * inch))
+        footer_style = ParagraphStyle(
+            name="Footer",
+            fontSize=8,
+            textColor=colors.grey,
+            alignment=TA_CENTER,
+        )
+        elements.append(
+            Paragraph(
+                f"Thank you for your business!<br/>"
+                f"Generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}",
+                footer_style,
+            )
+        )
+
+        # Build PDF
+        doc.build(elements)
+
+        pdf_bytes = buffer.getvalue()
+        buffer.close()
+        return pdf_bytes

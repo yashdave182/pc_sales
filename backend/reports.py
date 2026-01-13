@@ -683,215 +683,291 @@ class ReportGenerator:
         customer_data: Dict,
         items_data: List[Dict],
     ) -> bytes:
-        """Generate a professional invoice PDF for a sale"""
+        """Generate a beautiful, professional invoice PDF for a sale"""
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
             buffer,
             pagesize=A4,
-            rightMargin=0.75 * inch,
-            leftMargin=0.75 * inch,
-            topMargin=0.5 * inch,
-            bottomMargin=0.5 * inch,
+            rightMargin=0.6 * inch,
+            leftMargin=0.6 * inch,
+            topMargin=0.6 * inch,
+            bottomMargin=0.6 * inch,
         )
         elements = []
 
-        # Invoice Header - Company Name
+        # ============== HEADER SECTION ==============
+        # Company Name with larger, bolder style
         company_style = ParagraphStyle(
             name="CompanyHeader",
-            fontSize=22,
-            textColor=colors.HexColor("#1e40af"),
+            fontSize=26,
+            textColor=colors.HexColor("#1e3a8a"),
             alignment=TA_CENTER,
             fontName="Helvetica-Bold",
-            spaceAfter=5,
+            spaceAfter=8,
+            spaceBefore=10,
         )
         elements.append(Paragraph(self.company_name, company_style))
 
-        # Invoice Title
-        invoice_style = ParagraphStyle(
-            name="InvoiceTitle",
-            fontSize=16,
-            textColor=colors.HexColor("#374151"),
-            alignment=TA_CENTER,
-            fontName="Helvetica-Bold",
-            spaceAfter=20,
+        # Decorative line under company name
+        line_table = Table([[""]], colWidths=[6.8 * inch])
+        line_table.setStyle(
+            TableStyle([
+                ("LINEABOVE", (0, 0), (-1, 0), 3, colors.HexColor("#1e3a8a")),
+                ("LINEBELOW", (0, 0), (-1, 0), 0.5, colors.HexColor("#60a5fa")),
+            ])
         )
-        elements.append(Paragraph("TAX INVOICE", invoice_style))
-        elements.append(Spacer(1, 0.2 * inch))
+        elements.append(line_table)
+        elements.append(Spacer(1, 0.15 * inch))
 
-        # Invoice Details and Customer Info Side by Side
+        # Invoice Title with background
+        invoice_title_data = [["TAX INVOICE"]]
+        invoice_title_table = Table(invoice_title_data, colWidths=[6.8 * inch])
+        invoice_title_table.setStyle(
+            TableStyle([
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#eff6ff")),
+                ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor("#1e3a8a")),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 18),
+                ("TOPPADDING", (0, 0), (-1, -1), 12),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
+                ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#3b82f6")),
+            ])
+        )
+        elements.append(invoice_title_table)
+        elements.append(Spacer(1, 0.25 * inch))
+
+        # ============== INVOICE & CUSTOMER INFO SECTION ==============
         invoice_no = sale_data.get("invoice_no", "N/A")
         sale_date = sale_data.get("sale_date", "N/A")
         
-        # Format date nicely
+        # Format date
         try:
             date_obj = datetime.strptime(sale_date, "%Y-%m-%d")
             formatted_date = date_obj.strftime("%B %d, %Y")
         except:
             formatted_date = sale_date
 
-        # Create two-column layout for invoice details and customer info
-        info_table_data = [
+        # Create invoice details (left) and customer info (right) in bordered boxes
+        invoice_details_style = ParagraphStyle(
+            name="InvoiceDetails",
+            fontSize=10,
+            leading=14,
+            fontName="Helvetica",
+        )
+        
+        customer_style = ParagraphStyle(
+            name="CustomerInfo",
+            fontSize=10,
+            leading=14,
+            fontName="Helvetica",
+        )
+
+        info_data = [
             [
                 Paragraph(
-                    f"<b>Invoice No:</b> {invoice_no}<br/>"
-                    f"<b>Date:</b> {formatted_date}<br/>"
-                    f"<b>Payment Status:</b> {sale_data.get('payment_status', 'Pending')}",
-                    self.styles["Normal"],
+                    f"<b>Invoice No:</b><br/>{invoice_no}<br/><br/>"
+                    f"<b>Invoice Date:</b><br/>{formatted_date}<br/><br/>"
+                    f"<b>Payment Status:</b><br/>"
+                    f"<font color='#dc2626'>{sale_data.get('payment_status', 'Pending')}</font>",
+                    invoice_details_style,
                 ),
                 Paragraph(
-                    f"<b>Bill To:</b><br/>"
-                    f"{customer_data.get('name', 'N/A')}<br/>"
+                    f"<b>BILL TO:</b><br/>"
+                    f"<font size=11><b>{customer_data.get('name', 'N/A')}</b></font><br/>"
                     f"Mobile: {customer_data.get('mobile', 'N/A')}<br/>"
-                    f"Village: {customer_data.get('village', 'N/A')}<br/>"
-                    f"Taluka: {customer_data.get('taluka', 'N/A')}, "
-                    f"District: {customer_data.get('district', 'N/A')}",
-                    self.styles["Normal"],
+                    f"{customer_data.get('village', 'N/A')}<br/>"
+                    f"{customer_data.get('taluka', 'N/A')}, {customer_data.get('district', 'N/A')}",
+                    customer_style,
                 ),
             ]
         ]
 
-        info_table = Table(info_table_data, colWidths=[3 * inch, 3.5 * inch])
+        info_table = Table(info_data, colWidths=[3.2 * inch, 3.6 * inch])
         info_table.setStyle(
-            TableStyle(
-                [
-                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                ]
-            )
+            TableStyle([
+                ("BACKGROUND", (0, 0), (0, 0), colors.HexColor("#f0f9ff")),
+                ("BACKGROUND", (1, 0), (1, 0), colors.HexColor("#ecfdf5")),
+                ("BOX", (0, 0), (0, 0), 1.5, colors.HexColor("#3b82f6")),
+                ("BOX", (1, 0), (1, 0), 1.5, colors.HexColor("#10b981")),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 15),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 15),
+                ("TOPPADDING", (0, 0), (-1, -1), 15),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 15),
+            ])
         )
         elements.append(info_table)
         elements.append(Spacer(1, 0.3 * inch))
 
-        # Items Table Header
-        elements.append(
-            Paragraph(
-                "<b>Product Details</b>",
-                ParagraphStyle(
-                    name="SectionHeader",
-                    fontSize=12,
-                    textColor=colors.HexColor("#1e40af"),
-                    fontName="Helvetica-Bold",
-                    spaceAfter=10,
-                ),
-            )
+        # ============== PRODUCT DETAILS SECTION ==============
+        section_header_style = ParagraphStyle(
+            name="SectionHeader",
+            fontSize=13,
+            textColor=colors.HexColor("#1e3a8a"),
+            fontName="Helvetica-Bold",
+            spaceAfter=10,
+            spaceBefore=5,
         )
+        elements.append(Paragraph("PRODUCT DETAILS", section_header_style))
+        
+        # Decorative line under section header
+        section_line = Table([[""]], colWidths=[6.8 * inch])
+        section_line.setStyle(
+            TableStyle([("LINEBELOW", (0, 0), (-1, 0), 2, colors.HexColor("#3b82f6"))])
+        )
+        elements.append(section_line)
+        elements.append(Spacer(1, 0.1 * inch))
 
-        # Items Table
+        # Items Table with better formatting
         items_table_data = [
-            ["#", "Product", "Quantity", "Rate (₹)", "Amount (₹)"]
+            ["Sr.", "Product Description", "Qty", "Rate", "Amount"]
         ]
 
         for idx, item in enumerate(items_data, 1):
-            items_table_data.append(
-                [
-                    str(idx),
-                    item.get("product_name", "N/A"),
-                    f"{item.get('quantity', 0):.2f}",
-                    f"₹{item.get('rate', 0):,.2f}",
-                    f"₹{item.get('amount', 0):,.2f}",
-                ]
-            )
+            items_table_data.append([
+                str(idx),
+                item.get("product_name", "N/A"),
+                f"{item.get('quantity', 0):.2f}",
+                f"Rs. {item.get('rate', 0):,.2f}",
+                f"Rs. {item.get('amount', 0):,.2f}",
+            ])
 
-        # Create items table
+        # Create items table with enhanced styling
         items_table = Table(
             items_table_data,
-            colWidths=[0.5 * inch, 3 * inch, 1 * inch, 1.25 * inch, 1.5 * inch],
+            colWidths=[0.5 * inch, 3.5 * inch, 0.8 * inch, 1 * inch, 1 * inch],
         )
         items_table.setStyle(
-            TableStyle(
-                [
-                    # Header styling
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e40af")),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                    ("FONTSIZE", (0, 0), (-1, 0), 10),
-                    ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
-                    ("TOPPADDING", (0, 0), (-1, 0), 10),
-                    # Body styling
-                    ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
-                    ("FONTSIZE", (0, 1), (-1, -1), 9),
-                    ("ALIGN", (0, 1), (0, -1), "CENTER"),  # Serial number centered
-                    ("ALIGN", (1, 1), (1, -1), "LEFT"),  # Product name left aligned
-                    ("ALIGN", (2, 1), (-1, -1), "RIGHT"),  # Numbers right aligned
-                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
-                    ("TOPPADDING", (0, 1), (-1, -1), 8),
-                    ("BOTTOMPADDING", (0, 1), (-1, -1), 8),
-                ]
-            )
+            TableStyle([
+                # Header styling
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e3a8a")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, 0), 11),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                ("TOPPADDING", (0, 0), (-1, 0), 12),
+                
+                # Body styling
+                ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                ("FONTSIZE", (0, 1), (-1, -1), 10),
+                ("ALIGN", (0, 1), (0, -1), "CENTER"),  # Serial number
+                ("ALIGN", (1, 1), (1, -1), "LEFT"),    # Product name
+                ("ALIGN", (2, 1), (-1, -1), "RIGHT"),  # Numbers
+                
+                # Borders and padding
+                ("BOX", (0, 0), (-1, -1), 1.5, colors.HexColor("#1e3a8a")),
+                ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+                ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                ("TOPPADDING", (0, 1), (-1, -1), 10),
+                ("BOTTOMPADDING", (0, 1), (-1, -1), 10),
+                
+                # Alternating row colors
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
+            ])
         )
         elements.append(items_table)
         elements.append(Spacer(1, 0.3 * inch))
 
-        # Totals Section
+        # ============== TOTALS SECTION ==============
         total_amount = sale_data.get("total_amount", 0)
         total_liters = sale_data.get("total_liters", 0)
 
-        # Create totals table (right-aligned)
+        # Create elegant totals table
         totals_data = [
-            ["Total Liters:", f"{total_liters:.2f} L"],
-            ["Subtotal:", f"₹{total_amount:,.2f}"],
+            ["Total Quantity (Liters):", f"{total_liters:.2f} L"],
+            ["Subtotal:", f"Rs. {total_amount:,.2f}"],
         ]
 
-        # Add any discounts or taxes here if applicable
-        # For now, grand total is same as subtotal
-        totals_data.append(
-            ["", ""]  # Spacer row
-        )
-        totals_data.append(
-            ["Grand Total:", f"₹{total_amount:,.2f}"]
-        )
+        # Add grand total with emphasis
+        totals_data.append(["", ""])  # Spacer
+        totals_data.append(["GRAND TOTAL:", f"Rs. {total_amount:,.2f}"])
 
         totals_table = Table(
             totals_data,
-            colWidths=[1.5 * inch, 1.5 * inch],
+            colWidths=[1.8 * inch, 1.5 * inch],
             hAlign="RIGHT",
         )
         totals_table.setStyle(
-            TableStyle(
-                [
-                    ("ALIGN", (0, 0), (0, -1), "RIGHT"),
-                    ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-                    ("FONTNAME", (0, 0), (-1, -2), "Helvetica"),
-                    ("FONTSIZE", (0, 0), (-1, -2), 10),
-                    ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
-                    ("FONTSIZE", (0, -1), (-1, -1), 12),
-                    ("TEXTCOLOR", (0, -1), (-1, -1), colors.HexColor("#1e40af")),
-                    ("LINEABOVE", (0, -1), (-1, -1), 2, colors.HexColor("#1e40af")),
-                    ("TOPPADDING", (0, -1), (-1, -1), 10),
-                ]
-            )
+            TableStyle([
+                # General styling
+                ("ALIGN", (0, 0), (0, -1), "RIGHT"),
+                ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+                ("FONTNAME", (0, 0), (-1, -3), "Helvetica"),
+                ("FONTSIZE", (0, 0), (-1, -3), 11),
+                ("LEFTPADDING", (0, 0), (-1, -1), 12),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+                ("TOPPADDING", (0, 0), (-1, -2), 8),
+                ("BOTTOMPADDING", (0, 0), (-1, -2), 8),
+                
+                # Grand total row (special styling)
+                ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#1e3a8a")),
+                ("TEXTCOLOR", (0, -1), (-1, -1), colors.white),
+                ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+                ("FONTSIZE", (0, -1), (-1, -1), 14),
+                ("TOPPADDING", (0, -1), (-1, -1), 12),
+                ("BOTTOMPADDING", (0, -1), (-1, -1), 12),
+                
+                # Borders
+                ("BOX", (0, 0), (-1, -2), 1, colors.HexColor("#cbd5e1")),
+                ("BOX", (0, -1), (-1, -1), 2, colors.HexColor("#1e3a8a")),
+                ("LINEABOVE", (0, -1), (-1, -1), 2, colors.HexColor("#3b82f6")),
+            ])
         )
         elements.append(totals_table)
         elements.append(Spacer(1, 0.4 * inch))
 
-        # Notes section
+        # ============== NOTES SECTION ==============
         if sale_data.get("notes"):
-            elements.append(
-                Paragraph(
-                    f"<b>Notes:</b> {sale_data.get('notes')}",
-                    self.styles["Normal"],
-                )
+            notes_style = ParagraphStyle(
+                name="Notes",
+                fontSize=10,
+                leading=14,
+                fontName="Helvetica",
             )
-            elements.append(Spacer(1, 0.2 * inch))
+            notes_data = [[Paragraph(f"<b>Notes:</b><br/>{sale_data.get('notes')}", notes_style)]]
+            notes_table = Table(notes_data, colWidths=[6.8 * inch])
+            notes_table.setStyle(
+                TableStyle([
+                    ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#fffbeb")),
+                    ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#fbbf24")),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 15),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 15),
+                    ("TOPPADDING", (0, 0), (-1, -1), 12),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
+                ])
+            )
+            elements.append(notes_table)
+            elements.append(Spacer(1, 0.3 * inch))
 
-        # Footer
+        # ============== FOOTER SECTION ==============
         elements.append(Spacer(1, 0.5 * inch))
+        
         footer_style = ParagraphStyle(
             name="Footer",
-            fontSize=8,
-            textColor=colors.grey,
+            fontSize=9,
+            textColor=colors.HexColor("#6b7280"),
             alignment=TA_CENTER,
+            leading=12,
         )
-        elements.append(
-            Paragraph(
-                f"Thank you for your business!<br/>"
-                f"Generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}",
-                footer_style,
-            )
+        
+        footer_text = (
+            f"<b>Thank you for your business!</b><br/>"
+            f"<font size=8>This is a computer-generated invoice. "
+            f"Generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}</font>"
         )
+        
+        footer_data = [[Paragraph(footer_text, footer_style)]]
+        footer_table = Table(footer_data, colWidths=[6.8 * inch])
+        footer_table.setStyle(
+            TableStyle([
+                ("LINEABOVE", (0, 0), (-1, 0), 1, colors.HexColor("#cbd5e1")),
+                ("TOPPADDING", (0, 0), (-1, -1), 10),
+            ])
+        )
+        elements.append(footer_table)
 
         # Build PDF
         doc.build(elements)

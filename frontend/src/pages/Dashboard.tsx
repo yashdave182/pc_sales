@@ -167,7 +167,6 @@ export default function Dashboard() {
   const [salesTrend, setSalesTrend] = useState<SalesTrendData[]>([]);
   const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
   const [upcomingDemos, setUpcomingDemos] = useState<UpcomingDemo[]>([]);
-  const [salesInterval, setSalesInterval] = useState("daily");
   const [salesDateRange, setSalesDateRange] = useState({
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
       .toISOString()
@@ -180,8 +179,10 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    loadSalesTrend();
-  }, [salesInterval, salesDateRange]);
+    if (salesDateRange.start && salesDateRange.end) {
+      loadSalesTrendByDateRange();
+    }
+  }, [salesDateRange]);
 
   const loadDashboardData = async () => {
     try {
@@ -197,6 +198,9 @@ export default function Dashboard() {
       setMetrics(metricsData);
       setRecentSales(salesData);
       setUpcomingDemos(demosData);
+
+      // Load initial sales trend
+      loadSalesTrendByDateRange();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load dashboard data",
@@ -207,17 +211,23 @@ export default function Dashboard() {
     }
   };
 
-  const loadSalesTrend = async () => {
+  const loadSalesTrendByDateRange = async () => {
     try {
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pc-sales-8phu.onrender.com";
       const response = await fetch(
-        `${API_BASE_URL}/api/reports/sales-trend?interval=${salesInterval}&start_date=${salesDateRange.start}&end_date=${salesDateRange.end}`,
+        `${API_BASE_URL}/api/reports/sales-trend?interval=daily&start_date=${salesDateRange.start}&end_date=${salesDateRange.end}`,
         {
           headers: {
-            "x-user-email": "admin@gmail.com", // Using a consistent email for dashboard access
+            "x-user-email": "admin@gmail.com",
           },
         }
       );
+
+      if (!response.ok) {
+        console.error("Failed to fetch sales trend");
+        return;
+      }
+
       const data = await response.json();
 
       // Transform data for the chart
@@ -487,21 +497,10 @@ export default function Dashboard() {
                 <Box sx={{ display: "flex", alignItems: "center" }}>
                   <ShowChart sx={{ mr: 1, color: theme.palette.primary.main }} />
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Sales Trend Analysis
+                    Sales Trend
                   </Typography>
                 </Box>
                 <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
-                  <TextField
-                    select
-                    size="small"
-                    value={salesInterval}
-                    onChange={(e) => setSalesInterval(e.target.value)}
-                    sx={{ minWidth: 120 }}
-                  >
-                    <MenuItem value="daily">Daily</MenuItem>
-                    <MenuItem value="weekly">Weekly</MenuItem>
-                    <MenuItem value="monthly">Monthly</MenuItem>
-                  </TextField>
                   <TextField
                     type="date"
                     size="small"
@@ -509,7 +508,7 @@ export default function Dashboard() {
                     value={salesDateRange.start}
                     onChange={(e) => setSalesDateRange({ ...salesDateRange, start: e.target.value })}
                     InputLabelProps={{ shrink: true }}
-                    sx={{ minWidth: 140 }}
+                    sx={{ minWidth: 150 }}
                   />
                   <TextField
                     type="date"
@@ -518,10 +517,10 @@ export default function Dashboard() {
                     value={salesDateRange.end}
                     onChange={(e) => setSalesDateRange({ ...salesDateRange, end: e.target.value })}
                     InputLabelProps={{ shrink: true }}
-                    sx={{ minWidth: 140 }}
+                    sx={{ minWidth: 150 }}
                   />
                   <Tooltip title="Refresh">
-                    <IconButton size="small" onClick={loadSalesTrend} color="primary">
+                    <IconButton size="small" onClick={loadSalesTrendByDateRange} color="primary">
                       <RefreshIcon />
                     </IconButton>
                   </Tooltip>

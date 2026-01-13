@@ -707,17 +707,7 @@ class ReportGenerator:
             spaceBefore=10,
         )
         elements.append(Paragraph(self.company_name, company_style))
-
-        # Decorative line under company name
-        line_table = Table([[""]], colWidths=[6.8 * inch])
-        line_table.setStyle(
-            TableStyle([
-                ("LINEABOVE", (0, 0), (-1, 0), 3, colors.HexColor("#1e3a8a")),
-                ("LINEBELOW", (0, 0), (-1, 0), 0.5, colors.HexColor("#60a5fa")),
-            ])
-        )
-        elements.append(line_table)
-        elements.append(Spacer(1, 0.15 * inch))
+        elements.append(Spacer(1, 0.2 * inch))
 
         # Invoice Title with background
         invoice_title_data = [["TAX INVOICE"]]

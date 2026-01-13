@@ -185,9 +185,17 @@ export default function Layout({
     if (!user?.email) return;
     try {
       const response = await notificationsAPI.getUnreadCount();
-      setUnreadCount(response.data.count || 0);
+      const data = response.data; // Assuming response.data is the object containing count
+
+      // Safety check before accessing count
+      if (data && typeof data.count === 'number') {
+        setUnreadCount(data.count);
+      } else {
+        setUnreadCount(0);
+      }
     } catch (error) {
       console.error("Error fetching unread count:", error);
+      setUnreadCount(0); // Set to 0 on error to prevent UI issues
     }
   };
 

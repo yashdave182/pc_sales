@@ -40,6 +40,11 @@ def get_sales_trend(
         if not start_date:
             start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
 
+        print(f"=== SALES TREND API CALLED ===")
+        print(f"Requested interval: {interval}")
+        print(f"Requested start_date: {start_date}")
+        print(f"Requested end_date: {end_date}")
+
         # Fetch sales data
         response = (
             db.table("sales")
@@ -51,6 +56,15 @@ def get_sales_trend(
         )
 
         sales_data = response.data or []
+        print(f"Database returned {len(sales_data)} sales records")
+        
+        if sales_data:
+            dates = [s["sale_date"] for s in sales_data]
+            print(f"Date range in results: {min(dates)} to {max(dates)}")
+            print(f"First 3 sale dates: {dates[:3]}")
+        else:
+            print("No sales data found for the given date range")
+
 
         # Group sales by interval
         trends = {}

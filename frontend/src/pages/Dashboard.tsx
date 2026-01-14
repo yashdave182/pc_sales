@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Box,
   Grid,
@@ -167,12 +167,85 @@ export default function Dashboard() {
   const [salesTrend, setSalesTrend] = useState<SalesTrendData[]>([]);
   const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
   const [upcomingDemos, setUpcomingDemos] = useState<UpcomingDemo[]>([]);
+  const [chartKey, setChartKey] = useState(0);
+  const [loadingChart, setLoadingChart] = useState(false);
   const [salesDateRange, setSalesDateRange] = useState({
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
       .toISOString()
       .split("T")[0],
     end: new Date().toISOString().split("T")[0],
   });
+
+  const loadSalesTrendByDateRange = useCallback(async () => {
+    try {
+      setLoadingChart(true);
+      console.log("=== LOADING SALES TREND ===");
+      console.log("Date range:", salesDateRange);
+      console.log("Start date:", salesDateRange.start);
+      console.log("End date:", salesDateRange.end);
+
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pc-sales-8phu.onrender.com";
+      // Add cache buster to prevent browser caching
+      const cacheBuster = `&_t=${Date.now()}`;
+      const url = `${API_BASE_URL}/api/reports/sales-trend?interval=daily&start_date=${salesDateRange.start}&end_date=${salesDateRange.end}${cacheBuster}`;
+
+      console.log("Full URL:", url);
+
+      const response = await fetch(url, {
+        headers: {
+          "x-user-email": "admin@gmail.com",
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache"
+        },
+      });
+
+      console.log("Response status:", response.status);
+      console.log("Response OK:", response.ok);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to fetch sales trend:", errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Raw API response:", JSON.stringify(data, null, 2));
+      console.log("Number of trends:", data.trends?.length || 0);
+
+      // Check if API is respecting date parameters
+      if (data.trends && data.trends.length > 0) {
+        const firstDate = data.trends[0].period;
+        const lastDate = data.trends[data.trends.length - 1].period;
+        console.log(`API returned data from ${firstDate} to ${lastDate}`);
+        console.log(`You requested from ${salesDateRange.start} to ${salesDateRange.end}`);
+        
+        if (firstDate < salesDateRange.start || lastDate > salesDateRange.end) {
+          console.warn("⚠️ WARNING: API returned data outside requested range!");
+          console.warn("This is a BACKEND issue - the API is not respecting date parameters");
+        }
+      }
+
+      // Transform data for the chart
+      const chartData = (data.trends || []).map((trend: any) => ({
+        sale_date: trend.period,
+        total_amount: parseFloat(trend.total_amount) || 0,
+        sales_count: parseInt(trend.sales_count) || 0,
+      }));
+
+      console.log("Transformed chart data:", JSON.stringify(chartData, null, 2));
+      console.log("Setting new chart data with", chartData.length, "points");
+      
+      setSalesTrend(chartData);
+      setChartKey(prev => prev + 1);
+      
+    } catch (err) {
+      console.error("=== ERROR LOADING SALES TREND ===");
+      console.error("Error:", err);
+      setSalesTrend([]);
+    } finally {
+      setLoadingChart(false);
+    }
+  }, [salesDateRange]);
 
   useEffect(() => {
     loadDashboardData();
@@ -182,7 +255,7 @@ export default function Dashboard() {
     if (salesDateRange.start && salesDateRange.end) {
       loadSalesTrendByDateRange();
     }
-  }, [salesDateRange]);
+  }, [salesDateRange, loadSalesTrendByDateRange]);
 
   const loadDashboardData = async () => {
     try {
@@ -191,16 +264,13 @@ export default function Dashboard() {
 
       const [metricsData, salesData, demosData] = await Promise.all([
         dashboardAPI.getMetrics(),
-        dashboardAPI.getRecentSales(10), // limit
-        dashboardAPI.getUpcomingDemos(10), // limit
+        dashboardAPI.getRecentSales(10),
+        dashboardAPI.getUpcomingDemos(10),
       ]);
 
       setMetrics(metricsData);
       setRecentSales(salesData);
       setUpcomingDemos(demosData);
-
-      // Load initial sales trend
-      loadSalesTrendByDateRange();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load dashboard data",
@@ -208,43 +278,6 @@ export default function Dashboard() {
       console.error("Dashboard error:", err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadSalesTrendByDateRange = async () => {
-    try {
-      console.log("Loading sales trend with date range:", salesDateRange);
-
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pc-sales-8phu.onrender.com";
-      const url = `${API_BASE_URL}/api/reports/sales-trend?interval=daily&start_date=${salesDateRange.start}&end_date=${salesDateRange.end}`;
-
-      console.log("Fetching from URL:", url);
-
-      const response = await fetch(url, {
-        headers: {
-          "x-user-email": "admin@gmail.com",
-        },
-      });
-
-      if (!response.ok) {
-        console.error("Failed to fetch sales trend, status:", response.status);
-        return;
-      }
-
-      const data = await response.json();
-      console.log("Received sales trend data:", data);
-
-      // Transform data for the chart
-      const chartData = (data.trends || []).map((trend: any) => ({
-        sale_date: trend.period,
-        total_amount: trend.total_amount,
-        sales_count: trend.sales_count,
-      }));
-
-      console.log("Transformed chart data:", chartData);
-      setSalesTrend(chartData);
-    } catch (err) {
-      console.error("Error loading sales trend:", err);
     }
   };
 
@@ -525,50 +558,84 @@ export default function Dashboard() {
                     sx={{ minWidth: 150 }}
                   />
                   <Tooltip title="Refresh">
-                    <IconButton size="small" onClick={loadSalesTrendByDateRange} color="primary">
+                    <IconButton 
+                      size="small" 
+                      onClick={loadSalesTrendByDateRange} 
+                      color="primary"
+                      disabled={loadingChart}
+                    >
                       <RefreshIcon />
                     </IconButton>
                   </Tooltip>
                 </Box>
               </Box>
-              <ResponsiveContainer
-                width="100%"
-                height={300}
-                key={`chart-${salesTrend.length}-${salesDateRange.start}-${salesDateRange.end}`}
-              >
-                <LineChart data={salesTrend}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke={theme.palette.divider}
-                  />
-                  <XAxis
-                    dataKey="sale_date"
-                    stroke={theme.palette.text.secondary}
-                    style={{ fontSize: "12px" }}
-                  />
-                  <YAxis
-                    stroke={theme.palette.text.secondary}
-                    style={{ fontSize: "12px" }}
-                  />
-                  <RechartsTooltip
-                    contentStyle={{
-                      backgroundColor: theme.palette.background.paper,
-                      border: `1px solid ${theme.palette.divider}`,
-                      borderRadius: 8,
-                    }}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="total_amount"
-                    stroke={theme.palette.primary.main}
-                    strokeWidth={3}
-                    dot={{ r: 4 }}
-                    activeDot={{ r: 6 }}
-                    name="Sales Amount (₹)"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              
+              {/* Debug Info */}
+              <Box sx={{ mb: 2, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                  📊 Data points: {salesTrend.length} | Chart Key: {chartKey}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                  📅 Range: {salesDateRange.start} to {salesDateRange.end}
+                </Typography>
+                {salesTrend.length > 0 && (
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    🔍 First date: {salesTrend[0].sale_date} | Last date: {salesTrend[salesTrend.length - 1].sale_date}
+                  </Typography>
+                )}
+              </Box>
+
+              {loadingChart ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
+                  <CircularProgress />
+                </Box>
+              ) : salesTrend.length === 0 ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300, flexDirection: 'column' }}>
+                  <ShowChart sx={{ fontSize: 64, color: theme.palette.text.disabled, mb: 2 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    No sales data available for selected date range
+                  </Typography>
+                </Box>
+              ) : (
+                <ResponsiveContainer
+                  width="100%"
+                  height={300}
+                  key={chartKey}
+                >
+                  <LineChart data={salesTrend}>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke={theme.palette.divider}
+                    />
+                    <XAxis
+                      dataKey="sale_date"
+                      stroke={theme.palette.text.secondary}
+                      style={{ fontSize: "12px" }}
+                    />
+                    <YAxis
+                      stroke={theme.palette.text.secondary}
+                      style={{ fontSize: "12px" }}
+                    />
+                    <RechartsTooltip
+                      contentStyle={{
+                        backgroundColor: theme.palette.background.paper,
+                        border: `1px solid ${theme.palette.divider}`,
+                        borderRadius: 8,
+                      }}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="total_amount"
+                      stroke={theme.palette.primary.main}
+                      strokeWidth={3}
+                      dot={{ r: 4 }}
+                      activeDot={{ r: 6 }}
+                      name="Sales Amount (₹)"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </Grid>
@@ -599,18 +666,14 @@ export default function Dashboard() {
                       />
                     ))}
                   </Pie>
-
                   <RechartsTooltip
                     formatter={(value: number) => `₹${value.toLocaleString()}`}
                     contentStyle={{
                       backgroundColor: theme.palette.background.paper,
-
                       border: `1px solid ${theme.palette.divider}`,
-
                       borderRadius: 8,
                     }}
                   />
-
                   <Legend
                     layout="horizontal"
                     verticalAlign="bottom"

@@ -327,6 +327,7 @@ export default function Payments() {
           size="small"
           variant="contained"
           onClick={() => handleOpenDialog(params.row)}
+          sx={{ fontSize: '0.75rem', px: 1 }}
         >
           {t("payments.recordPayment")}
         </Button>

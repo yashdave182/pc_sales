@@ -45,25 +45,32 @@ def get_sales_trend(
         print(f"Requested start_date: {start_date}")
         print(f"Requested end_date: {end_date}")
 
-        # Fetch sales data
+        # Fetch ALL sales data first (Supabase .gte()/.lte() not working reliably)
         response = (
             db.table("sales")
             .select("*, customers(name)")
-            .gte("sale_date", start_date)
-            .lte("sale_date", end_date)
             .order("sale_date", desc=False)
             .execute()
         )
 
-        sales_data = response.data or []
-        print(f"Database returned {len(sales_data)} sales records")
+        all_sales = response.data or []
+        print(f"Database returned {len(all_sales)} total sales records")
+        
+        # Manual filtering by date range in Python
+        sales_data = [
+            sale for sale in all_sales
+            if start_date <= sale["sale_date"] <= end_date
+        ]
+        
+        print(f"After filtering: {len(sales_data)} sales records in date range")
         
         if sales_data:
             dates = [s["sale_date"] for s in sales_data]
-            print(f"Date range in results: {min(dates)} to {max(dates)}")
+            print(f"Date range in filtered results: {min(dates)} to {max(dates)}")
             print(f"First 3 sale dates: {dates[:3]}")
         else:
             print("No sales data found for the given date range")
+
 
 
         # Group sales by interval

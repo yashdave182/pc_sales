@@ -218,7 +218,7 @@ export default function Dashboard() {
         const lastDate = data.trends[data.trends.length - 1].period;
         console.log(`API returned data from ${firstDate} to ${lastDate}`);
         console.log(`You requested from ${salesDateRange.start} to ${salesDateRange.end}`);
-        
+
         if (firstDate < salesDateRange.start || lastDate > salesDateRange.end) {
           console.warn("⚠️ WARNING: API returned data outside requested range!");
           console.warn("This is a BACKEND issue - the API is not respecting date parameters");
@@ -234,10 +234,10 @@ export default function Dashboard() {
 
       console.log("Transformed chart data:", JSON.stringify(chartData, null, 2));
       console.log("Setting new chart data with", chartData.length, "points");
-      
+
       setSalesTrend(chartData);
       setChartKey(prev => prev + 1);
-      
+
     } catch (err) {
       console.error("=== ERROR LOADING SALES TREND ===");
       console.error("Error:", err);
@@ -558,9 +558,9 @@ export default function Dashboard() {
                     sx={{ minWidth: 150 }}
                   />
                   <Tooltip title="Refresh">
-                    <IconButton 
-                      size="small" 
-                      onClick={loadSalesTrendByDateRange} 
+                    <IconButton
+                      size="small"
+                      onClick={loadSalesTrendByDateRange}
                       color="primary"
                       disabled={loadingChart}
                     >
@@ -568,21 +568,6 @@ export default function Dashboard() {
                     </IconButton>
                   </Tooltip>
                 </Box>
-              </Box>
-              
-              {/* Debug Info */}
-              <Box sx={{ mb: 2, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                  📊 Data points: {salesTrend.length} | Chart Key: {chartKey}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                  📅 Range: {salesDateRange.start} to {salesDateRange.end}
-                </Typography>
-                {salesTrend.length > 0 && (
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    🔍 First date: {salesTrend[0].sale_date} | Last date: {salesTrend[salesTrend.length - 1].sale_date}
-                  </Typography>
-                )}
               </Box>
 
               {loadingChart ? (

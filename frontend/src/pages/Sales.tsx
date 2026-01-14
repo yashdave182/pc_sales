@@ -73,6 +73,16 @@ export default function Sales() {
   const [items, setItems] = useState<Partial<SaleItem>[]>([
     { product_id: 0, quantity: 1, rate: 0, amount: 0 },
   ]);
+  const [paymentTerms, setPaymentTerms] = useState({
+    type: 'advance' as 'advance' | 'after_delivery' | 'after_days' | 'emi',
+    days: 0,
+    emiParts: [
+      { part: 1, days: 0, percentage: 25 },
+      { part: 2, days: 0, percentage: 25 },
+      { part: 3, days: 0, percentage: 25 },
+      { part: 4, days: 0, percentage: 25 },
+    ],
+  });
 
   useEffect(() => {
     loadData();
@@ -256,6 +266,7 @@ export default function Sales() {
           amount: item.amount!,
         })),
         notes: formData.notes || undefined,
+        payment_terms: JSON.stringify(paymentTerms), // Store payment terms as JSON string
       };
 
       console.log("Creating sale:", saleData);
@@ -654,6 +665,66 @@ export default function Sales() {
                 placeholder={t("sales.invoiceNoPlaceholder", "Leave empty for auto-generation")}
               />
             </Grid>
+
+            {/* Payment Terms */}
+            <Grid item xs={12}>
+              <Divider sx={{ my: 1 }} />
+              <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
+                Payment Terms
+              </Typography>
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                select
+                label="Payment Type"
+                value={paymentTerms.type}
+                onChange={(e) => setPaymentTerms({ ...paymentTerms, type: e.target.value as any })}
+              >
+                <MenuItem value="advance">Advance Payment</MenuItem>
+                <MenuItem value="after_delivery">After Delivery</MenuItem>
+                <MenuItem value="after_days">After X Days</MenuItem>
+                <MenuItem value="emi">EMI (4 Parts)</MenuItem>
+              </TextField>
+            </Grid>
+
+            {/* After X Days */}
+            {paymentTerms.type === 'after_days' && (
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Payment Due After (Days)"
+                  value={paymentTerms.days}
+                  onChange={(e) => setPaymentTerms({ ...paymentTerms, days: Number(e.target.value) })}
+                  inputProps={{ min: 0 }}
+                />
+              </Grid>
+            )}
+
+            {/* EMI Configuration */}
+            {paymentTerms.type === 'emi' && (
+              <>
+                {paymentTerms.emiParts.map((part, idx) => (
+                  <Grid item xs={12} sm={6} key={idx}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label={`Part ${part.part} - Due After (Days)`}
+                      value={part.days}
+                      onChange={(e) => {
+                        const newParts = [...paymentTerms.emiParts];
+                        newParts[idx] = { ...newParts[idx], days: Number(e.target.value) };
+                        setPaymentTerms({ ...paymentTerms, emiParts: newParts });
+                      }}
+                      inputProps={{ min: 0 }}
+                      helperText={`${part.percentage}% of total amount`}
+                    />
+                  </Grid>
+                ))}
+              </>
+            )}
             <Grid item xs={12}>
               <Divider sx={{ my: 2 }} />
               <Box

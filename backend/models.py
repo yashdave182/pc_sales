@@ -48,6 +48,7 @@ class Sale(BaseModel):
     total_liters: float = 0
     payment_status: str = "Pending"
     notes: Optional[str] = None
+    payment_terms: Optional[str] = None
 
 
 class SaleItem(BaseModel):
@@ -63,6 +64,7 @@ class SaleCreate(BaseModel):
     sale_date: str
     items: List[SaleItem]
     notes: Optional[str] = None
+    payment_terms: Optional[str] = None
 
 
 # ======================

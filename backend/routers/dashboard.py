@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import json
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -16,16 +17,20 @@ def dashboard_metrics(db: SupabaseClient = Depends(get_supabase)):
     try:
         print("Fetching dashboard metrics...")
         # Get all sales with their IDs for accurate calculation
-        sales_response = db.table("sales").select("sale_id, total_amount").execute()
+        sales_response = db.table("sales").select("sale_id, total_amount, sale_date, payment_terms").execute()
         total_sales = 0.0
-        sales_by_id = {}
+        sales_data_map = {}
 
         if sales_response.data:
             for sale in sales_response.data:
                 sale_id = sale.get("sale_id")
                 amount = float(sale.get("total_amount", 0) or 0)
                 total_sales += amount
-                sales_by_id[sale_id] = amount
+                sales_data_map[sale_id] = {
+                    "amount": amount,
+                    "date": sale.get("sale_date"),
+                    "terms": sale.get("payment_terms")
+                }
 
         # Get all payments grouped by sale_id
         payments_response = db.table("payments").select("sale_id, amount").execute()
@@ -40,13 +45,51 @@ def dashboard_metrics(db: SupabaseClient = Depends(get_supabase)):
                 if sale_id:
                     paid_by_sale[sale_id] = paid_by_sale.get(sale_id, 0.0) + amount
 
-        # Calculate actual pending amount (only from sales that have pending balance)
+        # Calculate actual pending amount (only from sales that have strict pending balance)
         pending_amount = 0.0
-        for sale_id, sale_total in sales_by_id.items():
+        today = datetime.now().date()
+        
+        for sale_id, sale_data in sales_data_map.items():
             paid = paid_by_sale.get(sale_id, 0.0)
-            pending = sale_total - paid
-            if pending > 0:  # Only count positive pending amounts
-                pending_amount += pending
+            total = sale_data["amount"]
+            pending = total - paid
+            
+            if pending > 0:
+                # Check if strictly due based on payment terms
+                is_due = True
+                terms_json = sale_data["terms"]
+                
+                if terms_json:
+                    try:
+                        terms = json.loads(terms_json)
+                        sale_date_str = sale_data["date"]
+                        if sale_date_str:
+                             sale_date = datetime.strptime(sale_date_str, "%Y-%m-%d").date()
+                             terms_type = terms.get("type")
+                             
+                             if terms_type == "after_days":
+                                 days = int(terms.get("days", 0))
+                                 due_date = sale_date + timedelta(days=days)
+                                 if today < due_date: 
+                                     is_due = False
+                                     
+                             elif terms_type == "emi":
+                                 strict_due = 0
+                                 parts = terms.get("emiParts", [])
+                                 for part in parts:
+                                     days = int(part.get("days", 0))
+                                     pct = float(part.get("percentage", 0))
+                                     if today >= sale_date + timedelta(days=days):
+                                         strict_due += (total * pct / 100)
+                                 
+                                 # If paid matches what's strictly due so far, don't count as pending
+                                 if paid >= strict_due:
+                                     is_due = False
+                    except Exception as e:
+                        print(f"Error parsing terms in metrics for sale {sale_id}: {e}")
+                
+                if is_due:
+                    pending_amount += pending
 
         # Get total customers count
         customers_response = db.table("customers").select("customer_id").execute()

@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+import json
 from typing import Optional
 
 from activity_logger import get_activity_logger
@@ -114,15 +115,57 @@ def sales_with_pending(db: SupabaseClient = Depends(get_supabase)):
 
         # Build result with pending amounts
         result = []
+        today = datetime.now().date()
+
         for sale in sales_response.data:
             sale_id = sale.get("sale_id")
             customer_id = sale.get("customer_id")
             total_amount = sale.get("total_amount", 0) or 0
             paid_amount = paid_by_sale.get(sale_id, 0)
             pending_amount = total_amount - paid_amount
+            payment_terms_json = sale.get("payment_terms")
+            
+            # Skip if fully paid
+            if pending_amount <= 0:
+                continue
 
-            # Only include sales with pending amounts
-            if pending_amount > 0:
+            # Check if payment is due based on terms
+            is_due = True # Default to showing it
+            
+            if payment_terms_json:
+                try:
+                    terms = json.loads(payment_terms_json)
+                    sale_date_str = sale.get("sale_date")
+                    if sale_date_str:
+                         sale_date = datetime.strptime(sale_date_str, "%Y-%m-%d").date()
+                         
+                         terms_type = terms.get("type")
+                         
+                         if terms_type == "after_days":
+                             days = int(terms.get("days", 0))
+                             due_date = sale_date + timedelta(days=days)
+                             if today < due_date:
+                                 is_due = False
+                                 
+                         elif terms_type == "emi":
+                             # Calculate strict amount due today
+                             strict_due_amount = 0
+                             parts = terms.get("emiParts", [])
+                             for part in parts:
+                                 days = int(part.get("days", 0))
+                                 percent = float(part.get("percentage", 0))
+                                 part_due_date = sale_date + timedelta(days=days)
+                                 
+                                 if today >= part_due_date:
+                                     strict_due_amount += (total_amount * percent / 100)
+                             
+                             # If we have paid enough to cover strict dues, hide it
+                             if paid_amount >= strict_due_amount:
+                                 is_due = False
+                except Exception as e:
+                    print(f"Error parsing payment terms for sale {sale_id}: {e}")
+            
+            if is_due:
                 customer = customers_dict.get(customer_id, {})
                 result.append(
                     {
@@ -135,6 +178,7 @@ def sales_with_pending(db: SupabaseClient = Depends(get_supabase)):
                         "paid_amount": paid_amount,
                         "pending_amount": pending_amount,
                         "payment_status": sale.get("payment_status", "Pending"),
+                        "payment_terms": payment_terms_json,
                     }
                 )
 
@@ -207,6 +251,7 @@ def create_sale(
             "total_liters": total_liters,
             "payment_status": "Pending",
             "notes": sale.notes if hasattr(sale, "notes") and sale.notes else None,
+            "payment_terms": sale.payment_terms if hasattr(sale, "payment_terms") else None,
         }
 
         sale_response = db.table("sales").insert(sale_data).execute()

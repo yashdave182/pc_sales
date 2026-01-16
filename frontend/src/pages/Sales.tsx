@@ -382,6 +382,53 @@ export default function Sales() {
         );
       },
     },
+    {
+      field: "payment_terms",
+      headerName: "Payment Terms",
+      width: 160,
+      renderCell: (params) => {
+        if (!params.value) return <Chip label="Standard" size="small" variant="outlined" />;
+        try {
+          const terms = JSON.parse(params.value);
+          let label = "Standard";
+          let color: "default" | "primary" | "secondary" | "info" = "default";
+          let details = "";
+
+          switch (terms.type) {
+            case "advance":
+              label = "Advance";
+              color = "success" as any;
+              details = "Full payment in advance";
+              break;
+            case "after_delivery":
+              label = "On Delivery";
+              color = "info";
+              details = "Payment due on delivery";
+              break;
+            case "after_days":
+              label = `${terms.days} Days Credit`;
+              color = "warning" as any;
+              details = `Payment due after ${terms.days} days`;
+              break;
+            case "emi":
+              label = "EMI";
+              color = "secondary";
+              details = terms.emiParts?.map((p: any) =>
+                `Part ${p.part}: ${p.percentage}% after ${p.days} days`
+              ).join('\n');
+              break;
+          }
+
+          return (
+            <Tooltip title={<div style={{ whiteSpace: 'pre-line' }}>{details}</div>}>
+              <Chip label={label} size="small" color={color} variant="outlined" />
+            </Tooltip>
+          );
+        } catch (e) {
+          return <Chip label="Standard" size="small" variant="outlined" />;
+        }
+      },
+    },
   ];
 
   return (

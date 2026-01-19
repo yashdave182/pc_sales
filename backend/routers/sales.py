@@ -102,6 +102,29 @@ def sales_with_pending(db: SupabaseClient = Depends(get_supabase)):
             else {}
         )
 
+        # Get all products for summary
+        products_response = db.table("products").select("product_id, product_name").execute()
+        products_dict = {p["product_id"]: p["product_name"] for p in products_response.data} if products_response.data else {}
+        print(f"DEBUG: Fetched {len(products_dict)} products")
+
+        # Get all sale items
+        items_response = db.table("sale_items").select("sale_id, product_id, quantity").execute()
+        items_by_sale = {}
+        if items_response.data:
+            print(f"DEBUG: Fetched {len(items_response.data)} sale items")
+            for item in items_response.data:
+                sale_id = item.get("sale_id")
+                prod_id = item.get("product_id")
+                qty = item.get("quantity", 0)
+                prod_name = products_dict.get(prod_id, "Unknown Product")
+                
+                if sale_id not in items_by_sale:
+                    items_by_sale[sale_id] = []
+                items_by_sale[sale_id].append(f"{qty}x {prod_name}")
+            print(f"DEBUG: Mapped items for {len(items_by_sale)} sales")
+        else:
+            print("DEBUG: No sale items found")
+
         # Get all payments
         payments_response = db.table("payments").select("sale_id, amount").execute()
 
@@ -179,6 +202,7 @@ def sales_with_pending(db: SupabaseClient = Depends(get_supabase)):
                         "pending_amount": pending_amount,
                         "payment_status": sale.get("payment_status", "Pending"),
                         "payment_terms": payment_terms_json,
+                        "items_summary": ", ".join(items_by_sale.get(sale_id, []))
                     }
                 )
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import {
   Box,
@@ -34,6 +34,7 @@ import { useTranslation } from "../hooks/useTranslation";
 export default function Payments() {
   const { t, tf } = useTranslation();
   const location = useLocation();
+  const pendingSectionRef = useRef<HTMLDivElement>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,10 +74,8 @@ export default function Payments() {
       console.log("Loading payment data...");
       const [paymentsData, pendingData] = await Promise.all([
         paymentAPI.getAll({ limit: 1000 }),
-        paymentAPI.getPending(),
+        salesAPI.getPending(),
       ]);
-      console.log("Payments loaded:", paymentsData);
-      console.log("Pending payments loaded:", pendingData);
       setPayments(paymentsData);
       setPendingPayments(pendingData);
     } catch (err: any) {
@@ -337,16 +336,30 @@ export default function Payments() {
 
   return (
     <Box>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-          <PaymentIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-
-          {t("payments.title")}
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          {t("payments.subtitle", "Record and track payments")}
-        </Typography>
+      {/* Header with Action Button */}
+      <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+            <PaymentIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+            {t("payments.title")}
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {t("payments.subtitle", "Record and track payments")}
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          size="large"
+          startIcon={<AddIcon />}
+          onClick={() => handleOpenDialog()}
+          sx={{
+            borderRadius: 2,
+            px: 3,
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+          }}
+        >
+          {t("payments.recordPayment")}
+        </Button>
       </Box>
 
       {error && (
@@ -378,8 +391,15 @@ export default function Payments() {
         </Grid>
         <Grid item xs={12} sm={4}>
           <Card
+            onClick={() => pendingSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
             sx={{
               background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+              cursor: 'pointer',
+              transition: 'transform 0.2s',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 4
+              }
             }}
           >
             <CardContent>
@@ -397,8 +417,15 @@ export default function Payments() {
         </Grid>
         <Grid item xs={12} sm={4}>
           <Card
+            onClick={() => pendingSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
             sx={{
               background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+              cursor: 'pointer',
+              transition: 'transform 0.2s',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 4
+              }
             }}
           >
             <CardContent>
@@ -420,50 +447,53 @@ export default function Payments() {
       </Grid>
 
       {/* Pending Payments */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mb: 2,
-            }}
-          >
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              {t("dashboard.pendingPayments")}
-            </Typography>
-            <IconButton onClick={loadData} color="primary">
-              <RefreshIcon />
-            </IconButton>
-          </Box>
-          <Box sx={{ height: 400, width: "100%" }}>
-            {loading ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  height: "100%",
-                }}
-              >
-                <CircularProgress />
-              </Box>
-            ) : (
-              <DataGrid
-                rows={pendingPayments}
-                columns={pendingColumns}
-                getRowId={(row) => row.sale_id}
-                pageSizeOptions={[5, 10, 25]}
-                initialState={{
-                  pagination: { paginationModel: { pageSize: 10 } },
-                }}
-                disableRowSelectionOnClick
-              />
-            )}
-          </Box>
-        </CardContent>
-      </Card>
+      <div ref={pendingSectionRef}>
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 2,
+              }}
+            >
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                {t("dashboard.pendingPayments")}
+              </Typography>
+              <IconButton onClick={loadData} color="primary">
+                <RefreshIcon />
+              </IconButton>
+            </Box>
+            <Box sx={{ height: 400, width: "100%" }}>
+              {loading ? (
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "100%",
+                  }}
+                >
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <DataGrid
+                  rows={pendingPayments}
+                  columns={pendingColumns}
+                  getRowId={(row) => row.sale_id}
+                  pageSizeOptions={[5, 10, 25]}
+                  initialState={{
+                    pagination: { paginationModel: { pageSize: 10 } },
+                  }}
+                  disableRowSelectionOnClick
+                />
+              )}
+            </Box>
+          </CardContent>
+        </Card>
+
+      </div>
 
       {/* Payment History */}
       <Card>
@@ -479,13 +509,6 @@ export default function Payments() {
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
               {t("payments.history", "Payment History")}
             </Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => handleOpenDialog()}
-            >
-              {t("payments.recordPayment")}
-            </Button>
           </Box>
           <Box sx={{ height: 500, width: "100%" }}>
             {loading ? (
@@ -559,6 +582,11 @@ export default function Payments() {
                   return (
                     <Paper variant="outlined" sx={{ mt: 2, p: 2, bgcolor: 'background.default' }}>
                       <Typography variant="subtitle2" gutterBottom>Purchase Summary</Typography>
+                      {selectedSale.items_summary && (
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontStyle: 'italic' }}>
+                          Items: {selectedSale.items_summary}
+                        </Typography>
+                      )}
                       <Grid container spacing={2}>
                         <Grid item xs={4}>
                           <Typography variant="caption" color="text.secondary">Total Amount</Typography>

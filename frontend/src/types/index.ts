@@ -90,6 +90,7 @@ export interface PendingPayment {
   sale_date: string;
   paid_amount: number;
   pending_amount: number;
+  items_summary?: string;
 }
 
 export interface Demo {

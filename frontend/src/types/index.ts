@@ -8,6 +8,7 @@ export interface Customer {
   village?: string;
   taluka?: string;
   district?: string;
+  state?: string;
   adhar_no?: string;
   status?: string;
   created_date?: string;
@@ -21,6 +22,9 @@ export interface Product {
   capacity_ltr?: number;
   category?: string;
   standard_rate?: number;
+  rate_gujarat?: number;
+  rate_maharashtra?: number;
+  rate_mp?: number;
   is_active?: number;
   created_date?: string;
 }

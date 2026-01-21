@@ -15,6 +15,7 @@ class Customer(BaseModel):
     village: Optional[str] = None
     taluka: Optional[str] = None
     district: Optional[str] = None
+    state: Optional[str] = "Gujarat"
     adhar_no: Optional[str] = None
     status: str = "Active"
 
@@ -31,6 +32,9 @@ class Product(BaseModel):
     capacity_ltr: Optional[float] = None
     category: Optional[str] = None
     standard_rate: Optional[float] = None
+    rate_gujarat: Optional[float] = None
+    rate_maharashtra: Optional[float] = None
+    rate_mp: Optional[float] = None
     is_active: int = 1
 
 

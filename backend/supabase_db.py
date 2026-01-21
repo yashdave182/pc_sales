@@ -372,6 +372,7 @@ def init_supabase_db():
         village TEXT,
         taluka TEXT,
         district TEXT,
+        state TEXT DEFAULT 'Gujarat',
         adhar_no TEXT,
         status TEXT DEFAULT 'Active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -387,6 +388,9 @@ def init_supabase_db():
         capacity_ltr REAL,
         category TEXT,
         standard_rate REAL,
+        rate_gujarat REAL,
+        rate_maharashtra REAL,
+        rate_mp REAL,
         is_active INTEGER DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );

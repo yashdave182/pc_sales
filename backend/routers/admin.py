@@ -404,16 +404,29 @@ def update_product_price(
     """
     try:
         standard_rate = price_data.get("standard_rate")
+        rate_gujarat = price_data.get("rate_gujarat")
+        rate_maharashtra = price_data.get("rate_maharashtra")
+        rate_mp = price_data.get("rate_mp")
         
-        if standard_rate is None:
-            raise HTTPException(
-                status_code=400, detail="standard_rate is required"
-            )
+        update_data = {}
+        if standard_rate is not None:
+            update_data["standard_rate"] = standard_rate
+        if rate_gujarat is not None:
+             update_data["rate_gujarat"] = rate_gujarat
+        if rate_maharashtra is not None:
+             update_data["rate_maharashtra"] = rate_maharashtra
+        if rate_mp is not None:
+             update_data["rate_mp"] = rate_mp
+
+        if not update_data:
+             raise HTTPException(
+                status_code=400, detail="At least one price field is required"
+             )
 
         # Update the product price
         response = (
             db.table("products")
-            .update({"standard_rate": standard_rate})
+            .update(update_data)
             .eq("product_id", product_id)
             .execute()
         )
@@ -428,11 +441,11 @@ def update_product_price(
         logger.log_activity(
             user_email=admin_email,
             action_type="UPDATE",
-            action_description=f"Updated price for product '{product.get('product_name', 'Unknown')}' to ₹{standard_rate}",
+            action_description=f"Updated price for product '{product.get('product_name', 'Unknown')}'",
             entity_type="product",
             entity_id=product_id,
             entity_name=product.get("product_name"),
-            metadata={"old_rate": product.get("standard_rate"), "new_rate": standard_rate},
+            metadata={"new_rates": update_data},
         )
 
         return {
@@ -471,16 +484,21 @@ def update_product_prices_bulk(
 
         for update in updates:
             product_id = update.get("product_id")
-            standard_rate = update.get("standard_rate")
+            
+            update_data = {}
+            if "standard_rate" in update: update_data["standard_rate"] = update["standard_rate"]
+            if "rate_gujarat" in update: update_data["rate_gujarat"] = update["rate_gujarat"]
+            if "rate_maharashtra" in update: update_data["rate_maharashtra"] = update["rate_maharashtra"]
+            if "rate_mp" in update: update_data["rate_mp"] = update["rate_mp"]
 
-            if product_id is None or standard_rate is None:
+            if product_id is None or not update_data:
                 errors.append(f"Invalid update data: {update}")
                 continue
 
             try:
                 response = (
                     db.table("products")
-                    .update({"standard_rate": standard_rate})
+                    .update(update_data)
                     .eq("product_id", product_id)
                     .execute()
                 )

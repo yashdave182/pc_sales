@@ -67,6 +67,7 @@ export default function Sales() {
     village: "",
     taluka: "",
     district: "",
+    state: "Gujarat",
     adhar_no: "",
     status: "Active",
   });
@@ -127,6 +128,7 @@ export default function Sales() {
       village: "",
       taluka: "",
       district: "",
+      state: "Gujarat",
       adhar_no: "",
       status: "Active",
     });
@@ -157,13 +159,35 @@ export default function Sales() {
       item.amount = (item.quantity || 0) * (item.rate || 0);
     }
 
-    // Auto-fill rate from product
+    // Auto-fill rate from product with region logic
     if (field === "product_id") {
       const product = products.find((p) => p.product_id === value);
-      if (product && product.standard_rate) {
-        newItems[index].rate = product.standard_rate;
+      if (product) {
+        // Determine rate based on customer state
+        let rate = product.standard_rate || 0;
+        let customerState = "Gujarat";
+
+        if (customerMode === "existing") {
+          const selectedCustomer = customers.find(c => c.customer_id === formData.customer_id);
+          if (selectedCustomer?.state) {
+            customerState = selectedCustomer.state;
+          }
+        } else {
+          customerState = newCustomerData.state || "Gujarat";
+        }
+
+        // Apply region rate
+        if (customerState === "Maharashtra" && product.rate_maharashtra) {
+          rate = product.rate_maharashtra;
+        } else if (customerState === "Madhya Pradesh" && product.rate_mp) {
+          rate = product.rate_mp;
+        } else if (customerState === "Gujarat" && product.rate_gujarat) {
+          rate = product.rate_gujarat;
+        }
+
+        newItems[index].rate = rate;
         newItems[index].amount =
-          (newItems[index].quantity || 0) * product.standard_rate;
+          (newItems[index].quantity || 0) * rate;
       }
     }
 
@@ -666,6 +690,24 @@ export default function Sales() {
                       })
                     }
                   />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    select
+                    label="State"
+                    value={newCustomerData.state || "Gujarat"}
+                    onChange={(e) =>
+                      setNewCustomerData({
+                        ...newCustomerData,
+                        state: e.target.value,
+                      })
+                    }
+                  >
+                    <MenuItem value="Gujarat">Gujarat</MenuItem>
+                    <MenuItem value="Maharashtra">Maharashtra</MenuItem>
+                    <MenuItem value="Madhya Pradesh">Madhya Pradesh</MenuItem>
+                  </TextField>
                 </Grid>
               </>
             )}

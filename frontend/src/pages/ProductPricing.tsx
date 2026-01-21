@@ -38,7 +38,17 @@ interface Product {
     capacity_ltr?: number;
     category?: string;
     standard_rate?: number;
+    rate_gujarat?: number;
+    rate_maharashtra?: number;
+    rate_mp?: number;
     is_active: number;
+}
+
+interface PriceState {
+    standard_rate?: number;
+    rate_gujarat?: number;
+    rate_maharashtra?: number;
+    rate_mp?: number;
 }
 
 export default function ProductPricing() {
@@ -49,7 +59,7 @@ export default function ProductPricing() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
-    const [editingPrices, setEditingPrices] = useState<Record<number, number>>(
+    const [editingPrices, setEditingPrices] = useState<Record<number, PriceState>>(
         {},
     );
     const [editMode, setEditMode] = useState<Record<number, boolean>>({});
@@ -93,11 +103,16 @@ export default function ProductPricing() {
         }
     }, [user]);
 
-    const handleEdit = (productId: number, currentPrice?: number) => {
-        setEditMode({ ...editMode, [productId]: true });
+    const handleEdit = (product: Product) => {
+        setEditMode({ ...editMode, [product.product_id]: true });
         setEditingPrices({
             ...editingPrices,
-            [productId]: currentPrice || 0,
+            [product.product_id]: {
+                standard_rate: product.standard_rate || 0,
+                rate_gujarat: product.rate_gujarat || product.standard_rate || 0,
+                rate_maharashtra: product.rate_maharashtra || product.standard_rate || 0,
+                rate_mp: product.rate_mp || product.standard_rate || 0,
+            },
         });
     };
 
@@ -110,11 +125,14 @@ export default function ProductPricing() {
         setEditingPrices(newEditingPrices);
     };
 
-    const handlePriceChange = (productId: number, value: string) => {
+    const handlePriceChange = (productId: number, field: keyof PriceState, value: string) => {
         const numValue = parseFloat(value) || 0;
         setEditingPrices({
             ...editingPrices,
-            [productId]: numValue,
+            [productId]: {
+                ...editingPrices[productId],
+                [field]: numValue
+            },
         });
     };
 
@@ -124,13 +142,11 @@ export default function ProductPricing() {
             setError(null);
             setSuccess(null);
 
-            const newPrice = editingPrices[product.product_id];
+            const priceData = editingPrices[product.product_id];
 
             await axios.put(
                 `${API_BASE_URL}/api/admin/update-product-price/${product.product_id}`,
-                {
-                    standard_rate: newPrice,
-                },
+                priceData,
                 {
                     headers: {
                         "x-user-email": user?.email,
@@ -142,7 +158,7 @@ export default function ProductPricing() {
             setProducts(
                 products.map((p) =>
                     p.product_id === product.product_id
-                        ? { ...p, standard_rate: newPrice }
+                        ? { ...p, ...priceData }
                         : p,
                 ),
             );
@@ -173,7 +189,7 @@ export default function ProductPricing() {
                     const productId = parseInt(key);
                     return {
                         product_id: productId,
-                        standard_rate: editingPrices[productId],
+                        ...editingPrices[productId],
                     };
                 });
 
@@ -298,7 +314,10 @@ export default function ProductPricing() {
                                         <TableCell sx={{ fontWeight: 600 }}>Packing Type</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Capacity (Ltr)</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
-                                        <TableCell sx={{ fontWeight: 600 }}>Standard Rate (₹)</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Standard Rate</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Rate (GJ)</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Rate (MH)</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Rate (MP)</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
                                     </TableRow>
@@ -306,7 +325,7 @@ export default function ProductPricing() {
                                 <TableBody>
                                     {products.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                                            <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
                                                 <Typography color="text.secondary">
                                                     No products found
                                                 </Typography>
@@ -343,25 +362,91 @@ export default function ProductPricing() {
                                                         {product.category || "-"}
                                                     </Typography>
                                                 </TableCell>
+
+                                                {/* Standard Rate */}
                                                 <TableCell>
                                                     {editMode[product.product_id] ? (
                                                         <TextField
                                                             size="small"
                                                             type="number"
-                                                            value={editingPrices[product.product_id] || 0}
+                                                            value={editingPrices[product.product_id]?.standard_rate || 0}
                                                             onChange={(e) =>
-                                                                handlePriceChange(product.product_id, e.target.value)
+                                                                handlePriceChange(product.product_id, "standard_rate", e.target.value)
                                                             }
                                                             InputProps={{
-                                                                startAdornment: (
-                                                                    <InputAdornment position="start">₹</InputAdornment>
-                                                                ),
+                                                                startAdornment: <InputAdornment position="start">₹</InputAdornment>,
                                                             }}
-                                                            sx={{ width: 120 }}
+                                                            sx={{ width: 100 }}
                                                         />
                                                     ) : (
                                                         <Typography variant="body2">
                                                             ₹{product.standard_rate?.toFixed(2) || "0.00"}
+                                                        </Typography>
+                                                    )}
+                                                </TableCell>
+
+                                                {/* Rate Gujarat */}
+                                                <TableCell>
+                                                    {editMode[product.product_id] ? (
+                                                        <TextField
+                                                            size="small"
+                                                            type="number"
+                                                            value={editingPrices[product.product_id]?.rate_gujarat || 0}
+                                                            onChange={(e) =>
+                                                                handlePriceChange(product.product_id, "rate_gujarat", e.target.value)
+                                                            }
+                                                            InputProps={{
+                                                                startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                                                            }}
+                                                            sx={{ width: 100 }}
+                                                        />
+                                                    ) : (
+                                                        <Typography variant="body2">
+                                                            ₹{product.rate_gujarat?.toFixed(2) || (product.standard_rate?.toFixed(2) || "0.00")}
+                                                        </Typography>
+                                                    )}
+                                                </TableCell>
+
+                                                {/* Rate Maharashtra */}
+                                                <TableCell>
+                                                    {editMode[product.product_id] ? (
+                                                        <TextField
+                                                            size="small"
+                                                            type="number"
+                                                            value={editingPrices[product.product_id]?.rate_maharashtra || 0}
+                                                            onChange={(e) =>
+                                                                handlePriceChange(product.product_id, "rate_maharashtra", e.target.value)
+                                                            }
+                                                            InputProps={{
+                                                                startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                                                            }}
+                                                            sx={{ width: 100 }}
+                                                        />
+                                                    ) : (
+                                                        <Typography variant="body2">
+                                                            ₹{product.rate_maharashtra?.toFixed(2) || (product.standard_rate?.toFixed(2) || "0.00")}
+                                                        </Typography>
+                                                    )}
+                                                </TableCell>
+
+                                                {/* Rate MP */}
+                                                <TableCell>
+                                                    {editMode[product.product_id] ? (
+                                                        <TextField
+                                                            size="small"
+                                                            type="number"
+                                                            value={editingPrices[product.product_id]?.rate_mp || 0}
+                                                            onChange={(e) =>
+                                                                handlePriceChange(product.product_id, "rate_mp", e.target.value)
+                                                            }
+                                                            InputProps={{
+                                                                startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                                                            }}
+                                                            sx={{ width: 100 }}
+                                                        />
+                                                    ) : (
+                                                        <Typography variant="body2">
+                                                            ₹{product.rate_mp?.toFixed(2) || (product.standard_rate?.toFixed(2) || "0.00")}
                                                         </Typography>
                                                     )}
                                                 </TableCell>
@@ -415,10 +500,7 @@ export default function ProductPricing() {
                                                                 size="small"
                                                                 color="primary"
                                                                 onClick={() =>
-                                                                    handleEdit(
-                                                                        product.product_id,
-                                                                        product.standard_rate,
-                                                                    )
+                                                                    handleEdit(product)
                                                                 }
                                                             >
                                                                 <EditIcon fontSize="small" />

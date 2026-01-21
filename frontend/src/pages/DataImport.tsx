@@ -62,8 +62,8 @@ export default function DataImport() {
       title: "Customer Import",
       icon: <PeopleIcon sx={{ fontSize: 48, color: "primary.main" }} />,
       fields: [
-        { name: "name", label: "Customer Name", required: true },
-        { name: "mobile", label: "Mobile Number", required: true },
+        { name: "name", label: "Customer Name", required: false },
+        { name: "mobile", label: "Mobile Number", required: false },
         { name: "village", label: "Village", required: false },
         { name: "taluka", label: "Taluka", required: false },
         { name: "district", label: "District", required: false },
@@ -74,18 +74,18 @@ export default function DataImport() {
       title: "Payment Import",
       icon: <PaymentIcon sx={{ fontSize: 48, color: "success.main" }} />,
       fields: [
-        { name: "sale_id", label: "Sale ID", required: true },
+        { name: "sale_id", label: "Sale ID", required: false },
         {
           name: "amount",
           label: "Payment Amount",
-          required: true,
+          required: false,
           type: "number",
         },
-        { name: "payment_method", label: "Payment Method", required: true },
+        { name: "payment_method", label: "Payment Method", required: false },
         {
           name: "payment_date",
           label: "Payment Date",
-          required: true,
+          required: false,
           type: "date",
         },
         { name: "reference", label: "Reference Number", required: false },
@@ -97,11 +97,11 @@ export default function DataImport() {
       title: "Demos Import",
       icon: <DemoIcon sx={{ fontSize: 48, color: "warning.main" }} />,
       fields: [
-        { name: "customer_name", label: "Customer Name", required: true },
-        { name: "mobile", label: "Mobile Number", required: true },
+        { name: "customer_name", label: "Customer Name", required: false },
+        { name: "mobile", label: "Mobile Number", required: false },
         { name: "village", label: "Village", required: false },
-        { name: "demo_date", label: "Demo Date", required: true, type: "date" },
-        { name: "product", label: "Product Name", required: true },
+        { name: "demo_date", label: "Demo Date", required: false, type: "date" },
+        { name: "product", label: "Product Name", required: false },
         { name: "notes", label: "Notes", required: false, multiline: true },
       ],
     },
@@ -110,13 +110,13 @@ export default function DataImport() {
       title: "Sales Import",
       icon: <SalesIcon sx={{ fontSize: 48, color: "error.main" }} />,
       fields: [
-        { name: "customer_name", label: "Customer Name", required: true },
-        { name: "mobile", label: "Customer Mobile", required: true },
+        { name: "customer_name", label: "Customer Name", required: false },
+        { name: "mobile", label: "Customer Mobile", required: false },
         { name: "village", label: "Village", required: false },
-        { name: "sale_date", label: "Sale Date", required: true, type: "date" },
-        { name: "product_name", label: "Product Name", required: true },
-        { name: "quantity", label: "Quantity", required: true, type: "number" },
-        { name: "rate", label: "Rate", required: true, type: "number" },
+        { name: "sale_date", label: "Sale Date", required: false, type: "date" },
+        { name: "product_name", label: "Product Name", required: false },
+        { name: "quantity", label: "Quantity", required: false, type: "number" },
+        { name: "rate", label: "Rate", required: false, type: "number" },
         { name: "notes", label: "Notes", required: false, multiline: true },
       ],
     },
@@ -384,7 +384,7 @@ export default function DataImport() {
           maxWidth="md"
           fullWidth
         >
-          <DialogTitle>
+          <DialogTitle sx={{ pb: 1 }}>
             <Box
               sx={{
                 display: "flex",
@@ -394,17 +394,23 @@ export default function DataImport() {
             >
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                 {importDialogs.find((d) => d.type === openDialog)?.icon}
-                <Typography variant="h6">
-                  {importDialogs.find((d) => d.type === openDialog)?.title}
-                </Typography>
+                <Box>
+                  <Typography variant="h5" fontWeight={600}>
+                    {importDialogs.find((d) => d.type === openDialog)?.title}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Fill in the details below to import your data
+                  </Typography>
+                </Box>
               </Box>
-              <IconButton onClick={handleCloseDialog}>
+              <IconButton onClick={handleCloseDialog} size="large">
                 <CloseIcon />
               </IconButton>
             </Box>
           </DialogTitle>
           <DialogContent
-            sx={{ maxHeight: "70vh", overflowY: "auto", pt: 3, px: 4 }}
+            sx={{ maxHeight: "70vh", overflowY: "auto", pt: 4, px: 5 }}
+            dividers
           >
             {error && (
               <Alert
@@ -423,7 +429,7 @@ export default function DataImport() {
             )}
 
             {/* Input Fields */}
-            <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid container spacing={3} sx={{ mb: 4 }}>
               {importDialogs
                 .find((d) => d.type === openDialog)
                 ?.fields.map((field) => (
@@ -435,10 +441,11 @@ export default function DataImport() {
                   >
                     <TextField
                       fullWidth
+                      variant="outlined"
                       label={field.required ? `${field.label} *` : field.label}
                       type={field.type || "text"}
                       multiline={field.multiline}
-                      rows={field.multiline ? 3 : 1}
+                      rows={field.multiline ? 4 : 1}
                       value={formData[field.name] || ""}
                       onChange={(e) =>
                         handleFieldChange(field.name, e.target.value)
@@ -450,33 +457,38 @@ export default function DataImport() {
                       }
                       InputLabelProps={
                         field.type === "date" ||
-                        field.name === "mobile" ||
-                        field.name.includes("mobile")
+                          field.name === "mobile" ||
+                          field.name.includes("mobile")
                           ? { shrink: true }
                           : undefined
                       }
                       InputProps={
                         field.name === "mobile" || field.name.includes("mobile")
                           ? {
-                              startAdornment: (
-                                <InputAdornment
-                                  position="start"
-                                  sx={{ ml: 0.5 }}
+                            startAdornment: (
+                              <InputAdornment
+                                position="start"
+                                sx={{ ml: 0.5 }}
+                              >
+                                <Box
+                                  component="span"
+                                  sx={{
+                                    color: "text.primary",
+                                    fontWeight: 600,
+                                    fontSize: "1rem",
+                                    minWidth: "32px",
+                                    bgcolor: "action.hover",
+                                    py: 0.5,
+                                    px: 1,
+                                    borderRadius: 1,
+                                    mr: 1,
+                                  }}
                                 >
-                                  <Box
-                                    component="span"
-                                    sx={{
-                                      color: "text.secondary",
-                                      fontWeight: 500,
-                                      fontSize: "1rem",
-                                      minWidth: "32px",
-                                    }}
-                                  >
-                                    +91
-                                  </Box>
-                                </InputAdornment>
-                              ),
-                            }
+                                  +91
+                                </Box>
+                              </InputAdornment>
+                            ),
+                          }
                           : undefined
                       }
                     />
@@ -490,14 +502,16 @@ export default function DataImport() {
               sx={{
                 border: "2px dashed",
                 borderColor: selectedFile ? "success.main" : "primary.main",
-                borderRadius: 2,
-                p: 3,
+                borderRadius: 4,
+                p: 4,
                 textAlign: "center",
-                bgcolor: selectedFile ? "success.50" : "background.default",
+                bgcolor: selectedFile ? "success.50" : "background.paper",
                 cursor: "pointer",
-                transition: "all 0.3s",
+                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                 "&:hover": {
                   bgcolor: "action.hover",
+                  transform: 'scale(1.01)',
+                  borderColor: 'primary.dark'
                 },
               }}
               onClick={() =>

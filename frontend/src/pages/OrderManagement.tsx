@@ -138,10 +138,23 @@ export default function OrderManagement() {
     const statusColors: { [key: string]: any } = {
       pending: "warning",
       processing: "info",
+      delivered: "info",
+      verified: "success",
       completed: "success",
       cancelled: "error",
     };
     return statusColors[status] || "default";
+  };
+
+  const getOrderStatusLabel = (status: string) => {
+    const statusLabels: { [key: string]: string } = {
+      pending: "Pending",
+      delivered: "Delivered",
+      verified: "Verified",
+      completed: "Verified",
+      cancelled: "Cancelled"
+    };
+    return statusLabels[status] || status;
   };
 
   const getShipmentStatusColor = (status: string) => {
@@ -165,24 +178,22 @@ export default function OrderManagement() {
   };
 
   const getOrderSteps = (order: Order) => {
+    const currentStatus = order.order_status?.toLowerCase() || "pending";
     const steps = [
-      { label: "Order Placed", date: order.sale_date, completed: true },
       {
-        label: "Preparing Shipment",
-        date: order.shipment_date,
-        completed: order.shipment_status !== "not_shipped",
-      },
-      {
-        label: "Dispatched",
-        date: order.dispatch_date,
-        completed: ["shipped", "in_transit", "delivered"].includes(
-          order.shipment_status || "",
-        ),
+        label: "Order Placed",
+        date: order.sale_date,
+        completed: true
       },
       {
         label: "Delivered",
-        date: order.delivery_date,
-        completed: order.shipment_status === "delivered",
+        date: null, // You might want to add a delivery_date field to your model if you want to track this
+        completed: ["delivered", "verified", "completed"].includes(currentStatus),
+      },
+      {
+        label: "Verified",
+        date: null,
+        completed: ["verified", "completed"].includes(currentStatus),
       },
     ];
     return steps;
@@ -236,14 +247,9 @@ export default function OrderManagement() {
 
   const getStatusStats = () => {
     return {
-      total: orders.length,
-      not_shipped: orders.filter((o) => o.shipment_status === "not_shipped")
-        .length,
-      preparing: orders.filter((o) => o.shipment_status === "preparing").length,
-      shipped: orders.filter((o) => o.shipment_status === "shipped").length,
-      in_transit: orders.filter((o) => o.shipment_status === "in_transit")
-        .length,
-      delivered: orders.filter((o) => o.shipment_status === "delivered").length,
+      pending: orders.filter((o) => o.order_status === "pending").length,
+      delivered: orders.filter((o) => o.order_status === "delivered").length,
+      verified: orders.filter((o) => o.order_status === "verified" || o.order_status === "completed").length,
     };
   };
 
@@ -277,75 +283,105 @@ export default function OrderManagement() {
       </Box>
 
       {/* Statistics Cards */}
-      <Grid container spacing={2} mb={3}>
-        <Grid item xs={12} sm={6} md={2}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" variant="body2">
-                Total Orders
+      <Grid container spacing={3} mb={3}>
+        <Grid item xs={12} sm={4}>
+          <Card
+            sx={{
+              borderLeft: 6,
+              borderColor: "warning.main",
+              boxShadow: 2,
+              transition: "transform 0.2s",
+              "&:hover": { transform: "translateY(-4px)" },
+            }}
+          >
+            <CardContent sx={{ position: "relative", overflow: "hidden" }}>
+              <Box
+                sx={{
+                  position: "absolute",
+                  right: -20,
+                  top: -20,
+                  opacity: 0.1,
+                  transform: "rotate(15deg)",
+                }}
+              >
+                <ShippingIcon sx={{ fontSize: 100, color: "warning.main" }} />
+              </Box>
+              <Typography color="textSecondary" variant="h6" gutterBottom>
+                Pending Orders
               </Typography>
-              <Typography variant="h4" fontWeight="bold">
-                {stats.total}
+              <Typography variant="h3" fontWeight="bold" color="warning.main">
+                {stats.pending}
               </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ borderLeft: 4, borderColor: "grey.400" }}>
-            <CardContent>
-              <Typography color="textSecondary" variant="body2">
-                Not Shipped
-              </Typography>
-              <Typography variant="h4" fontWeight="bold" color="text.secondary">
-                {stats.not_shipped}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ borderLeft: 4, borderColor: "warning.main" }}>
-            <CardContent>
-              <Typography color="textSecondary" variant="body2">
-                Preparing
-              </Typography>
-              <Typography variant="h4" fontWeight="bold" color="warning.main">
-                {stats.preparing}
+              <Typography variant="caption" color="textSecondary">
+                Orders waiting to be processed
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ borderLeft: 4, borderColor: "info.main" }}>
-            <CardContent>
-              <Typography color="textSecondary" variant="body2">
-                Shipped
-              </Typography>
-              <Typography variant="h4" fontWeight="bold" color="info.main">
-                {stats.shipped}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ borderLeft: 4, borderColor: "primary.main" }}>
-            <CardContent>
-              <Typography color="textSecondary" variant="body2">
-                In Transit
-              </Typography>
-              <Typography variant="h4" fontWeight="bold" color="primary.main">
-                {stats.in_transit}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ borderLeft: 4, borderColor: "success.main" }}>
-            <CardContent>
-              <Typography color="textSecondary" variant="body2">
+        <Grid item xs={12} sm={4}>
+          <Card
+            sx={{
+              borderLeft: 6,
+              borderColor: "primary.main",
+              boxShadow: 2,
+              transition: "transform 0.2s",
+              "&:hover": { transform: "translateY(-4px)" },
+            }}
+          >
+            <CardContent sx={{ position: "relative", overflow: "hidden" }}>
+              <Box
+                sx={{
+                  position: "absolute",
+                  right: -20,
+                  top: -20,
+                  opacity: 0.1,
+                  transform: "rotate(15deg)",
+                }}
+              >
+                <CheckCircleIcon sx={{ fontSize: 100, color: "primary.main" }} />
+              </Box>
+              <Typography color="textSecondary" variant="h6" gutterBottom>
                 Delivered
               </Typography>
-              <Typography variant="h4" fontWeight="bold" color="success.main">
+              <Typography variant="h3" fontWeight="bold" color="primary.main">
                 {stats.delivered}
+              </Typography>
+              <Typography variant="caption" color="textSecondary">
+                Orders successfully delivered
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={4}>
+          <Card
+            sx={{
+              borderLeft: 6,
+              borderColor: "success.main",
+              boxShadow: 2,
+              transition: "transform 0.2s",
+              "&:hover": { transform: "translateY(-4px)" },
+            }}
+          >
+            <CardContent sx={{ position: "relative", overflow: "hidden" }}>
+              <Box
+                sx={{
+                  position: "absolute",
+                  right: -20,
+                  top: -20,
+                  opacity: 0.1,
+                  transform: "rotate(15deg)",
+                }}
+              >
+                <CheckCircleIcon sx={{ fontSize: 100, color: "success.main" }} />
+              </Box>
+              <Typography color="textSecondary" variant="h6" gutterBottom>
+                Verified
+              </Typography>
+              <Typography variant="h3" fontWeight="bold" color="success.main">
+                {stats.verified}
+              </Typography>
+              <Typography variant="caption" color="textSecondary">
+                Orders completed and verified
               </Typography>
             </CardContent>
           </Card>
@@ -368,26 +404,7 @@ export default function OrderManagement() {
               }}
             />
           </Grid>
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth>
-              <InputLabel>Shipment Status</InputLabel>
-              <Select
-                value={statusFilter}
-                label="Shipment Status"
-                onChange={(e) => setStatusFilter(e.target.value)}
-                startAdornment={
-                  <FilterIcon sx={{ mr: 1, color: "grey.500" }} />
-                }
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="not_shipped">Not Shipped</MenuItem>
-                <MenuItem value="preparing">Preparing</MenuItem>
-                <MenuItem value="shipped">Shipped</MenuItem>
-                <MenuItem value="in_transit">In Transit</MenuItem>
-                <MenuItem value="delivered">Delivered</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
+
         </Grid>
       </Paper>
 
@@ -408,14 +425,8 @@ export default function OrderManagement() {
               <TableCell align="right">
                 <strong>Amount</strong>
               </TableCell>
-              <TableCell>
+              <TableCell align="center">
                 <strong>Order Status</strong>
-              </TableCell>
-              <TableCell>
-                <strong>Shipment Status</strong>
-              </TableCell>
-              <TableCell>
-                <strong>Payment Status</strong>
               </TableCell>
               <TableCell align="center">
                 <strong>Actions</strong>
@@ -425,7 +436,7 @@ export default function OrderManagement() {
           <TableBody>
             {filteredOrders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                   <Typography color="textSecondary">No orders found</Typography>
                 </TableCell>
               </TableRow>
@@ -456,41 +467,13 @@ export default function OrderManagement() {
                       {order.total_liters}L
                     </Typography>
                   </TableCell>
-                  <TableCell>
+                  <TableCell align="center">
                     <Chip
-                      label={order.order_status || "Pending"}
+                      label={getOrderStatusLabel(order.order_status || "pending")}
                       color={getOrderStatusColor(
                         order.order_status || "pending",
                       )}
                       size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={
-                        order.shipment_status
-                          ?.replace(/_/g, " ")
-                          .toUpperCase() || "NOT SHIPPED"
-                      }
-                      color={getShipmentStatusColor(
-                        order.shipment_status || "not_shipped",
-                      )}
-                      size="small"
-                      icon={
-                        order.shipment_status === "delivered" ? (
-                          <CheckCircleIcon />
-                        ) : (
-                          <ShippingIcon />
-                        )
-                      }
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={order.payment_status}
-                      color={getPaymentStatusColor(order.payment_status)}
-                      size="small"
-                      icon={<PaymentIcon />}
                     />
                   </TableCell>
                   <TableCell align="center">
@@ -560,6 +543,8 @@ export default function OrderManagement() {
                 </Grid>
               </Grid>
 
+
+
               <Box mt={4}>
                 <Typography variant="subtitle2" color="textSecondary" mb={2}>
                   Order Timeline
@@ -585,15 +570,6 @@ export default function OrderManagement() {
                   ))}
                 </Stepper>
               </Box>
-
-              {selectedOrder.tracking_number && (
-                <Alert severity="info" sx={{ mt: 3 }}>
-                  <Typography variant="body2">
-                    <strong>Tracking Number:</strong>{" "}
-                    {selectedOrder.tracking_number}
-                  </Typography>
-                </Alert>
-              )}
 
               {selectedOrder.notes && (
                 <Box mt={3}>
@@ -636,96 +612,16 @@ export default function OrderManagement() {
                     }
                   >
                     <MenuItem value="pending">Pending</MenuItem>
-                    <MenuItem value="processing">Processing</MenuItem>
-                    <MenuItem value="completed">Completed</MenuItem>
+                    <MenuItem value="delivered">Delivered</MenuItem>
+                    <MenuItem value="verified">Verified</MenuItem>
                     <MenuItem value="cancelled">Cancelled</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel>Shipment Status</InputLabel>
-                  <Select
-                    value={orderUpdate.shipment_status}
-                    label="Shipment Status"
-                    onChange={(e) =>
-                      setOrderUpdate({
-                        ...orderUpdate,
-                        shipment_status: e.target.value,
-                      })
-                    }
-                  >
-                    <MenuItem value="not_shipped">Not Shipped</MenuItem>
-                    <MenuItem value="preparing">Preparing</MenuItem>
-                    <MenuItem value="shipped">Shipped</MenuItem>
-                    <MenuItem value="in_transit">In Transit</MenuItem>
-                    <MenuItem value="delivered">Delivered</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
 
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Shipment Date"
-                  type="date"
-                  value={orderUpdate.shipment_date || ""}
-                  onChange={(e) =>
-                    setOrderUpdate({
-                      ...orderUpdate,
-                      shipment_date: e.target.value,
-                    })
-                  }
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
 
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Dispatch Date"
-                  type="date"
-                  value={orderUpdate.dispatch_date || ""}
-                  onChange={(e) =>
-                    setOrderUpdate({
-                      ...orderUpdate,
-                      dispatch_date: e.target.value,
-                    })
-                  }
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
 
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Delivery Date"
-                  type="date"
-                  value={orderUpdate.delivery_date || ""}
-                  onChange={(e) =>
-                    setOrderUpdate({
-                      ...orderUpdate,
-                      delivery_date: e.target.value,
-                    })
-                  }
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Tracking Number"
-                  value={orderUpdate.tracking_number || ""}
-                  onChange={(e) =>
-                    setOrderUpdate({
-                      ...orderUpdate,
-                      tracking_number: e.target.value,
-                    })
-                  }
-                />
-              </Grid>
 
               <Grid item xs={12}>
                 <TextField

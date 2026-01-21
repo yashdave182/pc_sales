@@ -45,6 +45,7 @@ export default function Customers() {
     village: "",
     taluka: "",
     district: "",
+    state: "Gujarat",
     adhar_no: "",
     status: "Active",
   });
@@ -81,6 +82,7 @@ export default function Customers() {
         village: "",
         taluka: "",
         district: "",
+        state: "Gujarat",
         adhar_no: "",
         status: "Active",
       });
@@ -97,6 +99,7 @@ export default function Customers() {
       village: "",
       taluka: "",
       district: "",
+      state: "Gujarat",
       adhar_no: "",
       status: "Active",
     });
@@ -212,6 +215,11 @@ export default function Customers() {
     {
       field: "district",
       headerName: tf("district"),
+      width: 130,
+    },
+    {
+      field: "state",
+      headerName: "State",
       width: 130,
     },
     {
@@ -427,6 +435,21 @@ export default function Customers() {
                   setFormData({ ...formData, district: e.target.value })
                 }
               />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                select
+                label="State"
+                value={formData.state || "Gujarat"}
+                onChange={(e) =>
+                  setFormData({ ...formData, state: e.target.value })
+                }
+              >
+                <MenuItem value="Gujarat">Gujarat</MenuItem>
+                <MenuItem value="Maharashtra">Maharashtra</MenuItem>
+                <MenuItem value="Madhya Pradesh">Madhya Pradesh</MenuItem>
+              </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField

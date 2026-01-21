@@ -332,7 +332,7 @@ def delete_activity_log(
     Only accessible by admin users
     """
     try:
-        response = db.table("activity_logs").delete().eq("id", log_id).execute()
+        response = db.table("activity_logs").eq("id", log_id).delete().execute()
 
         if not response.data:
             raise HTTPException(status_code=404, detail="Activity log not found")
@@ -362,8 +362,8 @@ def delete_old_activity_logs(
 
         response = (
             db.table("activity_logs")
-            .delete()
             .lt("created_at", cutoff_date.isoformat())
+            .delete()
             .execute()
         )
 
@@ -426,8 +426,8 @@ def update_product_price(
         # Update the product price
         response = (
             db.table("products")
-            .update(update_data)
             .eq("product_id", product_id)
+            .update(update_data)
             .execute()
         )
 
@@ -456,9 +456,6 @@ def update_product_price(
     except HTTPException:
         raise
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        print(f"[ERROR] Exception in update_product_price: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"Error updating product price: {str(e)}"
         )
@@ -501,8 +498,8 @@ def update_product_prices_bulk(
             try:
                 response = (
                     db.table("products")
-                    .update(update_data)
                     .eq("product_id", product_id)
+                    .update(update_data)
                     .execute()
                 )
 

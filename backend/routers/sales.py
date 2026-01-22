@@ -495,7 +495,7 @@ def update_sale(
 ):
     """Update a sale"""
     try:
-        response = db.table("sales").update(sale_data).eq("sale_id", sale_id).execute()
+        response = db.table("sales").eq("sale_id", sale_id).update(sale_data).execute()
 
         if not response.data:
             raise HTTPException(status_code=404, detail="Sale not found")
@@ -515,7 +515,7 @@ def delete_sale(sale_id: int, db: SupabaseClient = Depends(get_supabase)):
         db.table("sale_items").delete().eq("sale_id", sale_id).execute()
 
         # Delete sale
-        response = db.table("sales").delete().eq("sale_id", sale_id).execute()
+        response = db.table("sales").eq("sale_id", sale_id).delete().execute()
 
         if not response.data:
             raise HTTPException(status_code=404, detail="Sale not found")

@@ -53,6 +53,12 @@ class Sale(BaseModel):
     payment_status: str = "Pending"
     notes: Optional[str] = None
     payment_terms: Optional[str] = None
+    order_status: str = "Pending"
+    shipment_status: str = "not_shipped"
+    shipment_date: Optional[str] = None
+    dispatch_date: Optional[str] = None
+    delivery_date: Optional[str] = None
+    tracking_number: Optional[str] = None
 
 
 class SaleItem(BaseModel):

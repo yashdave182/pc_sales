@@ -137,8 +137,9 @@ export default function OrderManagement() {
   const getOrderStatusColor = (status: string) => {
     const statusColors: { [key: string]: any } = {
       pending: "warning",
-      processing: "info",
-      delivered: "info",
+      prepared_for_shipment: "info",
+      dispatch: "primary",
+      delivered: "success",
       verified: "success",
       completed: "success",
       cancelled: "error",
@@ -149,6 +150,8 @@ export default function OrderManagement() {
   const getOrderStatusLabel = (status: string) => {
     const statusLabels: { [key: string]: string } = {
       pending: "Pending",
+      prepared_for_shipment: "Prepared for Shipment",
+      dispatch: "Dispatched",
       delivered: "Delivered",
       verified: "Verified",
       completed: "Verified",
@@ -181,22 +184,58 @@ export default function OrderManagement() {
     const currentStatus = order.order_status?.toLowerCase() || "pending";
     const steps = [
       {
-        label: "Order Placed",
+        label: "Pending",
         date: order.sale_date,
-        completed: true
+        completed: ["pending", "prepared_for_shipment", "dispatch", "delivered", "verified", "completed"].includes(currentStatus)
+      },
+      {
+        label: "Prepared for Shipment",
+        date: null,
+        completed: ["prepared_for_shipment", "dispatch", "delivered", "verified", "completed"].includes(currentStatus),
+      },
+      {
+        label: "Dispatched",
+        date: order.dispatch_date,
+        completed: ["dispatch", "delivered", "verified", "completed"].includes(currentStatus),
       },
       {
         label: "Delivered",
-        date: null, // You might want to add a delivery_date field to your model if you want to track this
+        date: order.delivery_date,
         completed: ["delivered", "verified", "completed"].includes(currentStatus),
-      },
-      {
-        label: "Verified",
-        date: null,
-        completed: ["verified", "completed"].includes(currentStatus),
       },
     ];
     return steps;
+  };
+
+  const getNextStatus = (currentStatus: string) => {
+    const sequence = ["pending", "prepared_for_shipment", "dispatch", "delivered"];
+    const currentIndex = sequence.indexOf(currentStatus);
+    if (currentIndex !== -1 && currentIndex < sequence.length - 1) {
+      return sequence[currentIndex + 1];
+    }
+    return null;
+  };
+
+  const handleImmediateUpdate = async (newStatus: string) => {
+    if (!selectedOrder) return;
+    try {
+      await salesAPI.update(selectedOrder.sale_id, {
+        ...selectedOrder,
+        ...orderUpdate,
+        order_status: newStatus
+      });
+      setUpdateDialogOpen(false);
+      fetchData();
+    } catch (error) {
+      console.error("Error updating order:", error);
+    }
+  };
+
+  const handleNextStatus = () => {
+    const next = getNextStatus(orderUpdate.order_status);
+    if (next) {
+      handleImmediateUpdate(next);
+    }
   };
 
   const handleViewDetails = (order: Order) => {
@@ -248,8 +287,9 @@ export default function OrderManagement() {
   const getStatusStats = () => {
     return {
       pending: orders.filter((o) => o.order_status === "pending").length,
+      prepared: orders.filter((o) => o.order_status === "prepared_for_shipment").length,
+      dispatched: orders.filter((o) => o.order_status === "dispatch").length,
       delivered: orders.filter((o) => o.order_status === "delivered").length,
-      verified: orders.filter((o) => o.order_status === "verified" || o.order_status === "completed").length,
     };
   };
 
@@ -284,7 +324,7 @@ export default function OrderManagement() {
 
       {/* Statistics Cards */}
       <Grid container spacing={3} mb={3}>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={3}>
           <Card
             sx={{
               borderLeft: 6,
@@ -306,19 +346,47 @@ export default function OrderManagement() {
               >
                 <ShippingIcon sx={{ fontSize: 100, color: "warning.main" }} />
               </Box>
-              <Typography color="textSecondary" variant="h6" gutterBottom>
-                Pending Orders
+              <Typography color="textSecondary" variant="subtitle2" gutterBottom>
+                Pending
               </Typography>
-              <Typography variant="h3" fontWeight="bold" color="warning.main">
+              <Typography variant="h4" fontWeight="bold" color="warning.main">
                 {stats.pending}
-              </Typography>
-              <Typography variant="caption" color="textSecondary">
-                Orders waiting to be processed
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={3}>
+          <Card
+            sx={{
+              borderLeft: 6,
+              borderColor: "info.main",
+              boxShadow: 2,
+              transition: "transform 0.2s",
+              "&:hover": { transform: "translateY(-4px)" },
+            }}
+          >
+            <CardContent sx={{ position: "relative", overflow: "hidden" }}>
+              <Box
+                sx={{
+                  position: "absolute",
+                  right: -20,
+                  top: -20,
+                  opacity: 0.1,
+                  transform: "rotate(15deg)",
+                }}
+              >
+                <ShippingIcon sx={{ fontSize: 100, color: "info.main" }} />
+              </Box>
+              <Typography color="textSecondary" variant="subtitle2" gutterBottom>
+                Prepared
+              </Typography>
+              <Typography variant="h4" fontWeight="bold" color="info.main">
+                {stats.prepared}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={3}>
           <Card
             sx={{
               borderLeft: 6,
@@ -338,21 +406,18 @@ export default function OrderManagement() {
                   transform: "rotate(15deg)",
                 }}
               >
-                <CheckCircleIcon sx={{ fontSize: 100, color: "primary.main" }} />
+                <ShippingIcon sx={{ fontSize: 100, color: "primary.main" }} />
               </Box>
-              <Typography color="textSecondary" variant="h6" gutterBottom>
-                Delivered
+              <Typography color="textSecondary" variant="subtitle2" gutterBottom>
+                Dispatched
               </Typography>
-              <Typography variant="h3" fontWeight="bold" color="primary.main">
-                {stats.delivered}
-              </Typography>
-              <Typography variant="caption" color="textSecondary">
-                Orders successfully delivered
+              <Typography variant="h4" fontWeight="bold" color="primary.main">
+                {stats.dispatched}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={3}>
           <Card
             sx={{
               borderLeft: 6,
@@ -374,14 +439,11 @@ export default function OrderManagement() {
               >
                 <CheckCircleIcon sx={{ fontSize: 100, color: "success.main" }} />
               </Box>
-              <Typography color="textSecondary" variant="h6" gutterBottom>
-                Verified
+              <Typography color="textSecondary" variant="subtitle2" gutterBottom>
+                Delivered
               </Typography>
-              <Typography variant="h3" fontWeight="bold" color="success.main">
-                {stats.verified}
-              </Typography>
-              <Typography variant="caption" color="textSecondary">
-                Orders completed and verified
+              <Typography variant="h4" fontWeight="bold" color="success.main">
+                {stats.delivered}
               </Typography>
             </CardContent>
           </Card>
@@ -599,24 +661,53 @@ export default function OrderManagement() {
           <Box sx={{ pt: 2 }}>
             <Grid container spacing={2}>
               <Grid item xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel>Order Status</InputLabel>
-                  <Select
-                    value={orderUpdate.order_status}
-                    label="Order Status"
-                    onChange={(e) =>
-                      setOrderUpdate({
-                        ...orderUpdate,
-                        order_status: e.target.value,
-                      })
-                    }
+                {/* Advance Button */}
+                {getNextStatus(orderUpdate.order_status) && (
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    onClick={handleNextStatus}
+                    sx={{
+                      mb: 2,
+                      py: 1.5,
+                      bgcolor: "#e3f2fd",
+                      color: "#0288d1",
+                      "&:hover": {
+                        bgcolor: "#b3e5fc"
+                      }
+                    }}
                   >
-                    <MenuItem value="pending">Pending</MenuItem>
-                    <MenuItem value="delivered">Delivered</MenuItem>
-                    <MenuItem value="verified">Verified</MenuItem>
-                    <MenuItem value="cancelled">Cancelled</MenuItem>
-                  </Select>
-                </FormControl>
+                    {getOrderStatusLabel(getNextStatus(orderUpdate.order_status)!)}
+                  </Button>
+                )}
+
+                {/* Cancel Button - Show if not delivered/cancelled */}
+                {orderUpdate.order_status !== "delivered" && orderUpdate.order_status !== "cancelled" && (
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    color="error"
+                    onClick={() => handleImmediateUpdate("cancelled")}
+                    sx={{ mb: 2 }}
+                  >
+                    Cancel Order
+                  </Button>
+                )}
+
+                {/* Revert Button - Show only if cancelled */}
+                {orderUpdate.order_status === "cancelled" && (
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    color="warning"
+                    onClick={() => handleImmediateUpdate("pending")}
+                    sx={{ mb: 2 }}
+                  >
+                    Revert to Pending
+                  </Button>
+                )}
+
+
               </Grid>
 
 

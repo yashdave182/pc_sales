@@ -303,7 +303,7 @@ def create_sale(
             sale_code = f"{month_year_prefix}{sequence:04d}"
             
             # Update the sale with the generated sale_code
-            db.table("sales").update({"sale_code": sale_code}).eq("sale_id", sale_id).execute()
+            db.table("sales").eq("sale_id", sale_id).update({"sale_code": sale_code}).execute()
             created_sale["sale_code"] = sale_code  # Add to response
         except Exception as e:
             # Column doesn't exist yet - skip sale_code generation
@@ -328,7 +328,7 @@ def create_sale(
 
             if not items_response.data:
                 # Rollback sale if items fail (manual cleanup)
-                db.table("sales").delete().eq("sale_id", sale_id).execute()
+                db.table("sales").eq("sale_id", sale_id).delete().execute()
                 raise HTTPException(
                     status_code=400, detail="Failed to create sale items"
                 )
@@ -512,7 +512,7 @@ def delete_sale(sale_id: int, db: SupabaseClient = Depends(get_supabase)):
     """Delete a sale and its items"""
     try:
         # Delete sale items first
-        db.table("sale_items").delete().eq("sale_id", sale_id).execute()
+        db.table("sale_items").eq("sale_id", sale_id).delete().execute()
 
         # Delete sale
         response = db.table("sales").eq("sale_id", sale_id).delete().execute()

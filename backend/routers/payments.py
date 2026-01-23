@@ -338,7 +338,7 @@ def create_payment(
                     payment_status = "Pending"
 
                 print(f"Updating sale status to: {payment_status}")
-                db.table("sales").update({"payment_status": payment_status}).eq(
+                db.table("sales").eq("sale_id", sale_id).update({"payment_status": payment_status}).execute()
                     "sale_id", payment.sale_id
                 ).execute()
         except requests.HTTPError as sale_http_err:
@@ -471,7 +471,7 @@ def update_payment(
                 else:
                     payment_status = "Pending"
 
-                db.table("sales").update({"payment_status": payment_status}).eq(
+                db.table("sales").eq("sale_id", sale_id).update({"payment_status": payment_status}).execute()
                     "sale_id", sale_id
                 ).execute()
 
@@ -498,7 +498,7 @@ def delete_payment(payment_id: int, db: SupabaseClient = Depends(get_supabase)):
 
         # Delete payment
         delete_response = (
-            db.table("payments").delete().eq("payment_id", payment_id).execute()
+            db.table("payments").eq("payment_id", payment_id).delete().execute()
         )
 
         if not delete_response.data:
@@ -534,7 +534,7 @@ def delete_payment(payment_id: int, db: SupabaseClient = Depends(get_supabase)):
                 else:
                     payment_status = "Pending"
 
-                db.table("sales").update({"payment_status": payment_status}).eq(
+                db.table("sales").eq("sale_id", sale_id).update({"payment_status": payment_status}).execute()
                     "sale_id", sale_id
                 ).execute()
 

@@ -277,7 +277,7 @@ def update_demo(
 ):
     """Update a demo"""
     try:
-        response = db.table("demos").update(demo_data).eq("demo_id", demo_id).execute()
+        response = db.table("demos").eq("demo_id", demo_id).update(demo_data).execute()
 
         if not response.data:
             raise HTTPException(status_code=404, detail="Demo not found")
@@ -310,7 +310,7 @@ def update_demo_status(
             update_data["notes"] = notes
 
         response = (
-            db.table("demos").update(update_data).eq("demo_id", demo_id).execute()
+            db.table("demos").eq("demo_id", demo_id).update(update_data).execute()
         )
 
         if not response.data:
@@ -335,7 +335,7 @@ def delete_demo(demo_id: int, db: SupabaseClient = Depends(get_supabase)):
     """Delete a demo"""
 
     try:
-        response = db.table("demos").delete().eq("demo_id", demo_id).execute()
+        response = db.table("demos").eq("demo_id", demo_id).delete().execute()
 
         if not response.data:
             raise HTTPException(status_code=404, detail="Demo not found")

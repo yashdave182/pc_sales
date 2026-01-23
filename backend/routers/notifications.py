@@ -229,7 +229,7 @@ def mark_all_read(
     """Mark all notifications as read for a user"""
     try:
         # Update all unread notifications for this user
-        query = db.table("notifications").update({"is_read": True}).eq("is_read", False)
+        query = db.table("notifications").eq("is_read", False).update({"is_read": True})
 
         if user_email:
             query = query.eq("user_email", user_email)

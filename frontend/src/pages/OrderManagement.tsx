@@ -30,6 +30,7 @@ import {
   Tooltip,
   Alert,
   CircularProgress,
+  Menu,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -40,6 +41,9 @@ import {
   Payment as PaymentIcon,
   Search as SearchIcon,
   FilterList as FilterIcon,
+  MoreVert as MoreVertIcon,
+  Undo as UndoIcon,
+  Delete as DeleteIcon,
 } from "@mui/icons-material";
 import { customerAPI, salesAPI, paymentAPI } from "../services/api";
 
@@ -95,6 +99,8 @@ export default function OrderManagement() {
     order_status: "pending",
     shipment_status: "not_shipped",
   });
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const [selectedMenuOrder, setSelectedMenuOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -247,6 +253,88 @@ export default function OrderManagement() {
       fetchData();
     } catch (error) {
       console.error("Error updating order:", error);
+    }
+  };
+
+  const getPreviousStatus = (currentStatus: string) => {
+    const sequence = ["pending", "prepared_for_shipment", "dispatch", "delivered"];
+    const currentIndex = sequence.indexOf(currentStatus);
+    if (currentIndex > 0) {
+      return sequence[currentIndex - 1];
+    }
+    return null;
+  };
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, order: Order) => {
+    setMenuAnchor(event.currentTarget);
+    setSelectedMenuOrder(order);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchor(null);
+    setSelectedMenuOrder(null);
+  };
+
+  const handleReturnToPrevious = async () => {
+    if (!selectedMenuOrder) return;
+    const previousStatus = getPreviousStatus(selectedMenuOrder.order_status || "pending");
+    if (previousStatus) {
+      try {
+        const validSaleFields = {
+          sale_id: selectedMenuOrder.sale_id,
+          invoice_no: selectedMenuOrder.invoice_no,
+          customer_id: selectedMenuOrder.customer_id,
+          sale_date: selectedMenuOrder.sale_date,
+          total_amount: selectedMenuOrder.total_amount,
+          total_liters: selectedMenuOrder.total_liters,
+          payment_status: selectedMenuOrder.payment_status,
+          notes: selectedMenuOrder.notes,
+          sale_code: selectedMenuOrder.sale_code,
+          payment_terms: selectedMenuOrder.payment_terms,
+          order_status: previousStatus,
+          shipment_status: selectedMenuOrder.shipment_status,
+          shipment_date: selectedMenuOrder.shipment_date,
+          dispatch_date: selectedMenuOrder.dispatch_date,
+          delivery_date: selectedMenuOrder.delivery_date,
+          tracking_number: selectedMenuOrder.tracking_number,
+        };
+
+        await salesAPI.update(selectedMenuOrder.sale_id, validSaleFields);
+        handleMenuClose();
+        fetchData();
+      } catch (error) {
+        console.error("Error returning to previous status:", error);
+      }
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    if (!selectedMenuOrder) return;
+    try {
+      const validSaleFields = {
+        sale_id: selectedMenuOrder.sale_id,
+        invoice_no: selectedMenuOrder.invoice_no,
+        customer_id: selectedMenuOrder.customer_id,
+        sale_date: selectedMenuOrder.sale_date,
+        total_amount: selectedMenuOrder.total_amount,
+        total_liters: selectedMenuOrder.total_liters,
+        payment_status: selectedMenuOrder.payment_status,
+        notes: selectedMenuOrder.notes,
+        sale_code: selectedMenuOrder.sale_code,
+        payment_terms: selectedMenuOrder.payment_terms,
+        order_status: "prepared_for_shipment", // Set to prepared_for_shipment when cancelled
+        shipment_status: selectedMenuOrder.shipment_status,
+        shipment_date: selectedMenuOrder.shipment_date,
+        dispatch_date: selectedMenuOrder.dispatch_date,
+        delivery_date: selectedMenuOrder.delivery_date,
+        tracking_number: selectedMenuOrder.tracking_number,
+      };
+
+      await salesAPI.update(selectedMenuOrder.sale_id, validSaleFields);
+      handleMenuClose();
+      fetchData();
+    } catch (error) {
+      console.error("Error cancelling order:", error);
     }
   };
 
@@ -576,6 +664,14 @@ export default function OrderManagement() {
                         <EditIcon />
                       </IconButton>
                     </Tooltip>
+                    <Tooltip title="More Actions">
+                      <IconButton
+                        size="small"
+                        onClick={(e) => handleMenuOpen(e, order)}
+                      >
+                        <MoreVertIcon />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))
@@ -700,33 +796,6 @@ export default function OrderManagement() {
                   </Button>
                 )}
 
-                {/* Cancel Button - Show if not delivered/cancelled */}
-                {orderUpdate.order_status !== "delivered" && orderUpdate.order_status !== "cancelled" && (
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    color="error"
-                    onClick={() => handleImmediateUpdate("cancelled")}
-                    sx={{ mb: 2 }}
-                  >
-                    Cancel Order
-                  </Button>
-                )}
-
-                {/* Revert Button - Show only if cancelled */}
-                {orderUpdate.order_status === "cancelled" && (
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    color="warning"
-                    onClick={() => handleImmediateUpdate("pending")}
-                    sx={{ mb: 2 }}
-                  >
-                    Revert to Pending
-                  </Button>
-                )}
-
-
               </Grid>
 
 
@@ -759,6 +828,26 @@ export default function OrderManagement() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Three-dot Menu */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={handleMenuClose}
+      >
+        {selectedMenuOrder && getPreviousStatus(selectedMenuOrder.order_status || "pending") && (
+          <MenuItem onClick={handleReturnToPrevious}>
+            <UndoIcon sx={{ mr: 1 }} fontSize="small" />
+            Return to {getOrderStatusLabel(getPreviousStatus(selectedMenuOrder.order_status || "pending")!)}
+          </MenuItem>
+        )}
+        {selectedMenuOrder && selectedMenuOrder.order_status !== "delivered" && (
+          <MenuItem onClick={handleCancelOrder}>
+            <DeleteIcon sx={{ mr: 1 }} fontSize="small" color="error" />
+            Cancel Order
+          </MenuItem>
+        )}
+      </Menu>
     </Box>
   );
 }

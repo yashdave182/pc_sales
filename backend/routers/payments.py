@@ -339,8 +339,6 @@ def create_payment(
 
                 print(f"Updating sale status to: {payment_status}")
                 db.table("sales").eq("sale_id", sale_id).update({"payment_status": payment_status}).execute()
-                    "sale_id", payment.sale_id
-                ).execute()
         except requests.HTTPError as sale_http_err:
             print(f"Warning: Supabase HTTP error updating sale: {sale_http_err}")
             print(f"This may be due to RLS policies. Payment was still created.")
@@ -472,8 +470,6 @@ def update_payment(
                     payment_status = "Pending"
 
                 db.table("sales").eq("sale_id", sale_id).update({"payment_status": payment_status}).execute()
-                    "sale_id", sale_id
-                ).execute()
 
         return {"message": "Payment updated successfully", "payment": response.data[0]}
     except HTTPException:
@@ -535,8 +531,6 @@ def delete_payment(payment_id: int, db: SupabaseClient = Depends(get_supabase)):
                     payment_status = "Pending"
 
                 db.table("sales").eq("sale_id", sale_id).update({"payment_status": payment_status}).execute()
-                    "sale_id", sale_id
-                ).execute()
 
         return {"message": "Payment deleted successfully"}
     except HTTPException:

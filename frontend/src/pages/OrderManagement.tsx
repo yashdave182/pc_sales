@@ -219,15 +219,28 @@ export default function OrderManagement() {
   const handleImmediateUpdate = async (newStatus: string) => {
     if (!selectedOrder) return;
     try {
-      // Filter out read-only fields that come from joins (customer_name, customer_mobile, village)
-      // These don't exist in the sales table and will cause a 400 error
-      const { customer_name, customer_mobile, village, ...saleData } = selectedOrder;
+      // Only send fields that exist in the sales table (whitelist approach)
+      // This prevents read-only fields from joins (customer_name, mobile, village, etc.) from being sent
+      const validSaleFields = {
+        sale_id: selectedOrder.sale_id,
+        invoice_no: selectedOrder.invoice_no,
+        customer_id: selectedOrder.customer_id,
+        sale_date: selectedOrder.sale_date,
+        total_amount: selectedOrder.total_amount,
+        total_liters: selectedOrder.total_liters,
+        payment_status: selectedOrder.payment_status,
+        notes: selectedOrder.notes,
+        sale_code: selectedOrder.sale_code,
+        payment_terms: selectedOrder.payment_terms,
+        order_status: newStatus,
+        shipment_status: orderUpdate.shipment_status,
+        shipment_date: orderUpdate.shipment_date,
+        dispatch_date: orderUpdate.dispatch_date,
+        delivery_date: orderUpdate.delivery_date,
+        tracking_number: orderUpdate.tracking_number,
+      };
 
-      await salesAPI.update(selectedOrder.sale_id, {
-        ...saleData,
-        ...orderUpdate,
-        order_status: newStatus
-      });
+      await salesAPI.update(selectedOrder.sale_id, validSaleFields);
       setUpdateDialogOpen(false);
       fetchData();
     } catch (error) {

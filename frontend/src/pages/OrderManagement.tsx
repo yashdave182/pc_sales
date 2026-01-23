@@ -68,6 +68,8 @@ interface Order {
   delivery_date?: string;
   tracking_number?: string;
   notes?: string;
+  sale_code?: string;
+  payment_terms?: string;
 }
 
 interface OrderStatusUpdate {

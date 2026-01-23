@@ -219,8 +219,12 @@ export default function OrderManagement() {
   const handleImmediateUpdate = async (newStatus: string) => {
     if (!selectedOrder) return;
     try {
+      // Filter out read-only fields that come from joins (customer_name, customer_mobile, village)
+      // These don't exist in the sales table and will cause a 400 error
+      const { customer_name, customer_mobile, village, ...saleData } = selectedOrder;
+
       await salesAPI.update(selectedOrder.sale_id, {
-        ...selectedOrder,
+        ...saleData,
         ...orderUpdate,
         order_status: newStatus
       });

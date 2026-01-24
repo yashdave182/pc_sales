@@ -43,7 +43,7 @@ import {
   FilterList as FilterIcon,
   MoreVert as MoreVertIcon,
   Undo as UndoIcon,
-  Delete as DeleteIcon,
+  Autorenew as ReprocessIcon,
 } from "@mui/icons-material";
 import { customerAPI, salesAPI, paymentAPI } from "../services/api";
 
@@ -308,7 +308,7 @@ export default function OrderManagement() {
     }
   };
 
-  const handleCancelOrder = async () => {
+  const handleReprocessOrder = async () => {
     if (!selectedMenuOrder) return;
     try {
       const validSaleFields = {
@@ -334,7 +334,7 @@ export default function OrderManagement() {
       handleMenuClose();
       fetchData();
     } catch (error) {
-      console.error("Error cancelling order:", error);
+      console.error("Error reprocessing order:", error);
     }
   };
 
@@ -842,9 +842,9 @@ export default function OrderManagement() {
           </MenuItem>
         )}
         {selectedMenuOrder && selectedMenuOrder.order_status !== "delivered" && (
-          <MenuItem onClick={handleCancelOrder}>
-            <DeleteIcon sx={{ mr: 1 }} fontSize="small" color="error" />
-            Cancel Order
+          <MenuItem onClick={handleReprocessOrder}>
+            <ReprocessIcon sx={{ mr: 1 }} fontSize="small" color="primary" />
+            Reprocess Order
           </MenuItem>
         )}
       </Menu>

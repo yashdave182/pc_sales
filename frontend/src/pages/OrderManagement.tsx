@@ -44,6 +44,8 @@ import {
   MoreVert as MoreVertIcon,
   Undo as UndoIcon,
   Autorenew as ReprocessIcon,
+  ArrowUpward as NextStatusIcon,
+  Cancel as CancelIcon,
 } from "@mui/icons-material";
 import { customerAPI, salesAPI, paymentAPI } from "../services/api";
 
@@ -198,7 +200,7 @@ export default function OrderManagement() {
       },
       {
         label: "Prepared for Shipment",
-        date: null,
+        date: order.shipment_date,
         completed: ["prepared_for_shipment", "dispatch", "delivered", "verified", "completed"].includes(currentStatus),
       },
       {
@@ -323,7 +325,7 @@ export default function OrderManagement() {
         sale_code: selectedMenuOrder.sale_code,
         payment_terms: selectedMenuOrder.payment_terms,
         order_status: "prepared_for_shipment", // Set to prepared_for_shipment when cancelled
-        shipment_status: selectedMenuOrder.shipment_status,
+        shipment_status: "returned", // Mark as returned/reprocessed for tracking
         shipment_date: selectedMenuOrder.shipment_date,
         dispatch_date: selectedMenuOrder.dispatch_date,
         delivery_date: selectedMenuOrder.delivery_date,
@@ -338,6 +340,36 @@ export default function OrderManagement() {
     }
   };
 
+  const handleCancelOrder = async () => {
+    if (!selectedMenuOrder) return;
+    try {
+      const validSaleFields = {
+        sale_id: selectedMenuOrder.sale_id,
+        invoice_no: selectedMenuOrder.invoice_no,
+        customer_id: selectedMenuOrder.customer_id,
+        sale_date: selectedMenuOrder.sale_date,
+        total_amount: selectedMenuOrder.total_amount,
+        total_liters: selectedMenuOrder.total_liters,
+        payment_status: selectedMenuOrder.payment_status,
+        notes: selectedMenuOrder.notes,
+        sale_code: selectedMenuOrder.sale_code,
+        payment_terms: selectedMenuOrder.payment_terms,
+        order_status: "cancelled", // Set status to cancelled
+        shipment_status: selectedMenuOrder.shipment_status,
+        shipment_date: selectedMenuOrder.shipment_date,
+        dispatch_date: selectedMenuOrder.dispatch_date,
+        delivery_date: selectedMenuOrder.delivery_date,
+        tracking_number: selectedMenuOrder.tracking_number,
+      };
+
+      await salesAPI.update(selectedMenuOrder.sale_id, validSaleFields);
+      handleMenuClose();
+      fetchData();
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+    }
+  };
+
   const handleNextStatus = () => {
     const next = getNextStatus(orderUpdate.order_status);
     if (next) {
@@ -348,6 +380,47 @@ export default function OrderManagement() {
   const handleViewDetails = (order: Order) => {
     setSelectedOrder(order);
     setDetailsDialogOpen(true);
+  };
+
+  const handleQuickStatusAdvance = async (order: Order) => {
+    const nextStatus = getNextStatus(order.order_status || "pending");
+    if (!nextStatus) return;
+
+    try {
+      // Determine which date field to update
+      const today = new Date().toISOString().split('T')[0];
+      const dateUpdates: any = {};
+
+      if (nextStatus === "prepared_for_shipment") dateUpdates.shipment_date = today;
+      if (nextStatus === "dispatch") dateUpdates.dispatch_date = today;
+      if (nextStatus === "delivered") dateUpdates.delivery_date = today;
+
+      // Whitelist fields
+      const validSaleFields = {
+        sale_id: order.sale_id,
+        invoice_no: order.invoice_no,
+        customer_id: order.customer_id,
+        sale_date: order.sale_date,
+        total_amount: order.total_amount,
+        total_liters: order.total_liters,
+        payment_status: order.payment_status,
+        notes: order.notes,
+        sale_code: order.sale_code,
+        payment_terms: order.payment_terms,
+        order_status: nextStatus,
+        shipment_status: order.shipment_status || "not_shipped",
+        shipment_date: order.shipment_date,
+        dispatch_date: order.dispatch_date,
+        delivery_date: order.delivery_date,
+        tracking_number: order.tracking_number,
+        ...dateUpdates // Overwrite with new date
+      };
+
+      await salesAPI.update(order.sale_id, validSaleFields);
+      fetchData();
+    } catch (error) {
+      console.error("Error advancing order status:", error);
+    }
   };
 
   const handleUpdateStatus = (order: Order) => {
@@ -395,6 +468,8 @@ export default function OrderManagement() {
     return {
       pending: orders.filter((o) => o.order_status === "pending").length,
       prepared: orders.filter((o) => o.order_status === "prepared_for_shipment").length,
+      returned: orders.filter((o) => o.shipment_status === "returned").length,
+      cancelled: orders.filter((o) => o.order_status === "cancelled").length,
       dispatched: orders.filter((o) => o.order_status === "dispatch").length,
       delivered: orders.filter((o) => o.order_status === "delivered").length,
     };
@@ -455,6 +530,12 @@ export default function OrderManagement() {
               </Box>
               <Typography color="textSecondary" variant="subtitle2" gutterBottom>
                 Pending
+                <Chip
+                  label={`Return: ${stats.returned}`}
+                  size="small"
+                  color="warning"
+                  sx={{ ml: 1, height: 20, fontSize: "0.75rem", fontWeight: "bold" }}
+                />
               </Typography>
               <Typography variant="h4" fontWeight="bold" color="warning.main">
                 {stats.pending}
@@ -486,6 +567,7 @@ export default function OrderManagement() {
               </Box>
               <Typography color="textSecondary" variant="subtitle2" gutterBottom>
                 Prepared
+
               </Typography>
               <Typography variant="h4" fontWeight="bold" color="info.main">
                 {stats.prepared}
@@ -548,6 +630,12 @@ export default function OrderManagement() {
               </Box>
               <Typography color="textSecondary" variant="subtitle2" gutterBottom>
                 Delivered
+                <Chip
+                  label={`Cancel: ${stats.cancelled}`}
+                  size="small"
+                  color="error"
+                  sx={{ ml: 1, height: 20, fontSize: "0.75rem", fontWeight: "bold" }}
+                />
               </Typography>
               <Typography variant="h4" fontWeight="bold" color="success.main">
                 {stats.delivered}
@@ -579,7 +667,7 @@ export default function OrderManagement() {
 
       {/* Orders Table */}
       <TableContainer component={Paper}>
-        <Table>
+        <Table size="small">
           <TableHead>
             <TableRow sx={{ bgcolor: "grey.100" }}>
               <TableCell>
@@ -643,6 +731,16 @@ export default function OrderManagement() {
                         order.order_status || "pending",
                       )}
                       size="small"
+                      onDelete={
+                        getNextStatus(order.order_status || "pending")
+                          ? () => handleQuickStatusAdvance(order)
+                          : undefined
+                      }
+                      deleteIcon={
+                        <Tooltip title={`Advance to ${getOrderStatusLabel(getNextStatus(order.order_status || "pending") || "")}`}>
+                          <NextStatusIcon />
+                        </Tooltip>
+                      }
                     />
                   </TableCell>
                   <TableCell align="center">
@@ -651,6 +749,7 @@ export default function OrderManagement() {
                         size="small"
                         color="primary"
                         onClick={() => handleViewDetails(order)}
+                        sx={{ mr: 1 }}
                       >
                         <VisibilityIcon />
                       </IconButton>
@@ -660,6 +759,7 @@ export default function OrderManagement() {
                         size="small"
                         color="secondary"
                         onClick={() => handleUpdateStatus(order)}
+                        sx={{ mr: 1 }}
                       >
                         <EditIcon />
                       </IconButton>
@@ -845,6 +945,12 @@ export default function OrderManagement() {
           <MenuItem onClick={handleReprocessOrder}>
             <ReprocessIcon sx={{ mr: 1 }} fontSize="small" color="primary" />
             Reprocess Order
+          </MenuItem>
+        )}
+        {selectedMenuOrder && selectedMenuOrder.order_status !== "cancelled" && selectedMenuOrder.order_status !== "delivered" && (
+          <MenuItem onClick={handleCancelOrder}>
+            <CancelIcon sx={{ mr: 1 }} fontSize="small" color="error" />
+            Cancel Order
           </MenuItem>
         )}
       </Menu>

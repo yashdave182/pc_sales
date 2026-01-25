@@ -3,6 +3,7 @@ from typing import Any, Dict, Generator, List, Optional
 
 import requests
 from dotenv import load_dotenv
+from supabase import create_client, Client
 
 # Load environment variables from .env file
 load_dotenv()
@@ -574,6 +575,23 @@ def print_migration_instructions():
     print("4. Verify the data in your Supabase dashboard")
     print("5. Update your application to use the new database")
     print("\n" + "=" * 60)
+
+
+
+def get_supabase() -> Client:
+    """Return an authenticated Supabase client for admin operations"""
+    # Prefer service role key for admin ops if available, otherwise fallback to anon key
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or SUPABASE_KEY
+    return create_client(SUPABASE_URL, key)
+
+
+def get_db():
+    """Dependency to get DB client"""
+    db = SupabaseClient(SUPABASE_URL, SUPABASE_KEY)
+    try:
+        yield db
+    finally:
+        pass
 
 
 if __name__ == "__main__":

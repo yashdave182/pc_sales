@@ -146,3 +146,14 @@ class Notification(BaseModel):
     action_url: Optional[str] = None
     is_read: bool = False
     created_at: Optional[str] = None
+
+
+# ======================
+# Admin
+# ======================
+
+
+class UserCreate(BaseModel):
+    email: str
+    password: str
+    role: str

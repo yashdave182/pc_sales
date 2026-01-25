@@ -8,7 +8,8 @@ from typing import List, Optional
 
 from activity_logger import get_activity_logger
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from supabase_db import SupabaseClient, get_db
+from supabase_db import SupabaseClient, get_db, get_supabase
+from models import UserCreate
 
 router = APIRouter()
 
@@ -534,7 +535,49 @@ def update_product_prices_bulk(
 
     except HTTPException:
         raise
-    except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error updating product prices: {str(e)}"
         )
+
+
+@router.post("/users")
+def create_user(
+    user: UserCreate,
+    admin_email: str = Depends(verify_admin),
+    db: SupabaseClient = Depends(get_db),
+):
+    """
+    Create a new user with a specific role
+    Only accessible by admin users
+    """
+    try:
+        # Use Supabase Admin API to create user
+        supabase = get_supabase()
+        
+        # Create user with metadata
+        result = supabase.auth.admin.create_user({
+            "email": user.email,
+            "password": user.password,
+            "email_confirm": True,
+            "user_metadata": {"role": user.role}
+        })
+        
+        if not result:
+            raise HTTPException(status_code=500, detail="Failed to create user")
+
+        # Log activity
+        logger = get_activity_logger(db)
+        logger.log_activity(
+            user_email=admin_email,
+            action_type="CREATE_USER",
+            action_description=f"Created new user {user.email} with role {user.role}",
+            entity_type="user",
+            entity_id=None,  # We don't have integer ID for auth users
+            metadata={"new_user_email": user.email, "role": user.role}
+        )
+        
+        return {"message": "User created successfully", "user": {"email": user.email, "role": user.role}}
+        
+    except Exception as e:
+        print(f"Error creating user: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

@@ -21,6 +21,10 @@ import {
   TablePagination,
   InputAdornment,
   Avatar,
+  Button,
+  Select,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import {
   Refresh as RefreshIcon,
@@ -73,6 +77,23 @@ export default function Admin() {
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [total, setTotal] = useState(0);
 
+  // User Management State
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [newUserRole, setNewUserRole] = useState("");
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [creationSuccess, setCreationSuccess] = useState<string | null>(null);
+
+  const roles = [
+    "Sales Manager",
+    "Logistics Manager",
+    "Telecaller",
+    "Marketing Manager",
+    "Business Analyst",
+    "Product Manager",
+    "Developer",
+  ];
+
   // Check if user is admin
   useEffect(() => {
     if (user && user.email !== "admin@gmail.com") {
@@ -118,6 +139,48 @@ export default function Admin() {
       setLoading(false);
     }
   };
+
+  const handleCreateUser = async () => {
+    if (!newUserEmail || !newUserPassword || !newUserRole) {
+      setError("Please fill in all fields");
+      return;
+    }
+
+    try {
+      setCreatingUser(true);
+      setError(null);
+      setCreationSuccess(null);
+
+      await axios.post(
+        `${API_BASE_URL}/admin/users`,
+        {
+          email: newUserEmail,
+          password: newUserPassword,
+          role: newUserRole,
+        },
+        {
+          headers: {
+            "x-user-email": user?.email || "",
+          },
+        }
+      );
+
+      setCreationSuccess(`User ${newUserEmail} created successfully with role ${newUserRole}`);
+      setNewUserEmail("");
+      setNewUserPassword("");
+      setNewUserRole("");
+      loadActivities(); // Refresh logs to show the CREATE_USER action
+    } catch (err: any) {
+      console.error("Error creating user:", err);
+      setError(err.response?.data?.detail || "Failed to create user");
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
+
+
+
 
   useEffect(() => {
     if (user?.email === "admin@gmail.com") {
@@ -195,6 +258,84 @@ export default function Admin() {
   return (
     <Box>
       {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+          Admin
+        </Typography>
+      </Box>
+
+      {/* User Management Card */}
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom fontWeight="bold">
+            User Management
+          </Typography>
+          <Typography variant="body2" color="textSecondary" paragraph>
+            Create new users and assign their roles. Updates act immediately.
+          </Typography>
+
+          {creationSuccess && (
+            <Alert severity="success" sx={{ mb: 3 }} onClose={() => setCreationSuccess(null)}>
+              {creationSuccess}
+            </Alert>
+          )}
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
+
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                label="Email Address"
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <TextField
+                fullWidth
+                label="Password"
+                type="password"
+                value={newUserPassword}
+                onChange={(e) => setNewUserPassword(e.target.value)}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Role</InputLabel>
+                <Select
+                  value={newUserRole}
+                  label="Role"
+                  onChange={(e) => setNewUserRole(e.target.value)}
+                >
+                  {roles.map((role) => (
+                    <MenuItem key={role} value={role}>
+                      {role}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={2}>
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={handleCreateUser}
+                disabled={creatingUser}
+              >
+                {creatingUser ? <CircularProgress size={24} color="inherit" /> : "Create User"}
+              </Button>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
           Admin Activity Logs

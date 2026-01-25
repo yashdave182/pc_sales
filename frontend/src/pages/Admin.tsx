@@ -152,7 +152,7 @@ export default function Admin() {
       setCreationSuccess(null);
 
       await axios.post(
-        `${API_BASE_URL}/admin/users`,
+        `${API_BASE_URL}/api/admin/users`,
         {
           email: newUserEmail,
           password: newUserPassword,

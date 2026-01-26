@@ -89,6 +89,12 @@ const navigationItems: NavItem[] = [
     path: "/orders",
   },
   {
+    id: "payments",
+    labelKey: "nav.payments",
+    icon: <PaymentIcon />,
+    path: "/payments",
+  },
+  {
     id: "reports",
     labelKey: "nav.reports",
     icon: <AssessmentIcon />,

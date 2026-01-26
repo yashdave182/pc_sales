@@ -347,19 +347,6 @@ export default function Payments() {
             {t("payments.subtitle", "Record and track payments")}
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          size="large"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-          sx={{
-            borderRadius: 2,
-            px: 3,
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-          }}
-        >
-          {t("payments.recordPayment")}
-        </Button>
       </Box>
 
       {error && (

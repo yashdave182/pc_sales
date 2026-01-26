@@ -103,6 +103,7 @@ export default function OrderManagement() {
   });
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [selectedMenuOrder, setSelectedMenuOrder] = useState<Order | null>(null);
+  const [selectedOrderItems, setSelectedOrderItems] = useState<any[]>([]); // New state for items
 
   useEffect(() => {
     fetchData();
@@ -377,9 +378,22 @@ export default function OrderManagement() {
     }
   };
 
-  const handleViewDetails = (order: Order) => {
+  const handleViewDetails = async (order: Order) => {
     setSelectedOrder(order);
     setDetailsDialogOpen(true);
+
+    // Fetch items for this order
+    try {
+      const response = await salesAPI.getById(order.sale_id);
+      if (response && response.items) {
+        setSelectedOrderItems(response.items);
+      } else {
+        setSelectedOrderItems([]);
+      }
+    } catch (error) {
+      console.error("Error fetching order details:", error);
+      setSelectedOrderItems([]);
+    }
   };
 
   const handleQuickStatusAdvance = async (order: Order) => {
@@ -819,6 +833,45 @@ export default function OrderManagement() {
                   </Typography>
                 </Grid>
               </Grid>
+
+              {/* Purchased Items Table */}
+              <Box mt={4}>
+                <Typography variant="subtitle2" color="textSecondary" mb={2}>
+                  Purchased Items
+                </Typography>
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: "grey.50" }}>
+                        <TableCell><strong>Product</strong></TableCell>
+                        <TableCell align="right"><strong>Qty</strong></TableCell>
+                        <TableCell align="right"><strong>Rate</strong></TableCell>
+                        <TableCell align="right"><strong>Amount</strong></TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {selectedOrderItems.length > 0 ? (
+                        selectedOrderItems.map((item, index) => (
+                          <TableRow key={index}>
+                            <TableCell>{item.product_name || "Unknown Product"}</TableCell>
+                            <TableCell align="right">{item.quantity}</TableCell>
+                            <TableCell align="right">₹{item.rate?.toLocaleString()}</TableCell>
+                            <TableCell align="right">₹{item.amount?.toLocaleString()}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={4} align="center">
+                            <Typography variant="caption" color="textSecondary">
+                              No items found
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
 
 
 

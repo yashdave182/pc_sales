@@ -71,15 +71,7 @@ export default function QuickActions({ onQuickSearch }: QuickActionsProps) {
       },
       color: '#7c3aed',
     },
-    {
-      icon: <PaymentIcon />,
-      name: 'Record Payment',
-      onClick: () => {
-        navigate('/payments');
-        setOpen(false);
-      },
-      color: '#ef4444',
-    },
+
   ];
 
   const handleSearch = () => {

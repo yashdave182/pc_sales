@@ -192,42 +192,39 @@ export default function Dashboard() {
     try {
       setLoadingCollected(true);
 
+      // Fetch all payments (or use a large limit if pagination exists)
       const response = await import("../services/api").then(m => m.paymentAPI.getAll({ limit: 1000 }));
-      console.log("DEBUG: Raw Payment API Response:", response);
 
-      // Handle potential different response structures
       let payments = [];
       if (Array.isArray(response)) {
         payments = response;
       } else if (response && Array.isArray(response.data)) {
         payments = response.data;
-      } else {
-        console.warn("DEBUG: Unexpected payment response structure", response);
       }
 
-      console.log(`DEBUG: Found ${payments.length} payments`);
+      // Helper to get YYYY-MM-DD string from any date input
+      const getStateDateStr = (d: string | Date) => {
+        if (!d) return "";
+        try {
+          return new Date(d).toISOString().split('T')[0];
+        } catch (e) {
+          return "";
+        }
+      };
 
-      const start = new Date(collectedPaymentRange.start);
-      start.setHours(0, 0, 0, 0);
-
-      const end = new Date(collectedPaymentRange.end);
-      end.setHours(23, 59, 59, 999);
-
-      console.log(`DEBUG: Filtering from ${start.toISOString()} to ${end.toISOString()}`);
+      const startStr = collectedPaymentRange.start;
+      const endStr = collectedPaymentRange.end;
 
       const total = payments.reduce((sum: number, p: any) => {
-        const pDate = new Date(p.payment_date);
+        const pDateStr = getStateDateStr(p.payment_date); // e.g. "2026-01-26"
 
-        // Debug first payment just to check format
-        // if (sum === 0 && payments.indexOf(p) === 0) console.log("First payment date:", p.payment_date, "Parsed:", pDate);
-
-        if (pDate >= start && pDate <= end) {
+        // String comparison is consistent regardless of time/timezone if standard ISO format
+        if (pDateStr && pDateStr >= startStr && pDateStr <= endStr) {
           return sum + (parseFloat(p.amount) || 0);
         }
         return sum;
       }, 0);
 
-      console.log("DEBUG: Calculated Total:", total);
       setCollectedAmount(total);
     } catch (err) {
       console.error("Error fetching collected payments:", err);
@@ -243,17 +240,12 @@ export default function Dashboard() {
   const loadSalesTrendByDateRange = useCallback(async () => {
     try {
       setLoadingChart(true);
-      console.log("=== LOADING SALES TREND ===");
-      console.log("Date range:", salesDateRange);
-      console.log("Start date:", salesDateRange.start);
-      console.log("End date:", salesDateRange.end);
 
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pc-sales-8phu.onrender.com";
       // Add cache buster to prevent browser caching
       const cacheBuster = `&_t=${Date.now()}`;
       const url = `${API_BASE_URL}/api/reports/sales-trend?interval=daily&start_date=${salesDateRange.start}&end_date=${salesDateRange.end}${cacheBuster}`;
 
-      console.log("Full URL:", url);
 
       const response = await fetch(url, {
         headers: {
@@ -263,8 +255,6 @@ export default function Dashboard() {
         },
       });
 
-      console.log("Response status:", response.status);
-      console.log("Response OK:", response.ok);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -273,19 +263,14 @@ export default function Dashboard() {
       }
 
       const data = await response.json();
-      console.log("Raw API response:", JSON.stringify(data, null, 2));
-      console.log("Number of trends:", data.trends?.length || 0);
 
       // Check if API is respecting date parameters
       if (data.trends && data.trends.length > 0) {
         const firstDate = data.trends[0].period;
         const lastDate = data.trends[data.trends.length - 1].period;
-        console.log(`API returned data from ${firstDate} to ${lastDate}`);
-        console.log(`You requested from ${salesDateRange.start} to ${salesDateRange.end}`);
 
         if (firstDate < salesDateRange.start || lastDate > salesDateRange.end) {
           console.warn("⚠️ WARNING: API returned data outside requested range!");
-          console.warn("This is a BACKEND issue - the API is not respecting date parameters");
         }
       }
 
@@ -295,9 +280,6 @@ export default function Dashboard() {
         total_amount: parseFloat(trend.total_amount) || 0,
         sales_count: parseInt(trend.sales_count) || 0,
       }));
-
-      console.log("Transformed chart data:", JSON.stringify(chartData, null, 2));
-      console.log("Setting new chart data with", chartData.length, "points");
 
       setSalesTrend(chartData);
       setChartKey(prev => prev + 1);

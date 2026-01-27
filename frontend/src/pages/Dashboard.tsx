@@ -350,11 +350,21 @@ export default function Dashboard() {
     return null;
   }
 
-  // Prepare payment status data for pie chart
-  const paymentStatusData = [
-    { name: t("dashboard.paid"), value: metrics.total_payments },
-    { name: t("dashboard.pending"), value: metrics.pending_amount },
-  ];
+  // Prepare payment method distribution data for pie chart
+  const paymentMethodData = metrics.payment_method_distribution
+    ? Object.entries(metrics.payment_method_distribution).map(([name, value]) => ({
+      name,
+      value
+    }))
+    : [];
+
+  const PIE_COLORS = {
+    "Cash": "#10b981", // Green
+    "UPI": "#3b82f6", // Blue
+    "Bank Transfer": "#8b5cf6", // Purple
+    "Cheque": "#f59e0b", // Orange
+    "Other": "#9ca3af" // Gray
+  };
 
   return (
     <Box>
@@ -625,48 +635,56 @@ export default function Dashboard() {
           </Card>
         </Grid>
 
-        {/* Payment Status Pie Chart */}
+        {/* Payment Method Distribution Pie Chart */}
         <Grid item xs={12} lg={4}>
           <Card sx={{ height: "100%" }}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-                {t("dashboard.paymentStatus")}
+                Collected Payments (By Method)
               </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={paymentStatusData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={false}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {paymentStatusData.map((_, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip
-                    formatter={(value: number) => `₹${value.toLocaleString()}`}
-                    contentStyle={{
-                      backgroundColor: theme.palette.background.paper,
-                      border: `1px solid ${theme.palette.divider}`,
-                      borderRadius: 8,
-                    }}
-                  />
-                  <Legend
-                    layout="horizontal"
-                    verticalAlign="bottom"
-                    align="center"
-                    wrapperStyle={{ fontSize: 12 }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              {paymentMethodData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={paymentMethodData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {paymentMethodData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={PIE_COLORS[entry.name as keyof typeof PIE_COLORS] || COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip
+                      formatter={(value: number) => `₹${value.toLocaleString()}`}
+                      contentStyle={{
+                        backgroundColor: theme.palette.background.paper,
+                        border: `1px solid ${theme.palette.divider}`,
+                        borderRadius: 8,
+                      }}
+                    />
+                    <Legend
+                      layout="horizontal"
+                      verticalAlign="bottom"
+                      align="center"
+                      wrapperStyle={{ fontSize: 12 }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300, flexDirection: 'column' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    No payment data available
+                  </Typography>
+                </Box>
+              )}
             </CardContent>
           </Card>
         </Grid>

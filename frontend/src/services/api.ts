@@ -81,8 +81,17 @@ apiClient.interceptors.response.use(
 
 // Dashboard API
 export const dashboardAPI = {
-  getMetrics: async () => {
-    const response = await apiClient.get("/api/dashboard/metrics");
+  getMetrics: async (startDate?: string, endDate?: string) => {
+    let url = "/api/dashboard/metrics";
+    const params = new URLSearchParams();
+    if (startDate) params.append("start_date", startDate);
+    if (endDate) params.append("end_date", endDate);
+
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    const response = await apiClient.get(url);
     return response.data;
   },
   getRecentSales: async (limit?: number) => {

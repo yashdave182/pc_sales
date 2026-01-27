@@ -12,12 +12,23 @@ router = APIRouter()
 # Dashboard Metrics
 # ======================
 @router.get("/metrics")
-def dashboard_metrics(db: SupabaseClient = Depends(get_supabase)):
-    """Get dashboard metrics"""
+def dashboard_metrics(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db: SupabaseClient = Depends(get_supabase)
+):
+    """Get dashboard metrics with optional date filtering"""
     try:
-        print("Fetching dashboard metrics...")
-        # Get all sales with their IDs for accurate calculation
-        sales_response = db.table("sales").select("sale_id, total_amount, sale_date, payment_terms").execute()
+        print(f"Fetching dashboard metrics... Date range: {start_date} to {end_date}")
+        
+        # Sales query
+        sales_query = db.table("sales").select("sale_id, total_amount, sale_date, payment_terms")
+        if start_date:
+            sales_query = sales_query.gte("sale_date", start_date)
+        if end_date:
+            sales_query = sales_query.lte("sale_date", end_date)
+        sales_response = sales_query.execute()
+        
         total_sales = 0.0
         sales_data_map = {}
 
@@ -32,20 +43,35 @@ def dashboard_metrics(db: SupabaseClient = Depends(get_supabase)):
                     "terms": sale.get("payment_terms")
                 }
 
-        # Get all payments grouped by sale_id
-        payments_response = db.table("payments").select("sale_id, amount").execute()
+        # Payments query
+        payments_query = db.table("payments").select("sale_id, amount, payment_date, payment_method")
+        if start_date:
+            payments_query = payments_query.gte("payment_date", start_date)
+        if end_date:
+            payments_query = payments_query.lte("payment_date", end_date)
+        payments_response = payments_query.execute()
+        
         total_payments = 0.0
         paid_by_sale = {}
+        payment_method_distribution = {}
 
         if payments_response.data:
             for payment in payments_response.data:
                 sale_id = payment.get("sale_id")
                 amount = float(payment.get("amount", 0) or 0)
+                method = payment.get("payment_method", "Other") or "Other"
+                
                 total_payments += amount
+                
+                # Aggregate by payment method
+                payment_method_distribution[method] = payment_method_distribution.get(method, 0.0) + amount
+
                 if sale_id:
                     paid_by_sale[sale_id] = paid_by_sale.get(sale_id, 0.0) + amount
 
-        # Calculate actual pending amount (only from sales that have strict pending balance)
+        # Calculate actual pending amount
+        # Note: If date filtering is active, this calculates pending amount 
+        # for the SALES made in that period, considering PAYMENTS made in that period.
         pending_amount = 0.0
         today = datetime.now().date()
         
@@ -91,14 +117,15 @@ def dashboard_metrics(db: SupabaseClient = Depends(get_supabase)):
                 if is_due:
                     pending_amount += pending
 
-        # Get total customers count
+        # Get total customers count (Lifetime metric, usually not filtered by short date ranges)
+        # If strict filtering is needed, we could filter by created_at
         customers_response = db.table("customers").select("customer_id").execute()
         total_customers = len(customers_response.data) if customers_response.data else 0
 
         # Get total transactions count
         total_transactions = len(sales_response.data) if sales_response.data else 0
 
-        # Get demo conversion rate (dynamic calculation based on actual conversions)
+        # Get demo conversion rate
         demos_response = db.table("demos").select("conversion_status").execute()
 
         demo_conversion_rate = 0.0
@@ -118,10 +145,6 @@ def dashboard_metrics(db: SupabaseClient = Depends(get_supabase)):
             if total_demos > 0:
                 demo_conversion_rate = round((converted_count / total_demos) * 100, 2)
 
-        print(
-            f"Demo conversion: {converted_count}/{total_demos} = {demo_conversion_rate}%"
-        )
-
         metrics_result = {
             "total_sales": round(total_sales, 2),
             "total_payments": round(total_payments, 2),
@@ -129,16 +152,12 @@ def dashboard_metrics(db: SupabaseClient = Depends(get_supabase)):
             "total_customers": total_customers,
             "total_transactions": total_transactions,
             "demo_conversion_rate": demo_conversion_rate,
+            "payment_method_distribution": payment_method_distribution
         }
-
-        print(
-            f"Dashboard metrics calculated: total_sales={metrics_result['total_sales']}, "
-            f"total_payments={metrics_result['total_payments']}, "
-            f"pending_amount={metrics_result['pending_amount']}"
-        )
 
         return metrics_result
     except Exception as e:
+        print(f"Error in dashboard_metrics: {e}")
         raise HTTPException(
             status_code=500, detail=f"Error fetching dashboard metrics: {str(e)}"
         )

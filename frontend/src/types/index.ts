@@ -140,6 +140,7 @@ export interface DashboardMetrics {
   total_customers: number;
   total_transactions: number;
   demo_conversion_rate: number;
+  payment_method_distribution?: Record<string, number>;
 }
 
 export interface SalesTrendData {

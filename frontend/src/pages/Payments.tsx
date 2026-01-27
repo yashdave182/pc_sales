@@ -25,6 +25,7 @@ import {
   Payment as PaymentIcon,
   Refresh as RefreshIcon,
   Receipt as ReceiptIcon,
+  Search as SearchIcon,
 } from "@mui/icons-material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { paymentAPI, salesAPI } from "../services/api";
@@ -37,6 +38,7 @@ export default function Payments() {
   const pendingSectionRef = useRef<HTMLDivElement>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
@@ -334,6 +336,20 @@ export default function Payments() {
     },
   ];
 
+  const filteredPayments = payments.filter((p) =>
+    (p.customer_name && p.customer_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (p.invoice_no && p.invoice_no.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    p.amount.toString().includes(searchTerm) ||
+    (p.rrn && p.rrn.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const filteredPendingPayments = pendingPayments.filter((p) =>
+    (p.customer_name && p.customer_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (p.invoice_no && p.invoice_no.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    p.total_amount.toString().includes(searchTerm) ||
+    p.pending_amount.toString().includes(searchTerm)
+  );
+
   return (
     <Box>
       {/* Header with Action Button */}
@@ -347,6 +363,20 @@ export default function Payments() {
             {t("payments.subtitle", "Record and track payments")}
           </Typography>
         </Box>
+        <TextField
+          placeholder={t("common.search", "Search...")}
+          size="small"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+          sx={{ width: 300, bgcolor: 'background.paper' }}
+        />
       </Box>
 
       {error && (
@@ -357,7 +387,7 @@ export default function Payments() {
 
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card
             sx={{
               background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
@@ -376,7 +406,7 @@ export default function Payments() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card
             onClick={() => pendingSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
             sx={{
@@ -402,7 +432,7 @@ export default function Payments() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card
             onClick={() => pendingSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
             sx={{
@@ -431,7 +461,35 @@ export default function Payments() {
             </CardContent>
           </Card>
         </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card
+            sx={{
+              background: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
+              transition: 'transform 0.2s',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 4
+              }
+            }}
+          >
+            <CardContent>
+              <Typography variant="body2" sx={{ color: "white", opacity: 0.9 }}>
+                {t("dashboard.totalCollected", "Total Collected")}
+              </Typography>
+              <Typography
+                variant="h4"
+                sx={{ color: "white", fontWeight: 700, mt: 1 }}
+              >
+                ₹
+                {payments
+                  .reduce((sum, p) => sum + p.amount, 0)
+                  .toLocaleString()}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
       </Grid>
+
 
       {/* Pending Payments */}
       <div ref={pendingSectionRef}>
@@ -466,7 +524,7 @@ export default function Payments() {
                 </Box>
               ) : (
                 <DataGrid
-                  rows={pendingPayments}
+                  rows={filteredPendingPayments}
                   columns={pendingColumns}
                   getRowId={(row) => row.sale_id}
                   pageSizeOptions={[5, 10, 25]}
@@ -511,7 +569,7 @@ export default function Payments() {
               </Box>
             ) : (
               <DataGrid
-                rows={payments}
+                rows={filteredPayments}
                 columns={paymentColumns}
                 getRowId={(row) => row.payment_id}
                 pageSizeOptions={[10, 25, 50]}
@@ -691,6 +749,6 @@ export default function Payments() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </Box >
   );
 }

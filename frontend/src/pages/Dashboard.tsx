@@ -350,22 +350,7 @@ export default function Dashboard() {
     return null;
   }
 
-  // Prepare payment method distribution data for pie chart
-  const paymentMethodData = metrics.payment_method_distribution
-    ? Object.entries(metrics.payment_method_distribution).map(([name, value]) => ({
-      name,
-      value
-    }))
-    : [];
-
-  const PIE_COLORS = {
-    "Cash": "#10b981", // Green
-    "UPI": "#3b82f6", // Blue
-    "Bank Transfer": "#8b5cf6", // Purple
-    "Cheque": "#f59e0b", // Orange
-    "Other": "#9ca3af" // Gray
-  };
-
+  // Payment chart logic removed in favor of simple metric display
   return (
     <Box>
       {/* Welcome Header */}
@@ -635,56 +620,41 @@ export default function Dashboard() {
           </Card>
         </Grid>
 
-        {/* Payment Method Distribution Pie Chart */}
+        {/* Collected Payments Display */}
         <Grid item xs={12} lg={4}>
-          <Card sx={{ height: "100%" }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-                Collected Payments (By Method)
+          <Card
+            sx={{
+              height: "100%",
+              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+              color: "white",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              position: "relative",
+              overflow: "hidden"
+            }}
+          >
+            <Box sx={{
+              position: "absolute",
+              right: -20,
+              top: -20,
+              opacity: 0.1,
+              transform: "rotate(15deg)"
+            }}>
+              <Payment sx={{ fontSize: 180 }} />
+            </Box>
+            <CardContent sx={{ position: "relative", zIndex: 1, textAlign: "center" }}>
+              <Typography variant="h5" sx={{ fontWeight: 600, mb: 1, opacity: 0.9 }}>
+                Collected Payments
               </Typography>
-              {paymentMethodData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={paymentMethodData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {paymentMethodData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={PIE_COLORS[entry.name as keyof typeof PIE_COLORS] || COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip
-                      formatter={(value: number) => `₹${value.toLocaleString()}`}
-                      contentStyle={{
-                        backgroundColor: theme.palette.background.paper,
-                        border: `1px solid ${theme.palette.divider}`,
-                        borderRadius: 8,
-                      }}
-                    />
-                    <Legend
-                      layout="horizontal"
-                      verticalAlign="bottom"
-                      align="center"
-                      wrapperStyle={{ fontSize: 12 }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300, flexDirection: 'column' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    No payment data available
-                  </Typography>
-                </Box>
-              )}
+              <Typography variant="body2" sx={{ mb: 3, opacity: 0.8 }}>
+                {salesDateRange.start && salesDateRange.end
+                  ? `${new Date(salesDateRange.start).toLocaleDateString()} - ${new Date(salesDateRange.end).toLocaleDateString()}`
+                  : "All Time"}
+              </Typography>
+              <Typography variant="h2" sx={{ fontWeight: 700 }}>
+                ₹{metrics.total_payments.toLocaleString()}
+              </Typography>
             </CardContent>
           </Card>
         </Grid>

@@ -13,8 +13,10 @@ const resolveApiBaseUrl = (): string => {
     (import.meta as any)?.env?.VITE_API_BASE_URL ||
     (import.meta as any)?.env?.VITE_API_URL;
 
-  // 3) Default fallback
-  const fallback = "https://pc-sales-8phu.onrender.com";
+  // 3) Default fallback (Prioritize localhost for dev, hosted for prod if built)
+  // If we are in dev mode (import.meta.env.DEV is true), default to localhost
+  const isDev = (import.meta as any)?.env?.DEV;
+  const fallback = isDev ? "http://localhost:8000" : "https://pc-sales-8phu.onrender.com";
 
   const chosen = (windowOverride || envBase || fallback) as string;
 

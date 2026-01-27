@@ -192,17 +192,20 @@ export default function Dashboard() {
     try {
       setLoadingCollected(true);
 
-      // Fetch all payments (or use a large limit if pagination exists)
-      // Since we need to filter locally, we get the raw payments list
-      // Note: In a real large-scale app, this should be backend-side, 
-      // but strictly adhering to hosted backend restriction:
-
-      // We'll use the sales-trend endpoint or similar if available, 
-      // but paymentAPI.getAll is safer for raw data if not paginated too heavily.
-      // Let's try to get a reasonable amount of history or all.
-
       const response = await import("../services/api").then(m => m.paymentAPI.getAll({ limit: 1000 }));
-      const payments = response.data || [];
+      console.log("DEBUG: Raw Payment API Response:", response);
+
+      // Handle potential different response structures
+      let payments = [];
+      if (Array.isArray(response)) {
+        payments = response;
+      } else if (response && Array.isArray(response.data)) {
+        payments = response.data;
+      } else {
+        console.warn("DEBUG: Unexpected payment response structure", response);
+      }
+
+      console.log(`DEBUG: Found ${payments.length} payments`);
 
       const start = new Date(collectedPaymentRange.start);
       start.setHours(0, 0, 0, 0);
@@ -210,14 +213,21 @@ export default function Dashboard() {
       const end = new Date(collectedPaymentRange.end);
       end.setHours(23, 59, 59, 999);
 
+      console.log(`DEBUG: Filtering from ${start.toISOString()} to ${end.toISOString()}`);
+
       const total = payments.reduce((sum: number, p: any) => {
         const pDate = new Date(p.payment_date);
+
+        // Debug first payment just to check format
+        // if (sum === 0 && payments.indexOf(p) === 0) console.log("First payment date:", p.payment_date, "Parsed:", pDate);
+
         if (pDate >= start && pDate <= end) {
           return sum + (parseFloat(p.amount) || 0);
         }
         return sum;
       }, 0);
 
+      console.log("DEBUG: Calculated Total:", total);
       setCollectedAmount(total);
     } catch (err) {
       console.error("Error fetching collected payments:", err);
@@ -799,93 +809,68 @@ export default function Dashboard() {
                             label={sale.invoice_no}
                             size="small"
                             color="primary"
-                            sx={{ fontWeight: 600, fontSize: "0.75rem" }}
-                          />
-                          {sale.payment_status === "Paid" && (
-                            <CheckCircle
-                              sx={{ fontSize: 16, color: "#10b981" }}
-                            />
-                          )}
-                        </Box>
-                        <Typography
-                          variant="subtitle2"
-                          sx={{ fontWeight: 600, mb: 0.5 }}
-                        >
-                          {sale.customer_name}
-                        </Typography>
-                        <Box
-                          sx={{ display: "flex", gap: 2, alignItems: "center" }}
-                        >
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
+                            variant="outlined"
                             sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 0.5,
+                              height: 24,
+                              "& .MuiChip-label": { px: 1, fontSize: "0.75rem" },
                             }}
-                          >
-                            📍 {sale.village || "N/A"}
+                          />
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                            {sale.customer_name}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            📅 {new Date(sale.sale_date).toLocaleDateString()}
+                        </Box>
+                        <Box sx={{ display: "flex", gap: 2, color: "text.secondary" }}>
+                          <Typography variant="caption" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                            <Schedule sx={{ fontSize: 14 }} />
+                            {new Date(sale.sale_date).toLocaleDateString()}
+                          </Typography>
+                          <Typography variant="caption">
+                            {sale.village || "No Village"}
                           </Typography>
                         </Box>
                       </Box>
-                      <Box sx={{ textAlign: "right", ml: 2 }}>
+                      <Box sx={{ textAlign: "right" }}>
                         <Typography
-                          variant="h6"
-                          sx={{
-                            fontWeight: 700,
-                            color: theme.palette.primary.main,
-                            mb: 0.5,
-                          }}
+                          variant="subtitle1"
+                          color="primary"
+                          sx={{ fontWeight: 700 }}
                         >
-                          ₹{sale.total_amount.toLocaleString()}
+                          ₹{sale.total_amount?.toLocaleString() ?? 0}
                         </Typography>
                         <Chip
                           label={sale.payment_status}
                           size="small"
+                          color={
+                            sale.payment_status?.toLowerCase() === "paid"
+                              ? "success"
+                              : sale.payment_status?.toLowerCase() === "pending"
+                                ? "warning"
+                                : "default"
+                          }
                           sx={{
-                            bgcolor:
-                              sale.payment_status === "Paid"
-                                ? "#10b98120"
-                                : sale.payment_status === "Partial"
-                                  ? "#f59e0b20"
-                                  : "#ef444420",
-                            color:
-                              sale.payment_status === "Paid"
-                                ? "#10b981"
-                                : sale.payment_status === "Partial"
-                                  ? "#f59e0b"
-                                  : "#ef4444",
-                            fontWeight: 600,
-                            fontSize: "0.7rem",
+                            height: 20,
+                            mt: 0.5,
+                            "& .MuiChip-label": { px: 1, fontSize: "0.7rem" },
                           }}
                         />
                       </Box>
                     </Paper>
                   ))
                 ) : (
-                  <Box sx={{ textAlign: "center", py: 6 }}>
-                    <Receipt
-                      sx={{
-                        fontSize: 64,
-                        color: theme.palette.text.disabled,
-                        mb: 2,
-                      }}
-                    />
-                    <Typography variant="body2" color="text.secondary">
-                      {t("dashboard.noRecentSales")}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      py: 8,
+                      opacity: 0.6,
+                    }}
+                  >
+                    <ShoppingCart sx={{ fontSize: 48, mb: 2, color: "text.disabled" }} />
+                    <Typography variant="body1" color="text.secondary">
+                      No recent sales found
                     </Typography>
-                    <Button
-                      variant="outlined"
-                      startIcon={<ShoppingCart />}
-                      sx={{ mt: 2 }}
-                      onClick={() => navigate("/sales")}
-                    >
-                      Create First Sale
-                    </Button>
                   </Box>
                 )}
               </Box>
@@ -924,117 +909,84 @@ export default function Dashboard() {
                       sx={{
                         p: 2.5,
                         mb: 1.5,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
                         border: `1px solid ${theme.palette.divider}`,
                         borderRadius: 2,
-                        borderLeft: `4px solid ${theme.palette.secondary.main}`,
                         cursor: "pointer",
                         transition: "all 0.2s",
                         "&:hover": {
                           bgcolor: theme.palette.action.hover,
                           transform: "translateX(4px)",
-                          borderLeftColor: theme.palette.secondary.dark,
+                          borderColor: theme.palette.secondary.main,
                         },
                       }}
                       onClick={() => navigate("/demos")}
                     >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "start",
-                          mb: 1,
-                        }}
-                      >
-                        <Box sx={{ flex: 1 }}>
-                          <Typography
-                            variant="subtitle2"
-                            sx={{ fontWeight: 600, mb: 0.5 }}
-                          >
+                      <Box sx={{ flex: 1 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            mb: 0.5,
+                          }}
+                        >
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                             {demo.customer_name}
                           </Typography>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                              mb: 1,
-                            }}
-                          >
-                            <Science
+                          {demo.village && (
+                            <Typography
+                              variant="caption"
                               sx={{
-                                fontSize: 16,
-                                color: theme.palette.secondary.main,
+                                color: "text.secondary",
+                                bgcolor: theme.palette.action.hover,
+                                px: 1,
+                                borderRadius: 1,
                               }}
-                            />
-                            <Typography variant="body2" color="text.secondary">
-                              {demo.product_name}
+                            >
+                              {demo.village}
                             </Typography>
-                          </Box>
+                          )}
                         </Box>
-                        <Chip
-                          label={`#${demo.demo_id}`}
-                          size="small"
-                          color="secondary"
-                          sx={{ fontWeight: 600, fontSize: "0.7rem" }}
-                        />
+                        <Box sx={{ display: "flex", gap: 2, color: "text.secondary" }}>
+                          <Typography variant="caption" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                            <Schedule sx={{ fontSize: 14 }} />
+                            {new Date(demo.demo_date).toLocaleDateString()} • {demo.demo_time || "No time"}
+                          </Typography>
+                          <Typography variant="caption">
+                            {demo.product_name}
+                          </Typography>
+                        </Box>
                       </Box>
-                      <Divider sx={{ my: 1 }} />
-                      <Box
-                        sx={{
-                          display: "flex",
-                          gap: 2,
-                          flexWrap: "wrap",
-                          alignItems: "center",
-                        }}
-                      >
+                      <Box>
                         <Chip
-                          icon={<Schedule sx={{ fontSize: 14 }} />}
-                          label={new Date(demo.demo_date).toLocaleDateString()}
+                          label={demo.conversion_status}
                           size="small"
-                          variant="outlined"
-                          sx={{ fontSize: "0.7rem" }}
+                          color={
+                            demo.conversion_status === "Converted" ? "success" : "secondary"
+                          }
+                          variant={demo.conversion_status === "Converted" ? "filled" : "outlined"}
                         />
-                        <Chip
-                          label={demo.demo_time}
-                          size="small"
-                          variant="outlined"
-                          sx={{ fontSize: "0.7rem" }}
-                        />
-                        {demo.village && (
-                          <Chip
-                            label={demo.village}
-                            size="small"
-                            variant="outlined"
-                            sx={{ fontSize: "0.7rem" }}
-                          />
-                        )}
                       </Box>
                     </Paper>
                   ))
                 ) : (
-                  <Box sx={{ textAlign: "center", py: 6 }}>
-                    <Science
-                      sx={{
-                        fontSize: 64,
-                        color: theme.palette.text.disabled,
-                        mb: 2,
-                      }}
-                    />
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mb: 1 }}
-                    >
-                      {t("dashboard.noUpcomingDemos")}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      py: 8,
+                      opacity: 0.6,
+                    }}
+                  >
+                    <Science sx={{ fontSize: 48, mb: 2, color: "text.disabled" }} />
+                    <Typography variant="body1" color="text.secondary">
+                      No upcoming demos found
                     </Typography>
-                    <Button
-                      variant="outlined"
-                      startIcon={<Science />}
-                      sx={{ mt: 2 }}
-                      onClick={() => navigate("/demos")}
-                    >
-                      {t("dashboard.scheduleDemoCta")}
-                    </Button>
                   </Box>
                 )}
               </Box>

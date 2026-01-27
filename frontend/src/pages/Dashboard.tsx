@@ -48,7 +48,7 @@ import {
 } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "../hooks/useTranslation";
-import { dashboardAPI } from "../services/api";
+import { dashboardAPI, paymentAPI } from "../services/api"; // Added paymentAPI import
 import type {
   DashboardMetrics,
   SalesTrendData,
@@ -185,67 +185,77 @@ export default function Dashboard() {
   });
   const [collectedAmount, setCollectedAmount] = useState(0);
   const [loadingCollected, setLoadingCollected] = useState(false);
+  const [allPayments, setAllPayments] = useState<any[]>([]);
 
-  // Client-side filtering because hosted backend might not have latest filter logic
-  const fetchCollectedAmount = useCallback(async () => {
-    if (!collectedPaymentRange.start || !collectedPaymentRange.end) return;
-    try {
-      setLoadingCollected(true);
-
-      // Fetch all payments (or use a large limit if pagination exists)
-      const response = await import("../services/api").then(m => m.paymentAPI.getAll({ limit: 1000 }));
-
-      let payments = [];
-      if (Array.isArray(response)) {
-        payments = response;
-      } else if (response && Array.isArray(response.data)) {
-        payments = response.data;
-      }
-
-      // Helper to get YYYY-MM-DD string from any date input
-      const getStateDateStr = (d: string | Date) => {
-        if (!d) return "";
-        try {
-          return new Date(d).toISOString().split('T')[0];
-        } catch (e) {
-          return "";
-        }
-      };
-
-      const startStr = collectedPaymentRange.start;
-      const endStr = collectedPaymentRange.end;
-
-      const total = payments.reduce((sum: number, p: any) => {
-        const pDateStr = getStateDateStr(p.payment_date); // e.g. "2026-01-26"
-
-        // String comparison is consistent regardless of time/timezone if standard ISO format
-        if (pDateStr && pDateStr >= startStr && pDateStr <= endStr) {
-          return sum + (parseFloat(p.amount) || 0);
-        }
-        return sum;
-      }, 0);
-
-      setCollectedAmount(total);
-    } catch (err) {
-      console.error("Error fetching collected payments:", err);
-    } finally {
-      setLoadingCollected(false);
-    }
-  }, [collectedPaymentRange]);
-
+  // 1. Fetch all payments once on mount
   useEffect(() => {
-    fetchCollectedAmount();
-  }, [fetchCollectedAmount]);
+    const fetchAllPayments = async () => {
+      try {
+        setLoadingCollected(true);
+        const response = await paymentAPI.getAll({ limit: 1000 });
+
+        let data = [];
+        if (Array.isArray(response)) {
+          data = response;
+        } else if (response && Array.isArray(response.data)) {
+          data = response.data;
+        }
+        console.log("DEBUG: Loaded", data.length, "payments for local filtering");
+        setAllPayments(data);
+      } catch (err) {
+        console.error("Error fetching payments history:", err);
+      } finally {
+        setLoadingCollected(false);
+      }
+    };
+    fetchAllPayments();
+  }, []);
+
+  // 2. Filter in-memory whenever range or payments change (Instant)
+  useEffect(() => {
+    if (!collectedPaymentRange.start || !collectedPaymentRange.end || allPayments.length === 0) {
+      if (allPayments.length === 0 && !loadingCollected) setCollectedAmount(0);
+      return;
+    }
+
+    const startStr = collectedPaymentRange.start;
+    const endStr = collectedPaymentRange.end;
+
+    // Helper to extract YYYY-MM-DD
+    const getDateStr = (d: string | Date) => {
+      if (!d) return "";
+      try {
+        // Handle ISO (YYYY-MM-DD...) directly
+        if (typeof d === 'string' && d.match(/^\d{4}-\d{2}-\d{2}/)) {
+          return d.substring(0, 10);
+        }
+        return new Date(d).toISOString().split('T')[0];
+      } catch (e) {
+        return "";
+      }
+    };
+
+    const total = allPayments.reduce((sum: number, p: any) => {
+      const pDateStr = getDateStr(p.payment_date);
+      if (pDateStr && pDateStr >= startStr && pDateStr <= endStr) {
+        return sum + (parseFloat(p.amount) || 0);
+      }
+      return sum;
+    }, 0);
+
+    // console.log(`DEBUG: Filtered ${total} from range ${startStr} to ${endStr}`);
+    setCollectedAmount(total);
+
+  }, [collectedPaymentRange, allPayments, loadingCollected]);
+
 
   const loadSalesTrendByDateRange = useCallback(async () => {
     try {
       setLoadingChart(true);
 
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pc-sales-8phu.onrender.com";
-      // Add cache buster to prevent browser caching
       const cacheBuster = `&_t=${Date.now()}`;
       const url = `${API_BASE_URL}/api/reports/sales-trend?interval=daily&start_date=${salesDateRange.start}&end_date=${salesDateRange.end}${cacheBuster}`;
-
 
       const response = await fetch(url, {
         headers: {
@@ -255,7 +265,6 @@ export default function Dashboard() {
         },
       });
 
-
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Failed to fetch sales trend:", errorText);
@@ -264,7 +273,6 @@ export default function Dashboard() {
 
       const data = await response.json();
 
-      // Check if API is respecting date parameters
       if (data.trends && data.trends.length > 0) {
         const firstDate = data.trends[0].period;
         const lastDate = data.trends[data.trends.length - 1].period;
@@ -274,7 +282,6 @@ export default function Dashboard() {
         }
       }
 
-      // Transform data for the chart
       const chartData = (data.trends || []).map((trend: any) => ({
         sale_date: trend.period,
         total_amount: parseFloat(trend.total_amount) || 0,
@@ -396,7 +403,6 @@ export default function Dashboard() {
     return null;
   }
 
-  // Payment chart logic removed in favor of simple metric display
   return (
     <Box>
       {/* Welcome Header */}

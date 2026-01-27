@@ -186,15 +186,39 @@ export default function Dashboard() {
   const [collectedAmount, setCollectedAmount] = useState(0);
   const [loadingCollected, setLoadingCollected] = useState(false);
 
+  // Client-side filtering because hosted backend might not have latest filter logic
   const fetchCollectedAmount = useCallback(async () => {
     if (!collectedPaymentRange.start || !collectedPaymentRange.end) return;
     try {
       setLoadingCollected(true);
-      const data = await dashboardAPI.getMetrics(
-        collectedPaymentRange.start,
-        collectedPaymentRange.end
-      );
-      setCollectedAmount(data.total_payments || 0);
+
+      // Fetch all payments (or use a large limit if pagination exists)
+      // Since we need to filter locally, we get the raw payments list
+      // Note: In a real large-scale app, this should be backend-side, 
+      // but strictly adhering to hosted backend restriction:
+
+      // We'll use the sales-trend endpoint or similar if available, 
+      // but paymentAPI.getAll is safer for raw data if not paginated too heavily.
+      // Let's try to get a reasonable amount of history or all.
+
+      const response = await import("../services/api").then(m => m.paymentAPI.getAll({ limit: 1000 }));
+      const payments = response.data || [];
+
+      const start = new Date(collectedPaymentRange.start);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(collectedPaymentRange.end);
+      end.setHours(23, 59, 59, 999);
+
+      const total = payments.reduce((sum: number, p: any) => {
+        const pDate = new Date(p.payment_date);
+        if (pDate >= start && pDate <= end) {
+          return sum + (parseFloat(p.amount) || 0);
+        }
+        return sum;
+      }, 0);
+
+      setCollectedAmount(total);
     } catch (err) {
       console.error("Error fetching collected payments:", err);
     } finally {

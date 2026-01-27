@@ -176,6 +176,36 @@ export default function Dashboard() {
     end: new Date().toISOString().split("T")[0],
   });
 
+  // Independent state for Collected Payments Card
+  const [collectedPaymentRange, setCollectedPaymentRange] = useState({
+    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      .toISOString()
+      .split("T")[0],
+    end: new Date().toISOString().split("T")[0],
+  });
+  const [collectedAmount, setCollectedAmount] = useState(0);
+  const [loadingCollected, setLoadingCollected] = useState(false);
+
+  const fetchCollectedAmount = useCallback(async () => {
+    if (!collectedPaymentRange.start || !collectedPaymentRange.end) return;
+    try {
+      setLoadingCollected(true);
+      const data = await dashboardAPI.getMetrics(
+        collectedPaymentRange.start,
+        collectedPaymentRange.end
+      );
+      setCollectedAmount(data.total_payments || 0);
+    } catch (err) {
+      console.error("Error fetching collected payments:", err);
+    } finally {
+      setLoadingCollected(false);
+    }
+  }, [collectedPaymentRange]);
+
+  useEffect(() => {
+    fetchCollectedAmount();
+  }, [fetchCollectedAmount]);
+
   const loadSalesTrendByDateRange = useCallback(async () => {
     try {
       setLoadingChart(true);
@@ -644,17 +674,41 @@ export default function Dashboard() {
               <Payment sx={{ fontSize: 180 }} />
             </Box>
             <CardContent sx={{ position: "relative", zIndex: 1, textAlign: "center" }}>
+              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mb: 2, background: 'rgba(255,255,255,0.1)', p: 1, borderRadius: 2 }}>
+                <TextField
+                  type="date"
+                  size="small"
+                  value={collectedPaymentRange.start}
+                  onChange={(e) => setCollectedPaymentRange({ ...collectedPaymentRange, start: e.target.value })}
+                  sx={{
+                    '& .MuiInputBase-input': { color: 'white', py: 0.5, fontSize: '0.875rem' },
+                    '& .MuiOutlinedInput-notchedOutline': { border: 'none' }
+                  }}
+                />
+                <Typography sx={{ alignSelf: 'center', opacity: 0.8 }}>-</Typography>
+                <TextField
+                  type="date"
+                  size="small"
+                  value={collectedPaymentRange.end}
+                  onChange={(e) => setCollectedPaymentRange({ ...collectedPaymentRange, end: e.target.value })}
+                  sx={{
+                    '& .MuiInputBase-input': { color: 'white', py: 0.5, fontSize: '0.875rem' },
+                    '& .MuiOutlinedInput-notchedOutline': { border: 'none' }
+                  }}
+                />
+              </Box>
+
               <Typography variant="h5" sx={{ fontWeight: 600, mb: 1, opacity: 0.9 }}>
                 Collected Payments
               </Typography>
-              <Typography variant="body2" sx={{ mb: 3, opacity: 0.8 }}>
-                {salesDateRange.start && salesDateRange.end
-                  ? `${new Date(salesDateRange.start).toLocaleDateString()} - ${new Date(salesDateRange.end).toLocaleDateString()}`
-                  : "All Time"}
-              </Typography>
-              <Typography variant="h2" sx={{ fontWeight: 700 }}>
-                ₹{metrics.total_payments.toLocaleString()}
-              </Typography>
+
+              {loadingCollected ? (
+                <CircularProgress size={40} sx={{ color: 'white', my: 2 }} />
+              ) : (
+                <Typography variant="h2" sx={{ fontWeight: 700 }}>
+                  ₹{collectedAmount.toLocaleString()}
+                </Typography>
+              )}
             </CardContent>
           </Card>
         </Grid>

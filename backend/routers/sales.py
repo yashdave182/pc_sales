@@ -316,6 +316,7 @@ def create_sale(
             sale_items_data.append(
                 {
                     "sale_id": sale_id,
+                    "customer_id": sale.customer_id,  # ADDED: Include customer_id
                     "product_id": item.product_id,
                     "quantity": item.quantity,
                     "rate": item.rate,

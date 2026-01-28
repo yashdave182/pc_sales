@@ -60,6 +60,7 @@ export default function Sales() {
     invoice_no: "",
     sale_date: new Date().toISOString().split("T")[0],
     notes: "",
+    paid_amount: 0,
   });
   const [newCustomerData, setNewCustomerData] = useState({
     name: "",
@@ -121,6 +122,7 @@ export default function Sales() {
       invoice_no: "",
       sale_date: new Date().toISOString().split("T")[0],
       notes: "",
+      paid_amount: 0,
     });
     setNewCustomerData({
       name: "",
@@ -291,6 +293,8 @@ export default function Sales() {
         })),
         notes: formData.notes || undefined,
         payment_terms: JSON.stringify(paymentTerms), // Store payment terms as JSON string
+        paid_amount: formData.paid_amount || 0, // ADDED: Send initial payment amount
+        payment_method: "Cash", // Default to Cash for now, or add UI for it
       };
 
       console.log("Creating sale:", saleData);
@@ -309,10 +313,24 @@ export default function Sales() {
       setError(null);
     } catch (err: any) {
       console.error("Error creating sale:", err);
-      const errorMessage =
-        err?.response?.data?.detail ||
-        err?.message ||
-        t("sales.createError", "Failed to create sale");
+      console.error("Error creating sale:", err);
+      let errorMessage = t("sales.createError", "Failed to create sale");
+
+      if (err?.response?.data?.detail) {
+        if (typeof err.response.data.detail === "string") {
+          errorMessage = err.response.data.detail;
+        } else if (Array.isArray(err.response.data.detail)) {
+          // Handle Pydantic validation errors (array of objects)
+          errorMessage = err.response.data.detail
+            .map((e: any) => e.msg || JSON.stringify(e))
+            .join(", ");
+        } else {
+          errorMessage = JSON.stringify(err.response.data.detail);
+        }
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+
       setError(errorMessage);
     }
   };

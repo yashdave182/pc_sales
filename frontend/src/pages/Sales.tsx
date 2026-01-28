@@ -871,13 +871,17 @@ export default function Sales() {
                           type="number"
                           label={tf("quantity")}
                           value={item.quantity}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            // Just use Number() which handles "01" -> 1. 
+                            // If the issue persists, the browser might be masking the update.
+                            // But let's act on the user's string directly to be sure.
                             handleItemChange(
                               index,
                               "quantity",
-                              Number(e.target.value),
+                              Number(val),
                             )
-                          }
+                          }}
                         />
                       </Grid>
                       <Grid item xs={12} sm={2}>

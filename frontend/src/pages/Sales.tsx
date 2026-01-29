@@ -398,7 +398,45 @@ export default function Sales() {
                   ? "success"
                   : params.value === "Partial"
                     ? "warning"
-                    : "error"
+                    : (() => {
+                      // Logic for "Pending" status color
+                      // Default is error (Red) for overdue/advance
+                      let statusColor: "error" | "warning" = "error";
+
+                      try {
+                        if (params.row.payment_terms) {
+                          const terms = JSON.parse(params.row.payment_terms);
+                          const type = terms.type;
+
+                          if (type === 'after_delivery') {
+                            // If not delivered yet, it's not overdue -> Orange
+                            if (params.row.shipment_status !== 'delivered') {
+                              statusColor = "warning";
+                            }
+                          } else if (type === 'after_days' && terms.days) {
+                            // Check if due date has passed
+                            const saleDate = new Date(params.row.sale_date);
+                            const dueDate = new Date(saleDate);
+                            dueDate.setDate(dueDate.getDate() + Number(terms.days));
+                            // Normalize to YYYY-MM-DD comparisons to avoid time issues
+                            const todayStr = new Date().toISOString().split('T')[0];
+                            const dueDateStr = dueDate.toISOString().split('T')[0];
+
+                            if (todayStr <= dueDateStr) {
+                              statusColor = "warning"; // Still within credit period
+                            }
+                          } else if (type === 'emi') {
+                            // Simple logic: if any part is pending but future -> Orange
+                            // For now, let's treat EMI simplisticly: Orange implies active payment plan
+                            statusColor = "warning";
+                          }
+                        }
+                      } catch (e) {
+                        // Fallback to error
+                      }
+
+                      return statusColor;
+                    })()
               }
               onClick={
                 isPending

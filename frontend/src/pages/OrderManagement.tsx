@@ -410,8 +410,9 @@ export default function OrderManagement() {
       if (nextStatus === "delivered") dateUpdates.delivery_date = today;
 
       // Whitelist fields
+      // Whitelist fields - verify these exist in your Supabase 'sales' table!
+      // Removing sale_id (PK) and sale_code (not in schema) to prevent errors.
       const validSaleFields = {
-        sale_id: order.sale_id,
         invoice_no: order.invoice_no,
         customer_id: order.customer_id,
         sale_date: order.sale_date,
@@ -419,7 +420,6 @@ export default function OrderManagement() {
         total_liters: order.total_liters,
         payment_status: order.payment_status,
         notes: order.notes,
-        sale_code: order.sale_code,
         payment_terms: order.payment_terms,
         order_status: nextStatus,
         shipment_status: order.shipment_status || "not_shipped",

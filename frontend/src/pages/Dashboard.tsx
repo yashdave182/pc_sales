@@ -169,20 +169,23 @@ export default function Dashboard() {
   const [upcomingDemos, setUpcomingDemos] = useState<UpcomingDemo[]>([]);
   const [chartKey, setChartKey] = useState(0);
   const [loadingChart, setLoadingChart] = useState(false);
+  // Helper to get "YYYY-MM-DD" in local time
+  const getLocalISODate = (d: Date) => {
+    const offset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - offset).toISOString().split("T")[0];
+  };
+
   const [salesDateRange, setSalesDateRange] = useState({
-    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-      .toISOString()
-      .split("T")[0],
-    end: new Date().toISOString().split("T")[0],
+    start: getLocalISODate(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
+    end: getLocalISODate(new Date()),
   });
 
   // Independent state for Collected Payments Card
   const [collectedPaymentRange, setCollectedPaymentRange] = useState({
-    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-      .toISOString()
-      .split("T")[0],
-    end: new Date().toISOString().split("T")[0],
+    start: getLocalISODate(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
+    end: getLocalISODate(new Date()),
   });
+
   const [collectedAmount, setCollectedAmount] = useState(0);
   const [loadingCollected, setLoadingCollected] = useState(false);
   const [allPayments, setAllPayments] = useState<any[]>([]);
@@ -200,7 +203,6 @@ export default function Dashboard() {
         } else if (response && Array.isArray(response.data)) {
           data = response.data;
         }
-        console.log("DEBUG: Loaded", data.length, "payments for local filtering");
         setAllPayments(data);
       } catch (err) {
         console.error("Error fetching payments history:", err);
@@ -238,14 +240,13 @@ export default function Dashboard() {
     const total = allPayments.reduce((sum: number, p: any) => {
       const pDateStr = getDateStr(p.payment_date);
       const isMatch = pDateStr && pDateStr >= startStr && pDateStr <= endStr;
-      console.log(`DEBUG: Check ${pDateStr} (raw: ${p.payment_date}) vs ${startStr}-${endStr} -> ${isMatch} ($${p.amount})`);
+
       if (isMatch) {
         return sum + (parseFloat(p.amount) || 0);
       }
       return sum;
     }, 0);
 
-    console.log(`DEBUG: Filtered ${total} from range ${startStr} to ${endStr}`);
     setCollectedAmount(total);
 
   }, [collectedPaymentRange, allPayments, loadingCollected]);

@@ -505,6 +505,10 @@ def update_sale(
     except HTTPException:
         raise
     except Exception as e:
+        print(f"DEBUG: update_sale payload: {sale_data}")
+        print(f"DEBUG: update_sale exception: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error updating sale: {str(e)}")
 
 

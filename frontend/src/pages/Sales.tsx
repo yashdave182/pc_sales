@@ -203,11 +203,17 @@ export default function Sales() {
       // If new customer mode, create customer first
       if (customerMode === "new") {
         // Validate new customer data
-        if (!newCustomerData.name || !newCustomerData.mobile) {
+        if (
+          !newCustomerData.name ||
+          !newCustomerData.mobile ||
+          !newCustomerData.village ||
+          !newCustomerData.taluka ||
+          !newCustomerData.district
+        ) {
           setError(
             t(
-              "sales.customerNameMobileRequired",
-              "Customer name and mobile are required",
+              "sales.allFieldsRequired",
+              "Customer Name, Mobile, Village, Taluka, and District are mandatory.",
             ),
           );
           return;
@@ -711,7 +717,8 @@ export default function Sales() {
                 <Grid item xs={12} sm={4}>
                   <TextField
                     fullWidth
-                    label={tf("village")}
+                    required
+                    label={`${tf("village")} *`}
                     value={newCustomerData.village}
                     onChange={(e) =>
                       setNewCustomerData({
@@ -724,7 +731,8 @@ export default function Sales() {
                 <Grid item xs={12} sm={4}>
                   <TextField
                     fullWidth
-                    label={tf("taluka")}
+                    required
+                    label={`${tf("taluka")} *`}
                     value={newCustomerData.taluka}
                     onChange={(e) =>
                       setNewCustomerData({
@@ -737,7 +745,8 @@ export default function Sales() {
                 <Grid item xs={12} sm={4}>
                   <TextField
                     fullWidth
-                    label={tf("district")}
+                    required
+                    label={`${tf("district")} *`}
                     value={newCustomerData.district}
                     onChange={(e) =>
                       setNewCustomerData({
@@ -751,7 +760,8 @@ export default function Sales() {
                   <TextField
                     fullWidth
                     select
-                    label="State"
+                    required
+                    label="State *"
                     value={newCustomerData.state || "Gujarat"}
                     onChange={(e) =>
                       setNewCustomerData({

@@ -238,7 +238,7 @@ export default function Dashboard() {
     const total = allPayments.reduce((sum: number, p: any) => {
       const pDateStr = getDateStr(p.payment_date);
       const isMatch = pDateStr && pDateStr >= startStr && pDateStr <= endStr;
-      // console.log(`DEBUG: Check ${pDateStr} vs ${startStr}-${endStr} -> ${isMatch} ($${p.amount})`);
+      console.log(`DEBUG: Check ${pDateStr} (raw: ${p.payment_date}) vs ${startStr}-${endStr} -> ${isMatch} ($${p.amount})`);
       if (isMatch) {
         return sum + (parseFloat(p.amount) || 0);
       }

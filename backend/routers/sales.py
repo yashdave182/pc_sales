@@ -496,7 +496,8 @@ def update_sale(
 ):
     """Update a sale"""
     try:
-        response = db.table("sales").eq("sale_id", sale_id).update(sale_data).execute()
+        # Correct order: table -> update -> eq -> execute
+        response = db.table("sales").update(sale_data).eq("sale_id", sale_id).execute()
 
         if not response.data:
             raise HTTPException(status_code=404, detail="Sale not found")

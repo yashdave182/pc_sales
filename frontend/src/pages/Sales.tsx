@@ -76,7 +76,7 @@ export default function Sales() {
     { product_id: 0, quantity: 1, rate: 0, amount: 0 },
   ]);
   const [paymentTerms, setPaymentTerms] = useState({
-    type: 'advance' as 'advance' | 'after_delivery' | 'after_days' | 'emi',
+    type: 'after_delivery' as 'advance' | 'after_delivery' | 'after_days' | 'emi',
     days: 0,
     emiParts: [
       { part: 1, days: 0, percentage: 25 },
@@ -837,8 +837,8 @@ export default function Sales() {
                 value={paymentTerms.type}
                 onChange={(e) => setPaymentTerms({ ...paymentTerms, type: e.target.value as any })}
               >
-                <MenuItem value="advance">Advance Payment</MenuItem>
                 <MenuItem value="after_delivery">After Delivery</MenuItem>
+                <MenuItem value="advance">Advance Payment</MenuItem>
                 <MenuItem value="after_days">After X Days</MenuItem>
                 <MenuItem value="emi">EMI (4 Parts)</MenuItem>
               </TextField>

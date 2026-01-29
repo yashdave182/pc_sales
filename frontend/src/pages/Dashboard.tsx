@@ -237,13 +237,15 @@ export default function Dashboard() {
 
     const total = allPayments.reduce((sum: number, p: any) => {
       const pDateStr = getDateStr(p.payment_date);
-      if (pDateStr && pDateStr >= startStr && pDateStr <= endStr) {
+      const isMatch = pDateStr && pDateStr >= startStr && pDateStr <= endStr;
+      // console.log(`DEBUG: Check ${pDateStr} vs ${startStr}-${endStr} -> ${isMatch} ($${p.amount})`);
+      if (isMatch) {
         return sum + (parseFloat(p.amount) || 0);
       }
       return sum;
     }, 0);
 
-    // console.log(`DEBUG: Filtered ${total} from range ${startStr} to ${endStr}`);
+    console.log(`DEBUG: Filtered ${total} from range ${startStr} to ${endStr}`);
     setCollectedAmount(total);
 
   }, [collectedPaymentRange, allPayments, loadingCollected]);

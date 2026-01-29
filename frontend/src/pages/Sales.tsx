@@ -925,7 +925,7 @@ export default function Sales() {
                               key={product.product_id}
                               value={product.product_id}
                             >
-                              {product.product_name} - ₹{product.standard_rate}
+                              {product.product_name}
                             </MenuItem>
                           ))}
                         </TextField>

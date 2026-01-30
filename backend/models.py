@@ -75,6 +75,8 @@ class SaleCreate(BaseModel):
     items: List[SaleItem]
     notes: Optional[str] = None
     payment_terms: Optional[str] = None
+    paid_amount: Optional[float] = 0
+    payment_method: Optional[str] = "Cash"
 
 
 # ======================

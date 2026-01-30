@@ -416,6 +416,49 @@ def create_sale(
         except Exception as demo_err:
             print(f"Warning: Failed to auto-convert demos: {str(demo_err)}")
 
+        # Handle Initial Payment
+        if sale.paid_amount and sale.paid_amount > 0:
+            try:
+                payment_data = {
+                    "sale_id": sale_id,
+                    "payment_date": sale.sale_date,
+                    "payment_method": sale.payment_method or "Cash",
+                    "amount": sale.paid_amount,
+                    "notes": f"Initial payment for invoice {invoice_no}"
+                }
+                
+                # Insert payment
+                db.table("payments").insert(payment_data).execute()
+                
+                # Update sale payment status
+                new_status = "Pending"
+                if sale.paid_amount >= total_amount:
+                    new_status = "Paid"
+                elif sale.paid_amount > 0:
+                    new_status = "Partial"
+                
+                if new_status != "Pending":
+                    db.table("sales").update({"payment_status": new_status}).eq("sale_id", sale_id).execute()
+                    created_sale["payment_status"] = new_status
+                
+                # Log payment activity
+                if user_email:
+                    logger = get_activity_logger(db)
+                    logger.log_create(
+                        user_email=user_email,
+                        entity_type="payment",
+                        entity_name=f"₹{sale.paid_amount} for {invoice_no}",
+                        entity_id=sale_id, # Linking to sale
+                        metadata={
+                            "amount": sale.paid_amount,
+                            "invoice_no": invoice_no,
+                            "type": "initial_payment"
+                        }
+                    )
+            except Exception as pay_err:
+                print(f"Error processing initial payment: {pay_err}")
+                # Don't fail the whole sale creation for payment failure, but log it
+
         # Notification creation removed as per user request
 
 

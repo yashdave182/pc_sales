@@ -570,7 +570,7 @@ export default function Sales() {
             >
               {t("sales.addSale")}
             </Button>
-            <IconButton onClick={loadData} color="primary">
+            <IconButton onClick={() => loadData()} color="primary">
               <RefreshIcon />
             </IconButton>
             <Box sx={{ ml: "auto", display: "flex", gap: 2 }}>

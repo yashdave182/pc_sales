@@ -416,27 +416,8 @@ def create_sale(
         except Exception as demo_err:
             print(f"Warning: Failed to auto-convert demos: {str(demo_err)}")
 
-        # Create notification for new sale
-        if user_email:
-            try:
-                customer_name = (
-                    customer_response.data[0].get("name")
-                    if customer_response.data
-                    else f"Customer ID: {sale.customer_id}"
-                )
+        # Notification creation removed as per user request
 
-                create_notification_helper(
-                    db=db,
-                    user_email=user_email,
-                    title="New Sale Created",
-                    message=f"Sale {invoice_no} for {customer_name} - ₹{total_amount:,.2f}",
-                    notification_type="success",
-                    entity_type="sale",
-                    entity_id=sale_id,
-                    action_url=f"/sales/{sale_id}",
-                )
-            except Exception as notif_err:
-                print(f"Warning: Failed to create notification: {str(notif_err)}")
 
         return {
             "message": "Sale created successfully",

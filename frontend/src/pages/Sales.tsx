@@ -718,7 +718,7 @@ export default function Sales() {
                   <TextField
                     fullWidth
                     required
-                    label={`${tf("village")} *`}
+                    label={tf("village")}
                     value={newCustomerData.village}
                     onChange={(e) =>
                       setNewCustomerData({
@@ -732,7 +732,7 @@ export default function Sales() {
                   <TextField
                     fullWidth
                     required
-                    label={`${tf("taluka")} *`}
+                    label={tf("taluka")}
                     value={newCustomerData.taluka}
                     onChange={(e) =>
                       setNewCustomerData({
@@ -746,7 +746,7 @@ export default function Sales() {
                   <TextField
                     fullWidth
                     required
-                    label={`${tf("district")} *`}
+                    label={tf("district")}
                     value={newCustomerData.district}
                     onChange={(e) =>
                       setNewCustomerData({
@@ -761,7 +761,7 @@ export default function Sales() {
                     fullWidth
                     select
                     required
-                    label="State *"
+                    label="State"
                     value={newCustomerData.state || "Gujarat"}
                     onChange={(e) =>
                       setNewCustomerData({

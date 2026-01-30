@@ -90,9 +90,9 @@ export default function Sales() {
     loadData();
   }, []);
 
-  const loadData = async () => {
+  const loadData = async (background = false) => {
     try {
-      setLoading(true);
+      if (!background) setLoading(true);
       setError(null);
       console.log("Loading sales data...");
       const [salesData, customersData, productsData] = await Promise.all([
@@ -112,7 +112,7 @@ export default function Sales() {
         err?.response?.data?.detail || err?.message || t("messages.error");
       setError(errorMessage);
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
     }
   };
 
@@ -315,7 +315,29 @@ export default function Sales() {
       }
 
       handleCloseDialog();
-      loadData();
+
+      // OPTIMISTIC UPDATE: Add new sale to list immediately if possible
+      if (response.sale) {
+        try {
+          const newSale = response.sale;
+          // Find customer details to enrich the sale object for the table
+          const customer = customers.find(c => c.customer_id === newSale.customer_id);
+          if (customer) {
+            const enrichedSale = {
+              ...newSale,
+              customer_name: customer.name,
+              village: customer.village,
+              mobile: customer.mobile
+            };
+            setSales(prev => [enrichedSale, ...prev]);
+          }
+        } catch (e) {
+          console.log("Optimistic update failed, waiting for refresh");
+        }
+      }
+
+      // Background refresh (no spinner)
+      loadData(true);
       setError(null);
     } catch (err: any) {
       console.error("Error creating sale:", err);

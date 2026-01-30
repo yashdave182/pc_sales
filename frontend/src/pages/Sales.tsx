@@ -866,6 +866,23 @@ export default function Sales() {
               </TextField>
             </Grid>
 
+            {/* Paid Amount - Moved here for better visibility */}
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Paid Amount (Initial)"
+                type="number"
+                value={formData.paid_amount}
+                onChange={(e) =>
+                  setFormData({ ...formData, paid_amount: Number(e.target.value) })
+                }
+                InputProps={{
+                  startAdornment: <Typography sx={{ mr: 1 }}>₹</Typography>,
+                }}
+                helperText="Enter initial payment amount receiving now"
+              />
+            </Grid>
+
             {/* After X Days */}
             {paymentTerms.type === 'after_days' && (
               <Grid item xs={12} sm={6}>
@@ -1014,20 +1031,7 @@ export default function Sales() {
               </Grid>
             ))}
             <Grid item xs={12}>
-              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2, alignItems: "center", gap: 3 }}>
-                <TextField
-                  label="Paid Amount"
-                  type="number"
-                  size="small"
-                  value={formData.paid_amount}
-                  onChange={(e) =>
-                    setFormData({ ...formData, paid_amount: Number(e.target.value) })
-                  }
-                  sx={{ width: 200 }}
-                  InputProps={{
-                    startAdornment: <Typography sx={{ mr: 1 }}>₹</Typography>,
-                  }}
-                />
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
                 <Typography variant="h6">
                   {t("dashboard.amount")}: ₹{getTotalAmount().toLocaleString()}
                 </Typography>

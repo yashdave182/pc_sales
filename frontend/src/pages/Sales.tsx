@@ -859,6 +859,7 @@ export default function Sales() {
                 value={paymentTerms.type}
                 onChange={(e) => setPaymentTerms({ ...paymentTerms, type: e.target.value as any })}
               >
+                <MenuItem value="on_delivery">On Delivery</MenuItem>
                 <MenuItem value="after_delivery">After Delivery</MenuItem>
                 <MenuItem value="advance">Advance Payment</MenuItem>
                 <MenuItem value="after_days">After X Days</MenuItem>
@@ -866,22 +867,24 @@ export default function Sales() {
               </TextField>
             </Grid>
 
-            {/* Paid Amount - Moved here for better visibility */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Paid Amount (Initial)"
-                type="number"
-                value={formData.paid_amount}
-                onChange={(e) =>
-                  setFormData({ ...formData, paid_amount: Number(e.target.value) })
-                }
-                InputProps={{
-                  startAdornment: <Typography sx={{ mr: 1 }}>₹</Typography>,
-                }}
-                helperText="Enter initial payment amount receiving now"
-              />
-            </Grid>
+            {/* Paid Amount - Only visible for 'On Delivery' */}
+            {paymentTerms.type === 'on_delivery' && (
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Paid Amount"
+                  type="number"
+                  value={formData.paid_amount}
+                  onChange={(e) =>
+                    setFormData({ ...formData, paid_amount: Number(e.target.value) })
+                  }
+                  InputProps={{
+                    startAdornment: <Typography sx={{ mr: 1 }}>₹</Typography>,
+                  }}
+                  helperText="Enter amount received on delivery"
+                />
+              </Grid>
+            )}
 
             {/* After X Days */}
             {paymentTerms.type === 'after_days' && (

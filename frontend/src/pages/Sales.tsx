@@ -76,7 +76,7 @@ export default function Sales() {
     { product_id: 0, quantity: 1, rate: 0, amount: 0 },
   ]);
   const [paymentTerms, setPaymentTerms] = useState({
-    type: 'after_delivery' as 'advance' | 'after_delivery' | 'after_days' | 'emi',
+    type: 'after_delivery' as 'advance' | 'after_delivery' | 'after_days' | 'emi' | 'on_delivery',
     days: 0,
     emiParts: [
       { part: 1, days: 0, percentage: 25 },

@@ -45,6 +45,7 @@ export default function DemoDialog({ open, onClose, onSuccess }: DemoDialogProps
     follow_up_date: null as Date | null,
     demo_location: "",
     notes: "",
+    paid_amount: 0,
   });
 
   useEffect(() => {
@@ -104,7 +105,7 @@ export default function DemoDialog({ open, onClose, onSuccess }: DemoDialogProps
           ? formData.follow_up_date.toISOString().split("T")[0]
           : undefined,
         demo_location: formData.demo_location || undefined,
-        notes: formData.notes || undefined,
+        notes: (formData.notes || "") + (formData.paid_amount > 0 ? `\n\nInitial Payment: ₹${formData.paid_amount}` : ""),
         conversion_status: "Scheduled",
       };
 
@@ -129,6 +130,7 @@ export default function DemoDialog({ open, onClose, onSuccess }: DemoDialogProps
       follow_up_date: null,
       demo_location: "",
       notes: "",
+      paid_amount: 0,
     });
     setError(null);
     onClose();
@@ -304,6 +306,22 @@ export default function DemoDialog({ open, onClose, onSuccess }: DemoDialogProps
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Additional notes about the demo"
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Paid Amount / Deposit"
+                  value={formData.paid_amount}
+                  onChange={(e) =>
+                    setFormData({ ...formData, paid_amount: Number(e.target.value) })
+                  }
+                  InputProps={{
+                    startAdornment: <Typography sx={{ mr: 1 }}>₹</Typography>,
+                  }}
+                  helperText="Amount will be recorded in notes"
                 />
               </Grid>
             </Grid>

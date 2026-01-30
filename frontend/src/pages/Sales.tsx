@@ -1014,7 +1014,20 @@ export default function Sales() {
               </Grid>
             ))}
             <Grid item xs={12}>
-              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2, alignItems: "center", gap: 3 }}>
+                <TextField
+                  label="Paid Amount"
+                  type="number"
+                  size="small"
+                  value={formData.paid_amount}
+                  onChange={(e) =>
+                    setFormData({ ...formData, paid_amount: Number(e.target.value) })
+                  }
+                  sx={{ width: 200 }}
+                  InputProps={{
+                    startAdornment: <Typography sx={{ mr: 1 }}>₹</Typography>,
+                  }}
+                />
                 <Typography variant="h6">
                   {t("dashboard.amount")}: ₹{getTotalAmount().toLocaleString()}
                 </Typography>

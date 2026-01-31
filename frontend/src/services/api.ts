@@ -303,6 +303,14 @@ export const automationAPI = {
     });
     return response.data;
   },
+  getMyAssignments: async () => {
+    const response = await apiClient.get("/api/automation/my-assignments");
+    return response.data;
+  },
+  runDistribution: async () => {
+    const response = await apiClient.post("/api/automation/run-distribution");
+    return response.data;
+  },
 };
 // File/Import API
 

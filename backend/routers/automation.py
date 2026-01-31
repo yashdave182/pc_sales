@@ -1,214 +1,302 @@
-import sqlite3
-from datetime import datetime
-from typing import Any, Dict
 
-from database import get_db
-from fastapi import APIRouter, Depends, Query
+from datetime import datetime, timedelta, date
+from typing import Any, Dict, List, Optional
+import math
+import random
+
+from fastapi import APIRouter, Depends, Query, HTTPException, Header
+from supabase_db import SupabaseClient, get_db, get_supabase
 
 router = APIRouter()
 
+# ==========================================
+# CONSTANTS & HELPERS
+# ==========================================
 
+def get_master_calling_list(db: SupabaseClient, inactive_days: int) -> List[Dict]:
+    """
+    Generates the master calling list by combining:
+    1. Inactive Customers (High Value)
+    2. Pending Demo Follow-ups
+    3. Outstanding Payments
+    """
+    master_list = []
+    
+    # ----------------------------------
+    # 1. Outstanding Payments
+    # ----------------------------------
+    try:
+        # Get sales with pending/partial status
+        pending_sales = db.table("sales").select("*").in_("payment_status", ["Pending", "Partial"]).execute()
+        
+        for sale in pending_sales.data or []:
+            # Get customer details
+            customer_res = db.table("customers").select("mid, name, mobile, village").eq("customer_id", sale["customer_id"]).execute()
+            if not customer_res.data: continue
+            cust = customer_res.data[0]
+            
+            # Use 'sales.paid_amount' if implemented, else rely on status
+            paid = sale.get("paid_amount") or 0
+            # Also check payments table? For now, simplistic reliance on sales record
+            # In a robust system, we'd sum payments table, but let's stick to simple logic first
+            
+            # Actually, let's just push High priority for any "Pending" status > 7 days old
+            sale_date = datetime.strptime(sale["sale_date"], "%Y-%m-%d").date()
+            days_old = (date.today() - sale_date).days
+            
+            if days_old > 7:
+                master_list.append({
+                    "customer_id": sale["customer_id"],
+                    "name": cust["name"],
+                    "mobile": cust["mobile"],
+                    "village": cust["village"],
+                    "priority": "High",
+                    "reason": f"Payment pending for Invoice {sale.get('invoice_no')} ({days_old} days)",
+                    "type": "payment",
+                    "reference_id": sale.get("sale_id"),
+                    "amount": sale.get("total_amount") - paid
+                })
+    except Exception as e:
+        print(f"Error fetching outstanding payments: {e}")
+
+    # ----------------------------------
+    # 2. Demo Follow-ups
+    # ----------------------------------
+    try:
+        # Get active demos
+        today_str = date.today().isoformat()
+        demos = db.table("demos").select("*").in_("conversion_status", ["Scheduled", "Pending"]).execute()
+        
+        for demo in demos.data or []:
+            customer_res = db.table("customers").select("name, mobile, village").eq("customer_id", demo["customer_id"]).execute()
+            if not customer_res.data: continue
+            cust = customer_res.data[0]
+            
+            # Logic: If demo date passed and no conversion, Call them.
+            # If follow_up_date is today/past, Call them.
+            should_call = False
+            reason = ""
+            
+            demo_date = datetime.strptime(demo["demo_date"], "%Y-%m-%d").date()
+            follow_up = demo.get("follow_up_date")
+            
+            if follow_up:
+                follow_up_date = datetime.strptime(follow_up, "%Y-%m-%d").date()
+                if follow_up_date <= date.today():
+                    should_call = True
+                    reason = "Scheduled Follow-up"
+            elif demo_date < date.today():
+                 should_call = True
+                 reason = "Post-Demo Feedback"
+                 
+            if should_call:
+                master_list.append({
+                    "customer_id": demo["customer_id"],
+                    "name": cust["name"],
+                    "mobile": cust["mobile"],
+                    "village": cust["village"],
+                    "priority": "High",
+                    "reason": reason,
+                    "type": "demo",
+                    "reference_id": demo.get("demo_id")
+                })
+    except Exception as e:
+         print(f"Error fetching demos: {e}")
+
+    # ----------------------------------
+    # 3. Inactive Customers
+    # ----------------------------------
+    try:
+        # This is harder in NoSQL-ish/Supabase client without raw SQL join power for "Max Date"
+        # Strategy: Fetch all recent sales, find set of active customers, subtract from all customers?
+        # Better: Just limit to checking recently inactive ones if dataset is huge.
+        
+        # Simplified: Fetch top 50 customers who haven't bought in X days.
+        # We rely on 'sales' date.
+        
+        # 1. Get all customers
+        all_customers = db.table("customers").select("customer_id, name, mobile, village").eq("status", "Active").execute()
+        
+        # 2. Get recent sales (within inactive_days)
+        cutoff_date = (date.today() - timedelta(days=inactive_days)).isoformat()
+        recent_sales = db.table("sales").select("customer_id").gte("sale_date", cutoff_date).execute()
+        active_customer_ids = {s["customer_id"] for s in recent_sales.data}
+        
+        count = 0
+        for cust in all_customers.data or []:
+            if count >= 30: break # Limit inactive list size for daily mix
+            
+            if cust["customer_id"] not in active_customer_ids:
+                # This customer is inactive
+                master_list.append({
+                    "customer_id": cust["customer_id"],
+                    "name": cust["name"],
+                    "mobile": cust["mobile"],
+                    "village": cust["village"],
+                    "priority": "Medium",
+                    "reason": f"Inactive for {inactive_days}+ days",
+                    "type": "inactive",
+                    "reference_id": None
+                })
+                count += 1
+                
+    except Exception as e:
+        print(f"Error fetching inactive customers: {e}")
+
+    return master_list
+
+
+# ==========================================
+# ENDPOINTS
+# ==========================================
+
+@router.post("/run-distribution")
+def run_daily_distribution(
+    db: SupabaseClient = Depends(get_db),
+    admin_email: str = Header(None, alias="x-user-email") # Basic security
+):
+    """
+    Triggers the daily distribution process manually.
+    Splits the master calling list equally among 'staff' users.
+    """
+    try:
+        # 1. Get Eligible Users (Role != admin, or just all active users?)
+        # User requested: "send them to normal user not admin"
+        users_res = db.table("app_users").select("email").eq("is_active", True).neq("role", "admin").execute()
+        staff_emails = [u["email"] for u in users_res.data]
+        
+        if not staff_emails:
+            # Fallback: if no staff, maybe assign to admin or fail
+            return {"message": "No active staff users found to distribute calls.", "count": 0}
+            
+        # 2. Get Master List
+        master_list = get_master_calling_list(db, inactive_days=30)
+        
+        if not master_list:
+            return {"message": "No calls to assign today.", "count": 0}
+            
+        # 3. Shuffle & Split
+        random.shuffle(master_list)
+        total_items = len(master_list)
+        total_staff = len(staff_emails)
+        chunk_size = math.ceil(total_items / total_staff)
+        
+        assignments = []
+        today_str = date.today().isoformat()
+        
+        # Clear existing assignments for TODAY to avoid duplicates if run multiple times?
+        # db.table("calling_assignments").delete().eq("assigned_date", today_str).execute()
+        # For safety, let's simple append.
+        
+        staff_idx = 0
+        for item in master_list:
+            assigned_email = staff_emails[staff_idx % total_staff]
+            staff_idx += 1
+            
+            assignments.append({
+                "user_email": assigned_email,
+                "customer_id": item["customer_id"],
+                "priority": item["priority"],
+                "reason": item["reason"],
+                "assigned_date": today_str,
+                "status": "Pending",
+                "notes": item.get("type", "") # storing type in notes or separate col logic
+            })
+            
+            # Send Notification (Mock or Real)
+            # In a real app, we'd batch this. For now, we assume the user checks the list.
+            
+        # 4. Bulk Insert
+        if assignments:
+            db.table("calling_assignments").insert(assignments).execute()
+        
+        return {
+            "message": "Distribution successful",
+            "total_calls": total_items,
+            "staff_count": total_staff,
+            "calls_per_person": chunk_size
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Distribution failed: {str(e)}")
+
+
+@router.get("/my-assignments")
+def get_my_assignments(
+    user_email: str = Header(..., alias="x-user-email"),
+    db: SupabaseClient = Depends(get_db)
+):
+    """
+    Fetch the calling list assigned to the logged-in user for TODAY.
+    """
+    try:
+        today_str = date.today().isoformat()
+        
+        # 1. Get assignments
+        res = db.table("calling_assignments")\
+            .select("*")\
+            .eq("user_email", user_email)\
+            .eq("assigned_date", today_str)\
+            .execute()
+            
+        assignments = res.data or []
+        
+        # 2. Enrich with customer details
+        # Supabase join syntax is tricky in python client without defined relations sometimes.
+        # We'll fetch customer details manually for the list.
+        cust_ids = [a["customer_id"] for a in assignments]
+        
+        if not cust_ids:
+            return {"assignments": [], "summary": {"total": 0, "pending": 0}}
+            
+        customers_res = db.table("customers").select("*").in_("customer_id", cust_ids).execute()
+        customers_map = {c["customer_id"]: c for c in customers_res.data}
+        
+        enhanced_list = []
+        for a in assignments:
+            c = customers_map.get(a["customer_id"], {})
+            enhanced_list.append({
+                **a,
+                "name": c.get("name"),
+                "mobile": c.get("mobile"),
+                "village": c.get("village"),
+                # adapt to frontend expected fields
+                "customer_id": a["customer_id"],
+                "priority": a["priority"], 
+                "reason": a["reason"],
+                "outstanding_balance": 0, # could fetch real balance if needed
+            })
+            
+        return {
+            "assignments": enhanced_list,
+            "summary": {
+                "total": len(enhanced_list),
+                "pending": len([x for x in enhanced_list if x["status"] == "Pending"])
+            }
+        }
+        
+    except Exception as e:
+        print(f"Error getting assignments: {e}")
+        return {"assignments": [], "error": str(e)}
+
+# Keep the old endpoint for admin backward compatibility or reference
 @router.get("/calling-list")
 def get_daily_calling_list(
-    inactive_days: int = Query(30),
     limit: int = Query(50),
-    conn: sqlite3.Connection = Depends(get_db),
-) -> Dict[str, Any]:
-    cursor = conn.cursor()
-
-    cursor.execute(
-        """
-        SELECT
-            c.customer_id,
-            c.name,
-            c.mobile,
-            c.village,
-            c.taluka,
-            MAX(s.sale_date) AS last_purchase_date,
-            COALESCE(julianday('now') - julianday(MAX(s.sale_date)), 999) AS days_since_purchase,
-            COALESCE(SUM(s.total_amount), 0) AS lifetime_value,
-            COUNT(s.sale_id) AS total_purchases
-        FROM customers c
-        LEFT JOIN sales s ON c.customer_id = s.customer_id
-        WHERE c.status = 'Active'
-        GROUP BY c.customer_id
-        HAVING MAX(s.sale_date) IS NULL OR (julianday('now') - julianday(MAX(s.sale_date)) > ?)
-        ORDER BY lifetime_value DESC, days_since_purchase DESC
-        LIMIT ?
-        """,
-        (inactive_days, limit),
-    )
-    inactive_customers = [
-        {
-            **dict(row),
-            "priority": "High"
-            if row["lifetime_value"] > 10000
-            else "Medium"
-            if row["lifetime_value"] > 5000
-            else "Low",
-            "reason": "High-value inactive customer"
-            if row["lifetime_value"] > 10000
-            else "Inactive customer",
-            "days_since_purchase": int(row["days_since_purchase"]),
-        }
-        for row in cursor.fetchall()
-    ]
-
-    cursor.execute(
-        """
-        SELECT
-            c.customer_id,
-            c.name,
-            c.mobile,
-            c.village,
-            d.demo_date,
-            d.follow_up_date,
-            p.product_name,
-            d.conversion_status,
-            d.notes
-        FROM demos d
-        JOIN customers c ON d.customer_id = c.customer_id
-        LEFT JOIN products p ON d.product_id = p.product_id
-        WHERE d.conversion_status IN ('Scheduled', 'Completed')
-          AND (
-            (d.follow_up_date IS NOT NULL AND date(d.follow_up_date) <= date('now', '+7 days'))
-            OR (d.follow_up_date IS NULL AND date(d.demo_date) <= date('now'))
-          )
-        ORDER BY
-          CASE
-            WHEN d.follow_up_date IS NOT NULL THEN date(d.follow_up_date)
-            ELSE date(d.demo_date)
-          END ASC
-        LIMIT ?
-        """,
-        (limit,),
-    )
-    demo_followups = [
-        {
-            **dict(row),
-            "priority": "High",
-            "reason": "Demo follow-up pending",
-        }
-        for row in cursor.fetchall()
-    ]
-
-    cursor.execute(
-        """
-        SELECT
-            c.customer_id,
-            c.name,
-            c.mobile,
-            c.village,
-            COALESCE(SUM(s.total_amount), 0) AS total_sales,
-            COALESCE(SUM(p.amount), 0) AS total_payments,
-            COALESCE(SUM(s.total_amount), 0) - COALESCE(SUM(p.amount), 0) AS outstanding_balance,
-            MAX(s.sale_date) AS last_sale_date
-        FROM customers c
-        JOIN sales s ON c.customer_id = s.customer_id
-        LEFT JOIN payments p ON s.sale_id = p.sale_id
-        WHERE c.status = 'Active'
-        GROUP BY c.customer_id
-        HAVING (COALESCE(SUM(s.total_amount), 0) - COALESCE(SUM(p.amount), 0)) > 0
-        ORDER BY outstanding_balance DESC
-        LIMIT ?
-        """,
-        (limit,),
-    )
-    outstanding_customers = [
-        {
-            **dict(row),
-            "priority": "High" if row["outstanding_balance"] > 5000 else "Medium",
-            "reason": "Outstanding payment",
-            "outstanding_balance": round(row["outstanding_balance"], 2),
-        }
-        for row in cursor.fetchall()
-    ]
-
-    cursor.execute(
-        """
-        SELECT
-            COUNT(DISTINCT CASE WHEN s.days_inactive > ? OR s.days_inactive IS NULL THEN c.customer_id END) AS total_inactive,
-            COUNT(DISTINCT CASE WHEN d.conversion_status IN ('Scheduled', 'Completed') THEN c.customer_id END) AS total_pending_demos,
-            COUNT(DISTINCT CASE WHEN o.outstanding > 0 THEN c.customer_id END) AS total_outstanding
-        FROM customers c
-        LEFT JOIN (
-            SELECT customer_id, MAX(julianday('now') - julianday(sale_date)) AS days_inactive
-            FROM sales
-            GROUP BY customer_id
-        ) s ON c.customer_id = s.customer_id
-        LEFT JOIN demos d ON c.customer_id = d.customer_id
-        LEFT JOIN (
-            SELECT s.customer_id, COALESCE(SUM(s.total_amount), 0) - COALESCE(SUM(p.amount), 0) AS outstanding
-            FROM sales s
-            LEFT JOIN payments p ON s.sale_id = p.sale_id
-            GROUP BY s.customer_id
-        ) o ON c.customer_id = o.customer_id
-        WHERE c.status = 'Active'
-        """,
-        (inactive_days,),
-    )
-    stats_row = cursor.fetchone()
-    stats = (
-        dict(stats_row)
-        if stats_row
-        else {"total_inactive": 0, "total_pending_demos": 0, "total_outstanding": 0}
-    )
-
-    combined = inactive_customers + demo_followups + outstanding_customers
-
+    db: SupabaseClient = Depends(get_db),
+):
+    # This just returns the master list without assignment
+    raw_list = get_master_calling_list(db, inactive_days=30)
+    
+    # Format to match old interface roughly
     return {
         "generated_at": datetime.now().isoformat(),
-        "inactive_days_threshold": inactive_days,
-        "summary": {
-            "total_inactive_customers": int(stats.get("total_inactive") or 0),
-            "total_pending_demos": int(stats.get("total_pending_demos") or 0),
-            "total_outstanding_payments": int(stats.get("total_outstanding") or 0),
-            "total_calls_suggested": len(combined),
-        },
         "calling_priorities": {
-            "high_priority": [c for c in combined if c.get("priority") == "High"],
-            "medium_priority": [c for c in combined if c.get("priority") == "Medium"],
-            "low_priority": [c for c in combined if c.get("priority") == "Low"],
+            "high_priority": [x for x in raw_list if x["priority"] == "High"],
+            "medium_priority": [x for x in raw_list if x["priority"] == "Medium"],
+            "low_priority": []
         },
-        "segments": {
-            "inactive_customers": inactive_customers[:20],
-            "demo_followups": demo_followups[:20],
-            "outstanding_payments": outstanding_customers[:20],
-        },
-    }
-
-
-@router.get("/insights/inactive")
-def get_inactive_insights(
-    inactive_days: int = Query(30), conn: sqlite3.Connection = Depends(get_db)
-) -> Dict[str, Any]:
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        SELECT
-            c.taluka,
-            COUNT(DISTINCT c.customer_id) AS inactive_count,
-            COALESCE(SUM(ps.total_value), 0) AS lost_revenue_potential
-        FROM customers c
-        LEFT JOIN (
-            SELECT customer_id, SUM(total_amount) AS total_value
-            FROM sales
-            GROUP BY customer_id
-        ) ps ON c.customer_id = ps.customer_id
-        LEFT JOIN (
-            SELECT customer_id, MAX(sale_date) AS last_sale
-            FROM sales
-            GROUP BY customer_id
-        ) rs ON c.customer_id = rs.customer_id
-        WHERE c.status = 'Active'
-          AND (rs.last_sale IS NULL OR (julianday('now') - julianday(rs.last_sale) > ?))
-        GROUP BY c.taluka
-        ORDER BY inactive_count DESC
-        """,
-        (inactive_days,),
-    )
-    by_region = [dict(row) for row in cursor.fetchall()]
-    return {
-        "inactive_threshold_days": inactive_days,
-        "insights": {"by_region": by_region},
+        "summary": {
+            "total_calls_suggested": len(raw_list)
+        }
     }

@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useState } from "react";
 import {
   Box,
@@ -15,6 +16,7 @@ import {
   CircularProgress,
   Paper,
   Tooltip,
+  Snackbar,
 } from "@mui/material";
 import {
   Refresh as RefreshIcon,
@@ -26,6 +28,7 @@ import {
   Place as PlaceIcon,
   Event as EventIcon,
   Insights as InsightsIcon,
+  Send as SendIcon,
 } from "@mui/icons-material";
 import { automationAPI } from "../services/api";
 
@@ -34,41 +37,22 @@ type CallingListItem = {
   name?: string;
   mobile?: string;
   village?: string;
-  taluka?: string;
-  last_purchase_date?: string | null;
-  days_since_purchase?: number;
-  lifetime_value?: number;
-  total_purchases?: number;
-  product_name?: string | null;
-  demo_date?: string | null;
-  follow_up_date?: string | null;
-  conversion_status?: string | null;
-  outstanding_balance?: number;
-  last_sale_date?: string | null;
   priority?: "High" | "Medium" | "Low";
   reason?: string;
+  outstanding_balance?: number;
+  days_since_purchase?: number;
+  status?: string;
+  notes?: string;
   [key: string]: any;
 };
 
-type CallingListResponse = {
-  generated_at: string;
-  inactive_days_threshold: number;
+type AssignmentsResponse = {
+  assignments: CallingListItem[];
   summary: {
-    total_inactive_customers: number;
-    total_pending_demos: number;
-    total_outstanding_payments: number;
-    total_calls_suggested: number;
+    total: number;
+    pending: number;
   };
-  calling_priorities: {
-    high_priority: CallingListItem[];
-    medium_priority: CallingListItem[];
-    low_priority: CallingListItem[];
-  };
-  segments: {
-    inactive_customers: CallingListItem[];
-    demo_followups: CallingListItem[];
-    outstanding_payments: CallingListItem[];
-  };
+  error?: string;
 };
 
 function Metric({
@@ -172,6 +156,7 @@ function CallItemCard({ item }: { item: CallingListItem }) {
         ? "#ed6c02"
         : "#1976d2";
   const telHref = item.mobile ? `tel:${item.mobile}` : undefined;
+
   return (
     <Card
       variant="outlined"
@@ -179,6 +164,7 @@ function CallItemCard({ item }: { item: CallingListItem }) {
         borderColor: `${color}33`,
         "&:hover": { borderColor: color },
         transition: "border-color .2s",
+        bgcolor: item.status === "Pending" ? "background.paper" : "#f5f5f5"
       }}
     >
       <CardContent>
@@ -214,48 +200,19 @@ function CallItemCard({ item }: { item: CallingListItem }) {
             >
               <DetailRow
                 icon={<PlaceIcon sx={{ fontSize: 16 }} />}
-                text={
-                  item.village
-                    ? `${item.village}${item.taluka ? `, ${item.taluka}` : ""}`
-                    : undefined
-                }
+                text={item.village}
               />
               <DetailRow
                 icon={<PhoneIcon sx={{ fontSize: 16 }} />}
                 text={item.mobile}
               />
-              {typeof item.outstanding_balance === "number" &&
-              item.outstanding_balance > 0 ? (
+              {item.outstanding_balance ? (
                 <DetailRow
                   icon={<PaymentsIcon sx={{ fontSize: 16 }} />}
-                  text={`Due ₹${item.outstanding_balance.toFixed(2)}`}
+                  text={`Due ₹${item.outstanding_balance}`}
                 />
               ) : null}
-              {item.days_since_purchase !== undefined &&
-              item.days_since_purchase !== null ? (
-                <DetailRow
-                  icon={<ScheduleIcon sx={{ fontSize: 16 }} />}
-                  text={`${item.days_since_purchase} days inactive`}
-                />
-              ) : null}
-              {item.last_purchase_date ? (
-                <DetailRow
-                  icon={<EventIcon sx={{ fontSize: 16 }} />}
-                  text={`Last: ${item.last_purchase_date}`}
-                />
-              ) : null}
-              {item.demo_date ? (
-                <DetailRow
-                  icon={<EventIcon sx={{ fontSize: 16 }} />}
-                  text={`Demo: ${item.demo_date}${item.follow_up_date ? `, Follow-up: ${item.follow_up_date}` : ""}`}
-                />
-              ) : null}
-              {item.product_name ? (
-                <DetailRow
-                  icon={<InsightsIcon sx={{ fontSize: 16 }} />}
-                  text={item.product_name}
-                />
-              ) : null}
+
             </Stack>
           </Box>
           <Stack alignItems="flex-end" spacing={1} sx={{ minWidth: 56 }}>
@@ -264,6 +221,9 @@ function CallItemCard({ item }: { item: CallingListItem }) {
               label={item.priority || "Low"}
               sx={{ bgcolor: `${color}1A`, color }}
             />
+            {item.status !== "Pending" && (
+              <Chip size="small" label={item.status} color="success" variant="outlined" />
+            )}
 
             {telHref ? (
               <Tooltip title={`Call ${item.mobile}`}>
@@ -288,48 +248,50 @@ function CallItemCard({ item }: { item: CallingListItem }) {
 }
 
 export default function CallingList() {
-  const [inactiveDays, setInactiveDays] = useState<number>(30);
-  const [limit, setLimit] = useState<number>(50);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<CallingListResponse | null>(null);
+  const [data, setData] = useState<AssignmentsResponse | null>(null);
+  const [distributing, setDistributing] = useState(false);
+  const [toast, setToast] = useState<{ msg: string, type: "success" | "error" } | null>(null);
 
   const load = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await automationAPI.getCallingList({
-        inactive_days: inactiveDays,
-        limit,
-      });
+      const res = await automationAPI.getMyAssignments();
       setData(res);
     } catch (e: any) {
-      setError(e?.message || "Failed to load calling list");
+      setError(e?.message || "Failed to load your assignments");
     } finally {
       setLoading(false);
     }
   };
+
+  const handleDistribute = async () => {
+    if (!window.confirm("Are you sure you want to trigger daily distribution now? (This is usually automated)")) return;
+    try {
+      setDistributing(true);
+      const res = await automationAPI.runDistribution();
+      setToast({ msg: `Distribution Complete: ${res.total_calls} calls assigned to ${res.staff_count} staff.`, type: "success" });
+      load(); // reload to see if I got any
+    } catch (e: any) {
+      setToast({ msg: `Distribution Failed: ${e.message}`, type: "error" });
+    } finally {
+      setDistributing(false);
+    }
+  }
 
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const high = data?.calling_priorities?.high_priority || [];
-  const med = data?.calling_priorities?.medium_priority || [];
-  const low = data?.calling_priorities?.low_priority || [];
-  const empty =
-    !loading && !error && high.length + med.length + low.length === 0;
+  const assignments = data?.assignments || [];
+  const high = assignments.filter(x => x.priority === "High");
+  const med = assignments.filter(x => x.priority === "Medium");
+  const low = assignments.filter(x => x.priority === "Low");
 
-  const summary = useMemo(
-    () => ({
-      inactive: data?.summary?.total_inactive_customers || 0,
-      followups: data?.summary?.total_pending_demos || 0,
-      dues: data?.summary?.total_outstanding_payments || 0,
-      total: data?.summary?.total_calls_suggested || 0,
-    }),
-    [data],
-  );
+  const empty = !loading && !error && assignments.length === 0;
 
   return (
     <Box>
@@ -349,27 +311,19 @@ export default function CallingList() {
             gap: 1,
           }}
         >
-          <WarningIcon color="warning" /> Calling List
+          <WarningIcon color="warning" /> My Calling List (Today)
         </Typography>
         <Stack direction="row" spacing={1.5}>
-          <TextField
-            type="number"
-            size="small"
-            label="Inactive Days"
-            value={inactiveDays}
-            onChange={(e) =>
-              setInactiveDays(Math.max(0, Number(e.target.value || 0)))
-            }
-            sx={{ width: 160 }}
-          />
-          <TextField
-            type="number"
-            size="small"
-            label="Limit"
-            value={limit}
-            onChange={(e) => setLimit(Math.max(1, Number(e.target.value || 1)))}
-            sx={{ width: 120 }}
-          />
+          <Button
+            variant="outlined"
+            color="secondary"
+            startIcon={<SendIcon />}
+            onClick={handleDistribute}
+            disabled={distributing}
+            title="Admin Tool: Manually Trigger Distribution"
+          >
+            {distributing ? "Distributing..." : "Run Distribution"}
+          </Button>
           <Button
             variant="contained"
             startIcon={<RefreshIcon />}
@@ -384,34 +338,18 @@ export default function CallingList() {
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md="auto">
           <Metric
-            label="Suggested Calls"
-            value={summary.total}
+            label="My Total Tasks"
+            value={data?.summary?.total || 0}
             color="#1976d2"
             icon={<PhoneIcon />}
           />
         </Grid>
         <Grid item xs={12} sm={6} md="auto">
           <Metric
-            label="Inactive Customers"
-            value={summary.inactive}
-            color="#9c27b0"
-            icon={<ScheduleIcon />}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md="auto">
-          <Metric
-            label="Demo Follow-ups"
-            value={summary.followups}
-            color="#2e7d32"
-            icon={<EventIcon />}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md="auto">
-          <Metric
-            label="Outstanding Dues"
-            value={summary.dues}
+            label="Pending"
+            value={data?.summary?.pending || 0}
             color="#d32f2f"
-            icon={<PaymentsIcon />}
+            icon={<ScheduleIcon />}
           />
         </Grid>
       </Grid>
@@ -430,66 +368,82 @@ export default function CallingList() {
       ) : error ? (
         <Alert severity="error">{error}</Alert>
       ) : empty ? (
-        <Alert severity="info">No suggestions found</Alert>
+        <Alert severity="info">
+          No calls assigned to you for today yet.
+          (Admins: Click 'Run Distribution' to assign tasks)
+        </Alert>
       ) : (
         <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <PriorityHeader
-              title="High Priority"
-              color="#d32f2f"
-              count={high.length}
-            />
-            <Stack spacing={1.5}>
-              {high.map((item, idx) => (
-                <CallItemCard
-                  key={`high-${idx}-${item.customer_id ?? ""}`}
-                  item={item}
-                />
-              ))}
-            </Stack>
-          </Grid>
+          {high.length > 0 && (
+            <Grid item xs={12}>
+              <PriorityHeader
+                title="High Priority"
+                color="#d32f2f"
+                count={high.length}
+              />
+              <Stack spacing={1.5}>
+                {high.map((item, idx) => (
+                  <CallItemCard
+                    key={`high-${idx}-${item.customer_id ?? ""}`}
+                    item={item}
+                  />
+                ))}
+              </Stack>
+            </Grid>
+          )}
 
-          <Grid item xs={12}>
-            <Divider sx={{ my: 1 }} />
-          </Grid>
+          {high.length > 0 && med.length > 0 && (
+            <Grid item xs={12}><Divider /></Grid>
+          )}
 
-          <Grid item xs={12}>
-            <PriorityHeader
-              title="Medium Priority"
-              color="#ed6c02"
-              count={med.length}
-            />
-            <Stack spacing={1.5}>
-              {med.map((item, idx) => (
-                <CallItemCard
-                  key={`med-${idx}-${item.customer_id ?? ""}`}
-                  item={item}
-                />
-              ))}
-            </Stack>
-          </Grid>
+          {med.length > 0 && (
+            <Grid item xs={12}>
+              <PriorityHeader
+                title="Medium Priority"
+                color="#ed6c02"
+                count={med.length}
+              />
+              <Stack spacing={1.5}>
+                {med.map((item, idx) => (
+                  <CallItemCard
+                    key={`med-${idx}-${item.customer_id ?? ""}`}
+                    item={item}
+                  />
+                ))}
+              </Stack>
+            </Grid>
+          )}
 
-          <Grid item xs={12}>
-            <Divider sx={{ my: 1 }} />
-          </Grid>
+          {(high.length > 0 || med.length > 0) && low.length > 0 && (
+            <Grid item xs={12}><Divider /></Grid>
+          )}
 
-          <Grid item xs={12}>
-            <PriorityHeader
-              title="Low Priority"
-              color="#1976d2"
-              count={low.length}
-            />
-            <Stack spacing={1.5}>
-              {low.map((item, idx) => (
-                <CallItemCard
-                  key={`low-${idx}-${item.customer_id ?? ""}`}
-                  item={item}
-                />
-              ))}
-            </Stack>
-          </Grid>
+          {low.length > 0 && (
+            <Grid item xs={12}>
+              <PriorityHeader
+                title="Low Priority"
+                color="#1976d2"
+                count={low.length}
+              />
+              <Stack spacing={1.5}>
+                {low.map((item, idx) => (
+                  <CallItemCard
+                    key={`low-${idx}-${item.customer_id ?? ""}`}
+                    item={item}
+                  />
+                ))}
+              </Stack>
+            </Grid>
+          )}
         </Grid>
       )}
+
+      <Snackbar
+        open={!!toast}
+        autoHideDuration={6000}
+        onClose={() => setToast(null)}
+        message={toast?.msg}
+      />
     </Box>
   );
 }

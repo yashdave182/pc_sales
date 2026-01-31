@@ -33,6 +33,7 @@ import {
   People as PeopleIcon,
   Download as DownloadIcon,
   CheckCircle as CheckCircleIcon,
+  Search as SearchIcon,
 } from "@mui/icons-material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { salesAPI, customerAPI, productAPI } from "../services/api";
@@ -48,6 +49,7 @@ export default function Sales() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
   const [openInvoiceDialog, setOpenInvoiceDialog] = useState(false);
   const [createdSaleId, setCreatedSaleId] = useState<number | null>(null);
@@ -367,6 +369,16 @@ export default function Sales() {
     return items.reduce((sum, item) => sum + (item.amount || 0), 0);
   };
 
+  const filteredSales = sales.filter((sale) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      (sale.invoice_no && sale.invoice_no.toLowerCase().includes(query)) ||
+      (sale.customer_name && sale.customer_name.toLowerCase().includes(query)) ||
+      (sale.village && sale.village.toLowerCase().includes(query)) ||
+      (sale.notes && sale.notes.toLowerCase().includes(query))
+    );
+  });
+
   const columns: GridColDef[] = [
     {
       field: "invoice_no",
@@ -573,6 +585,22 @@ export default function Sales() {
             <IconButton onClick={() => loadData()} color="primary">
               <RefreshIcon />
             </IconButton>
+
+            <TextField
+              placeholder="Search sales..."
+              size="small"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ width: 300, ml: 2 }}
+            />
+
             <Box sx={{ ml: "auto", display: "flex", gap: 2 }}>
               <Chip
                 label={`${t("dashboard.totalSales")}: ${sales.length}`}
@@ -604,7 +632,7 @@ export default function Sales() {
               </Box>
             ) : (
               <DataGrid
-                rows={sales}
+                rows={filteredSales}
                 columns={columns}
                 getRowId={(row) => row.sale_id}
                 pageSizeOptions={[10, 25, 50, 100]}

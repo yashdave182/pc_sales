@@ -17,12 +17,16 @@ from routers import (
     reports,
     sales,
 )
+from scheduler import start_scheduler
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Supabase connection is handled per-request via dependency injection
+    # Start scheduler
+    scheduler = start_scheduler()
     yield
+    # Shutdown scheduler
+    scheduler.shutdown()
 
 
 app = FastAPI(title="Sales Management API", lifespan=lifespan)

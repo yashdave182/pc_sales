@@ -27,7 +27,8 @@ import {
   LocationOn as LocationOnIcon,
   Refresh as RefreshIcon,
 } from "@mui/icons-material";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { TableSkeleton } from "../components/Skeletons";
+import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import { customerAPI } from "../services/api";
 import type { Customer } from "../types";
 import { useTranslation } from "../hooks/useTranslation";
@@ -334,16 +335,7 @@ export default function Customers() {
         <CardContent>
           <Box sx={{ height: 600, width: "100%" }}>
             {loading ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  height: "100%",
-                }}
-              >
-                <CircularProgress />
-              </Box>
+              <TableSkeleton rows={10} columns={5} />
             ) : (
               <DataGrid
                 rows={filteredCustomers}

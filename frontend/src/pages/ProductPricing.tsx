@@ -18,6 +18,7 @@ import {
     IconButton,
     Tooltip,
 } from "@mui/material";
+import { TableSkeleton } from "../components/Skeletons";
 import {
     Refresh as RefreshIcon,
     Save as SaveIcon,
@@ -295,16 +296,7 @@ export default function ProductPricing() {
                     </Typography>
 
                     {loading ? (
-                        <Box
-                            sx={{
-                                display: "flex",
-                                justifyContent: "center",
-                                alignItems: "center",
-                                minHeight: 400,
-                            }}
-                        >
-                            <CircularProgress />
-                        </Box>
+                        <TableSkeleton rows={10} columns={9} />
                     ) : (
                         <TableContainer>
                             <Table>
@@ -513,10 +505,11 @@ export default function ProductPricing() {
                                     )}
                                 </TableBody>
                             </Table>
-                        </TableContainer>
-                    )}
-                </CardContent>
-            </Card>
-        </Box>
+                        </TableContainer >
+                    )
+                    }
+                </CardContent >
+            </Card >
+        </Box >
     );
 }

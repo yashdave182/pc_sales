@@ -30,6 +30,7 @@ import {
   Refresh as RefreshIcon,
   Search as SearchIcon,
 } from "@mui/icons-material";
+import { TableSkeleton } from "../components/Skeletons";
 import { useAuth } from "../contexts/AuthContext";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -429,16 +430,7 @@ export default function Admin() {
           </Typography>
 
           {loading ? (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                minHeight: 400,
-              }}
-            >
-              <CircularProgress />
-            </Box>
+            <TableSkeleton rows={10} columns={5} />
           ) : (
             <>
               <TableContainer>

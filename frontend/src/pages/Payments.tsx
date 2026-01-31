@@ -27,6 +27,7 @@ import {
   Receipt as ReceiptIcon,
   Search as SearchIcon,
 } from "@mui/icons-material";
+import { TableSkeleton } from "../components/Skeletons";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { paymentAPI, salesAPI } from "../services/api";
 import type { Payment, PendingPayment } from "../types";
@@ -510,18 +511,9 @@ export default function Payments() {
                 <RefreshIcon />
               </IconButton>
             </Box>
-            <Box sx={{ height: 400, width: "100%" }}>
+            <Box sx={{ height: 600, width: "100%" }}>
               {loading ? (
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    height: "100%",
-                  }}
-                >
-                  <CircularProgress />
-                </Box>
+                 <TableSkeleton rows={10} columns={6} />
               ) : (
                 <DataGrid
                   rows={filteredPendingPayments}

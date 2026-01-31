@@ -28,6 +28,7 @@ import {
   Refresh as RefreshIcon,
   Group as GroupIcon,
 } from "@mui/icons-material";
+import { TableSkeleton } from "../components/Skeletons";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { distributorAPI } from "../services/api";
 import type { Distributor } from "../types";
@@ -282,16 +283,7 @@ export default function Distributors() {
         <CardContent>
           <Box sx={{ height: 600, width: "100%" }}>
             {loading ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  height: "100%",
-                }}
-              >
-                <CircularProgress />
-              </Box>
+              <TableSkeleton rows={10} columns={5} />
             ) : (
               <DataGrid
                 rows={filteredDistributors}

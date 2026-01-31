@@ -30,6 +30,7 @@ import {
   Insights as InsightsIcon,
   Send as SendIcon,
 } from "@mui/icons-material";
+import { ListSkeleton } from "../components/Skeletons";
 import { automationAPI } from "../services/api";
 
 type CallingListItem = {
@@ -355,16 +356,7 @@ export default function CallingList() {
       </Grid>
 
       {loading ? (
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            minHeight: 200,
-          }}
-        >
-          <CircularProgress />
-        </Box>
+        <ListSkeleton items={5} />
       ) : error ? (
         <Alert severity="error">{error}</Alert>
       ) : empty ? (

@@ -25,6 +25,7 @@ import {
   Grid,
   TextField,
 } from "@mui/material";
+import { ListSkeleton } from "../components/Skeletons";
 import {
   Notifications as NotificationsIcon,
   NotificationsActive as NotificationsActiveIcon,
@@ -318,16 +319,7 @@ export default function Notifications() {
       <Card>
         <CardContent>
           {loading ? (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                minHeight: 400,
-              }}
-            >
-              <CircularProgress />
-            </Box>
+            <ListSkeleton items={5} />
           ) : notifications.length === 0 ? (
             <Box
               sx={{
@@ -530,11 +522,11 @@ export default function Notifications() {
                 justifyContent: "center",
                 bgcolor:
                   notificationColors[
-                    selectedNotification?.notification_type || "info"
+                  selectedNotification?.notification_type || "info"
                   ] + "20",
                 color:
                   notificationColors[
-                    selectedNotification?.notification_type || "info"
+                  selectedNotification?.notification_type || "info"
                   ],
               }}
             >

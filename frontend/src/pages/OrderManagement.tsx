@@ -46,7 +46,9 @@ import {
   Autorenew as ReprocessIcon,
   ArrowUpward as NextStatusIcon,
   Cancel as CancelIcon,
+  Print as PrintIcon,
 } from "@mui/icons-material";
+import { TableSkeleton } from "../components/Skeletons";
 import { customerAPI, salesAPI, paymentAPI } from "../services/api";
 
 interface Customer {
@@ -490,19 +492,6 @@ export default function OrderManagement() {
   };
 
   const stats = getStatusStats();
-
-  if (loading) {
-    return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="400px"
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
 
   return (
     <Box>

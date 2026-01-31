@@ -16,6 +16,7 @@ import {
   MenuItem,
   IconButton,
   Tooltip,
+  Skeleton,
 } from "@mui/material";
 import {
   TrendingUp,
@@ -49,6 +50,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "../hooks/useTranslation";
 import { dashboardAPI, paymentAPI } from "../services/api"; // Added paymentAPI import
+import { DashboardSkeleton, MetricCardSkeleton, ChartSkeleton, ListSkeleton } from "../components/Skeletons";
 import type {
   DashboardMetrics,
   SalesTrendData,
@@ -337,19 +339,8 @@ export default function Dashboard() {
     }
   };
 
-  if (loading) {
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "60vh",
-        }}
-      >
-        <CircularProgress size={60} />
-      </Box>
-    );
+  if (loading && !metrics) {
+    return <DashboardSkeleton />;
   }
 
   if (error) {
@@ -621,9 +612,7 @@ export default function Dashboard() {
               </Box>
 
               {loadingChart ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
-                  <CircularProgress />
-                </Box>
+                <ChartSkeleton height={300} />
               ) : salesTrend.length === 0 ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300, flexDirection: 'column' }}>
                   <ShowChart sx={{ fontSize: 64, color: theme.palette.text.disabled, mb: 2 }} />
@@ -728,7 +717,7 @@ export default function Dashboard() {
               </Typography>
 
               {loadingCollected ? (
-                <CircularProgress size={40} sx={{ color: 'white', my: 2 }} />
+                <Skeleton variant="text" width="60%" height={60} sx={{ bgcolor: 'rgba(255,255,255,0.3)', mx: 'auto' }} />
               ) : (
                 <Typography variant="h2" sx={{ fontWeight: 700 }}>
                   ₹{collectedAmount.toLocaleString()}
@@ -765,7 +754,9 @@ export default function Dashboard() {
                 </Button>
               </Box>
               <Box sx={{ maxHeight: 400, overflowY: "auto" }}>
-                {recentSales.length > 0 ? (
+                {loading ? (
+                  <ListSkeleton count={5} itemHeight={80} />
+                ) : recentSales.length > 0 ? (
                   recentSales.slice(0, 5).map((sale, index) => (
                     <Paper
                       key={index}
@@ -893,7 +884,9 @@ export default function Dashboard() {
                 </Button>
               </Box>
               <Box sx={{ maxHeight: 400, overflowY: "auto" }}>
-                {upcomingDemos.length > 0 ? (
+                {loading ? (
+                  <ListSkeleton count={5} itemHeight={80} />
+                ) : upcomingDemos.length > 0 ? (
                   upcomingDemos.slice(0, 5).map((demo, index) => (
                     <Paper
                       key={index}

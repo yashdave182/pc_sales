@@ -35,6 +35,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Search as SearchIcon,
 } from "@mui/icons-material";
+import { TableSkeleton } from "../components/Skeletons";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { salesAPI, customerAPI, productAPI } from "../services/api";
 import type { Sale, Customer, Product, SaleItem } from "../types";
@@ -620,16 +621,7 @@ export default function Sales() {
         <CardContent>
           <Box sx={{ height: 600, width: "100%" }}>
             {loading ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  height: "100%",
-                }}
-              >
-                <CircularProgress />
-              </Box>
+              <TableSkeleton rows={10} columns={6} />
             ) : (
               <DataGrid
                 rows={filteredSales}

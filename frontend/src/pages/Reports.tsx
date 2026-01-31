@@ -18,9 +18,11 @@ import {
   TableRow,
   Paper,
   Chip,
+  Select,
 } from "@mui/material";
+import { TableSkeleton } from "../components/Skeletons";
 import {
-  TrendingUp as TrendingUpIcon,
+  Description as DescriptionIcon,
   Payment as PaymentIcon,
   PictureAsPdf as PdfIcon,
   Download as DownloadIcon,
@@ -346,9 +348,7 @@ export default function ReportsEnhanced() {
           </Typography>
 
           {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-              <CircularProgress />
-            </Box>
+            <TableSkeleton rows={5} columns={5} />
           ) : (
             <TableContainer component={Paper} variant="outlined">
               <Table>
@@ -401,9 +401,7 @@ export default function ReportsEnhanced() {
           </Typography>
 
           {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-              <CircularProgress />
-            </Box>
+            <TableSkeleton rows={5} columns={5} />
           ) : (
             <TableContainer component={Paper} variant="outlined">
               <Table>

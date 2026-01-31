@@ -6,10 +6,11 @@ import {
   CardContent,
   Typography,
   Alert,
-  CircularProgress,
   Chip,
   IconButton,
+  Grid,
 } from "@mui/material";
+import { TableSkeleton } from "../components/Skeletons";
 import {
   Add as AddIcon,
   Science as ScienceIcon,
@@ -153,16 +154,7 @@ export default function Demos() {
         <CardContent>
           <Box sx={{ height: 600, width: "100%" }}>
             {loading ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  height: "100%",
-                }}
-              >
-                <CircularProgress />
-              </Box>
+              <TableSkeleton rows={10} columns={5} />
             ) : (
               <DataGrid
                 rows={demos}

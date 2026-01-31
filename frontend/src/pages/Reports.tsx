@@ -381,7 +381,7 @@ export default function Reports() {
                 <ResponsiveContainer width="100%" height="90%">
                   <PieChart>
                     <Pie
-                      data={Object.entries(paymentSummary.payment_methods).map(([name, value]) => ({ name, value }))}
+                      data={Object.entries(paymentSummary.payment_methods).map(([name, val]: [string, any]) => ({ name, value: val.amount || 0 }))}
                       cx="50%"
                       cy="50%"
                       innerRadius={60}

@@ -262,7 +262,12 @@ export default function Layout({
 
       {/* Navigation Items */}
       <List sx={{ flex: 1, py: 2, px: 1 }}>
-        {navigationItems.map((item) => {
+        {navigationItems.filter(item => {
+          if (item.id === 'reports') {
+            return user?.email === "admin@gmail.com";
+          }
+          return true;
+        }).map((item) => {
           const active = isActive(item.path);
           return (
             <ListItem key={item.id} disablePadding sx={{ mb: 0.5 }}>

@@ -18,21 +18,32 @@ import {
   TableRow,
   Paper,
   Chip,
-  Select,
+  useTheme,
 } from "@mui/material";
-import { TableSkeleton } from "../components/Skeletons";
+import { TableSkeleton, ChartSkeleton } from "../components/Skeletons";
 import {
-  Description as DescriptionIcon,
   Payment as PaymentIcon,
   PictureAsPdf as PdfIcon,
-  Download as DownloadIcon,
   TrendingUp as TrendingUpIcon,
+  Download as DownloadIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../contexts/AuthContext";
-import axios from "axios";
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "https://pc-sales-8phu.onrender.com";
+import { reportsAPI } from "../services/api";
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 
 interface SalesTrendData {
   period: string;
@@ -48,8 +59,11 @@ interface PaymentTrendData {
   payment_methods: Record<string, number>;
 }
 
-export default function ReportsEnhanced() {
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
+
+export default function Reports() {
   const { user } = useAuth();
+  const theme = useTheme();
   const [interval, setInterval] = useState("daily");
   const [dateRange, setDateRange] = useState({
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
@@ -74,22 +88,17 @@ export default function ReportsEnhanced() {
       setLoading(true);
       setError(null);
 
-      const response = await axios.get(`${API_BASE_URL}/api/reports/sales-trend`, {
-        params: {
-          interval,
-          start_date: dateRange.start,
-          end_date: dateRange.end,
-        },
-        headers: {
-          "x-user-email": user?.email,
-        },
+      const data = await reportsAPI.getSalesTrend({
+        interval,
+        start_date: dateRange.start,
+        end_date: dateRange.end,
       });
 
-      setSalesTrends(response.data.trends || []);
-      setSalesSummary(response.data.summary || null);
+      setSalesTrends(data.trends || []);
+      setSalesSummary(data.summary || null);
     } catch (err: any) {
       console.error("Error loading sales trends:", err);
-      setError(err.response?.data?.detail || "Failed to load sales trends");
+      setError(err?.message || "Failed to load sales trends");
     } finally {
       setLoading(false);
     }
@@ -101,22 +110,17 @@ export default function ReportsEnhanced() {
       setLoading(true);
       setError(null);
 
-      const response = await axios.get(`${API_BASE_URL}/api/reports/payment-trend`, {
-        params: {
-          interval,
-          start_date: dateRange.start,
-          end_date: dateRange.end,
-        },
-        headers: {
-          "x-user-email": user?.email,
-        },
+      const data = await reportsAPI.getPaymentTrend({
+        interval,
+        start_date: dateRange.start,
+        end_date: dateRange.end,
       });
 
-      setPaymentTrends(response.data.trends || []);
-      setPaymentSummary(response.data.summary || null);
+      setPaymentTrends(data.trends || []);
+      setPaymentSummary(data.summary || null);
     } catch (err: any) {
       console.error("Error loading payment trends:", err);
-      setError(err.response?.data?.detail || "Failed to load payment trends");
+      setError(err?.message || "Failed to load payment trends");
     } finally {
       setLoading(false);
     }
@@ -129,22 +133,12 @@ export default function ReportsEnhanced() {
       setError(null);
       setSuccess(null);
 
-      const response = await axios.get(
-        `${API_BASE_URL}/api/reports/sales-order-summary-pdf`,
-        {
-          params: {
-            start_date: dateRange.start,
-            end_date: dateRange.end,
-          },
-          headers: {
-            "x-user-email": user?.email,
-          },
-          responseType: "blob",
-        }
-      );
+      const blob = await reportsAPI.getSalesOrderSummaryPdf({
+        start_date: dateRange.start,
+        end_date: dateRange.end,
+      });
 
       // Create download link
-      const blob = new Blob([response.data], { type: "application/pdf" });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -158,7 +152,7 @@ export default function ReportsEnhanced() {
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
       console.error("Error generating PDF:", err);
-      setError(err.response?.data?.detail || "Failed to generate PDF");
+      setError(err?.message || "Failed to generate PDF");
     } finally {
       setPdfLoading(false);
     }
@@ -244,11 +238,11 @@ export default function ReportsEnhanced() {
               <Button
                 fullWidth
                 variant="contained"
-                startIcon={pdfLoading ? <CircularProgress size={20} /> : <PdfIcon />}
+                startIcon={pdfLoading ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
                 onClick={generatePDF}
                 disabled={pdfLoading}
               >
-                Generate PDF
+                {pdfLoading ? "Generating..." : "Generate PDF"}
               </Button>
             </Grid>
           </Grid>
@@ -340,122 +334,119 @@ export default function ReportsEnhanced() {
         </Grid>
       </Grid>
 
-      {/* Sales Trends Table */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-            <TrendingUpIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-            Sales Trend Analysis ({interval})
-          </Typography>
+      {/* Visualizations Row */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Sales Trend Chart */}
+        <Grid item xs={12} md={8}>
+          <Card sx={{ height: 400 }}>
+            <CardContent sx={{ height: '100%' }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                Sales Revenue Trend
+              </Typography>
+              {loading ? (
+                <ChartSkeleton height={300} />
+              ) : (
+                <ResponsiveContainer width="100%" height="90%">
+                  <LineChart data={salesTrends}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                    <XAxis dataKey="period" stroke={theme.palette.text.secondary} style={{ fontSize: '12px' }} />
+                    <YAxis stroke={theme.palette.text.secondary} style={{ fontSize: '12px' }} />
+                    <RechartsTooltip
+                      contentStyle={{
+                        backgroundColor: theme.palette.background.paper,
+                        border: `1px solid ${theme.palette.divider}`,
+                        borderRadius: 8
+                      }}
+                    />
+                    <Legend />
+                    <Line type="monotone" dataKey="total_amount" stroke={theme.palette.primary.main} strokeWidth={3} name="Revenue (₹)" />
+                    <Line type="monotone" dataKey="sales_count" stroke={theme.palette.secondary.main} strokeWidth={2} name="Sales Count" />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
 
-          {loading ? (
-            <TableSkeleton rows={5} columns={5} />
-          ) : (
-            <TableContainer component={Paper} variant="outlined">
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>Period</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">Sales Count</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">Total Amount</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">Total Liters</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">Avg per Sale</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {salesTrends.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                        <Typography color="text.secondary">
-                          No sales data available for this period
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    salesTrends.map((trend, index) => (
-                      <TableRow key={index} hover>
-                        <TableCell>
-                          <Chip label={trend.period} size="small" color="primary" variant="outlined" />
-                        </TableCell>
-                        <TableCell align="right">{trend.sales_count}</TableCell>
-                        <TableCell align="right">₹{trend.total_amount.toFixed(2)}</TableCell>
-                        <TableCell align="right">{trend.total_liters.toFixed(2)} L</TableCell>
-                        <TableCell align="right">
-                          ₹{(trend.total_amount / trend.sales_count || 0).toFixed(2)}
-                        </TableCell>
+        {/* Payment Methods Chart */}
+        <Grid item xs={12} md={4}>
+          <Card sx={{ height: 400 }}>
+            <CardContent sx={{ height: '100%' }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                Payment Methods
+              </Typography>
+              {loading ? (
+                <ChartSkeleton height={300} />
+              ) : paymentSummary?.payment_methods ? (
+                <ResponsiveContainer width="100%" height="90%">
+                  <PieChart>
+                    <Pie
+                      data={Object.entries(paymentSummary.payment_methods).map(([name, value]) => ({ name, value }))}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {Object.entries(paymentSummary.payment_methods).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip />
+                    <Legend verticalAlign="bottom" height={36} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                  <Typography color="text.secondary">No payment method data</Typography>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+
+      {/* Raw Data Tables */}
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                Detailed Sales Data
+              </Typography>
+              {loading ? (
+                <TableSkeleton rows={5} columns={5} />
+              ) : (
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 600 }}>Period</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="right">Sales</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="right">Amount</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="right">Liters</TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Payment Trends Table */}
-      <Card>
-        <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-            <PaymentIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-            Payment Trend Analysis ({interval})
-          </Typography>
-
-          {loading ? (
-            <TableSkeleton rows={5} columns={5} />
-          ) : (
-            <TableContainer component={Paper} variant="outlined">
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>Period</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">Payment Count</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">Total Amount</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">Avg per Payment</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Payment Methods</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {paymentTrends.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                        <Typography color="text.secondary">
-                          No payment data available for this period
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    paymentTrends.map((trend, index) => (
-                      <TableRow key={index} hover>
-                        <TableCell>
-                          <Chip label={trend.period} size="small" color="success" variant="outlined" />
-                        </TableCell>
-                        <TableCell align="right">{trend.payment_count}</TableCell>
-                        <TableCell align="right">₹{trend.total_amount.toFixed(2)}</TableCell>
-                        <TableCell align="right">
-                          ₹{(trend.total_amount / trend.payment_count || 0).toFixed(2)}
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-                            {Object.entries(trend.payment_methods).map(([method, count]) => (
-                              <Chip
-                                key={method}
-                                label={`${method}: ${count}`}
-                                size="small"
-                                variant="filled"
-                              />
-                            ))}
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </CardContent>
-      </Card>
+                    </TableHead>
+                    <TableBody>
+                      {salesTrends.map((trend, index) => (
+                        <TableRow key={index} hover>
+                          <TableCell>{trend.period}</TableCell>
+                          <TableCell align="right">{trend.sales_count}</TableCell>
+                          <TableCell align="right">₹{trend.total_amount.toFixed(2)}</TableCell>
+                          <TableCell align="right">{trend.total_liters.toFixed(2)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
     </Box>
   );
 }

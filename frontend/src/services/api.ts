@@ -179,6 +179,25 @@ export const productAPI = {
   },
 };
 
+// Reports API
+export const reportsAPI = {
+  getSalesTrend: async (params: { interval: string, start_date?: string, end_date?: string }) => {
+    const response = await apiClient.get("/api/reports/sales-trend", { params });
+    return response.data;
+  },
+  getPaymentTrend: async (params: { interval: string, start_date?: string, end_date?: string }) => {
+    const response = await apiClient.get("/api/reports/payment-trend", { params });
+    return response.data;
+  },
+  getSalesOrderSummaryPdf: async (params: { start_date?: string, end_date?: string }) => {
+    const response = await apiClient.get("/api/reports/sales-order-summary-pdf", {
+      params,
+      responseType: "blob",
+    });
+    return response.data;
+  },
+};
+
 // Distributor API
 export const distributorAPI = {
   getAll: async (params?: any) => {

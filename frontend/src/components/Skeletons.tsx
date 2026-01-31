@@ -87,7 +87,7 @@ export function DashboardSkeleton() {
                 <Grid item xs={12} md={4}>
                     <Stack spacing={2}>
                         <Skeleton variant="text" width={100} height={30} />
-                        <ListSkeleton items={5} />
+                        <ListSkeleton count={5} />
                     </Stack>
                 </Grid>
             </Grid>

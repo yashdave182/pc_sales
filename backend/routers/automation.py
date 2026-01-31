@@ -182,11 +182,8 @@ def run_daily_distribution(
         chunk_size = math.ceil(total_items / total_staff)
         
         assignments = []
+        notifications_to_send = {}
         today_str = date.today().isoformat()
-        
-        # Clear existing assignments for TODAY to avoid duplicates if run multiple times?
-        # db.table("calling_assignments").delete().eq("assigned_date", today_str).execute()
-        # For safety, let's simple append.
         
         staff_idx = 0
         for item in master_list:
@@ -200,15 +197,32 @@ def run_daily_distribution(
                 "reason": item["reason"],
                 "assigned_date": today_str,
                 "status": "Pending",
-                "notes": item.get("type", "") # storing type in notes or separate col logic
+                "notes": item.get("type", "") 
             })
             
-            # Send Notification (Mock or Real)
-            # In a real app, we'd batch this. For now, we assume the user checks the list.
+            # Count notifications
+            if assigned_email not in notifications_to_send:
+                 notifications_to_send[assigned_email] = 0
+            notifications_to_send[assigned_email] += 1
             
-        # 4. Bulk Insert
+        # 4. Bulk Insert Assignments
         if assignments:
             db.table("calling_assignments").insert(assignments).execute()
+            
+        # 5. Insert Notifications
+        notification_records = []
+        for email, count in notifications_to_send.items():
+            notification_records.append({
+                "user_email": email,
+                "title": "New Calls Assigned",
+                "message": f"You have been assigned {count} new calls for today.",
+                "notification_type": "info",
+                "entity_type": "calling_list",
+                "is_read": False
+            })
+            
+        if notification_records:
+            db.table("notifications").insert(notification_records).execute()
         
         return {
             "message": "Distribution successful",

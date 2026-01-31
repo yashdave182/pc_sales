@@ -319,7 +319,7 @@ export default function Notifications() {
       <Card>
         <CardContent>
           {loading ? (
-            <ListSkeleton items={5} />
+            <ListSkeleton count={5} />
           ) : notifications.length === 0 ? (
             <Box
               sx={{

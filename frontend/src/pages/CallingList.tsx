@@ -356,7 +356,7 @@ export default function CallingList() {
       </Grid>
 
       {loading ? (
-        <ListSkeleton items={5} />
+        <ListSkeleton count={5} />
       ) : error ? (
         <Alert severity="error">{error}</Alert>
       ) : empty ? (

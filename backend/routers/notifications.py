@@ -29,12 +29,14 @@ def get_notifications(
 
         # Filter by user email if provided (None means broadcast to all)
         if user_email:
-            # Get both user-specific and broadcast notifications
-            query = db.table("notifications").select("*")
-            # This will be filtered in post-processing since Supabase doesn't support OR with None
-
+            # Use OR filter to get both user-specific and broadcast notifications
+            # Syntax: column.operator.value
+            query = query.or_(f"user_email.eq.{user_email},user_email.is.null")
+        
         # Filter by read status
         if is_read is not None:
+            # Postgres boolean handling
+            is_read_str = "true" if is_read else "false"
             query = query.eq("is_read", is_read)
 
         # Filter by type
@@ -49,41 +51,24 @@ def get_notifications(
 
         response = query.execute()
 
-        if not response.data:
-            return {"data": [], "total": 0, "unread_count": 0}
-
-        # Filter for user-specific and broadcast notifications
-        notifications = []
+        # Get unread count (efficiently)
+        unread_query = db.table("notifications").select("notification_id", count="exact").eq("is_read", False)
+        
         if user_email:
-            for notif in response.data:
-                notif_user = notif.get("user_email")
-                if notif_user is None or notif_user == user_email:
-                    notifications.append(notif)
-        else:
-            notifications = response.data
-
-        # Get unread count
-        unread_query = (
-            db.table("notifications").select("notification_id").eq("is_read", False)
-        )
-        if user_email:
-            # Will be filtered in post-processing
-            pass
-
+             unread_query = unread_query.or_(f"user_email.eq.{user_email},user_email.is.null")
+             
         unread_response = unread_query.execute()
-        unread_count = 0
-        if unread_response.data and user_email:
-            for notif in unread_response.data:
-                notif_user = notif.get("user_email")
-                if notif_user is None or notif_user == user_email:
-                    unread_count += 1
-        elif unread_response.data:
-            unread_count = len(unread_response.data)
+        # count is in unread_response.count if using count="exact", but supabase-py might return it differently
+        # Let's fallback to length if count property isn't standard, but select count is better.
+        # However, for safety with this client version, let's keep it simple but filtered.
+        
+        unread_count = len(unread_response.data) if unread_response.data else 0
 
         return {
-            "data": notifications,
-            "total": len(notifications),
+            "data": response.data or [],
+            "total": len(response.data or []), # This is page total, not grand total, but suffices for now
             "unread_count": unread_count,
+            # "grand_total": count # if we wanted real pagination count
         }
 
     except Exception as e:
@@ -108,14 +93,15 @@ def get_unread_count(
             return {"count": 0}
 
         # Filter for user-specific and broadcast
-        count = 0
         if user_email:
-            for notif in response.data:
-                notif_user = notif.get("user_email")
-                if notif_user is None or notif_user == user_email:
-                    count += 1
-        else:
-            count = len(response.data)
+             query = query.or_(f"user_email.eq.{user_email},user_email.is.null")
+             
+        response = query.execute()
+
+        if not response.data:
+            return {"count": 0}
+
+        count = len(response.data)
 
         return {"count": count}
 

@@ -887,8 +887,8 @@ export default function Sales() {
               </TextField>
             </Grid>
 
-            {/* Paid Amount - Only visible for 'On Delivery' */}
-            {paymentTerms.type === 'on_delivery' && (
+            {/* Paid Amount - Visible for 'On Delivery' and 'Advance Payment' */}
+            {(paymentTerms.type === 'on_delivery' || paymentTerms.type === 'advance') && (
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
@@ -901,7 +901,7 @@ export default function Sales() {
                   InputProps={{
                     startAdornment: <Typography sx={{ mr: 1 }}>₹</Typography>,
                   }}
-                  helperText="Enter amount received on delivery"
+                  helperText={paymentTerms.type === 'advance' ? "Enter advance payment amount" : "Enter amount received on delivery"}
                 />
               </Grid>
             )}

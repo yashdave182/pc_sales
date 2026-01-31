@@ -26,6 +26,7 @@ import {
   Payment as PaymentIcon,
   PictureAsPdf as PdfIcon,
   Download as DownloadIcon,
+  TrendingUp as TrendingUpIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../contexts/AuthContext";
 import axios from "axios";

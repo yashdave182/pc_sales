@@ -38,13 +38,13 @@ export function TableSkeleton({ rows = 5, columns = 4 }: { rows?: number; column
     );
 }
 
-export function ListSkeleton({ items = 3 }: { items?: number }) {
+export function ListSkeleton({ count = 3, itemHeight = 100 }: { count?: number, itemHeight?: number }) {
     return (
         <Stack spacing={2}>
-            {Array.from(new Array(items)).map((_, i) => (
-                <Card key={i} variant="outlined">
-                    <CardContent>
-                        <Stack direction="row" spacing={2} alignItems="center">
+            {Array.from(new Array(count)).map((_, i) => (
+                <Card key={i} variant="outlined" sx={{ height: itemHeight }}>
+                    <CardContent sx={{ height: '100%', display: 'flex', alignItems: 'center' }}>
+                        <Stack direction="row" spacing={2} alignItems="center" sx={{ width: '100%' }}>
                             <Skeleton variant="circular" width={40} height={40} />
                             <Box sx={{ flex: 1 }}>
                                 <Skeleton variant="text" width="40%" />
@@ -59,12 +59,12 @@ export function ListSkeleton({ items = 3 }: { items?: number }) {
     );
 }
 
-export function ChartSkeleton() {
+export function ChartSkeleton({ height = 300 }: { height?: number }) {
     return (
         <Card>
             <CardContent>
                 <Skeleton variant="text" width={150} height={30} sx={{ mb: 2 }} />
-                <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 1 }} />
+                <Skeleton variant="rectangular" height={height} sx={{ borderRadius: 1 }} />
             </CardContent>
         </Card>
     )

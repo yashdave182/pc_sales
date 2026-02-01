@@ -250,6 +250,7 @@ function CallItemCard({ item }: { item: CallingListItem }) {
 }
 
 export default function CallingList() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AssignmentsResponse | null>(null);

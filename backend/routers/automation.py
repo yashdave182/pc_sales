@@ -160,10 +160,36 @@ def run_daily_distribution(
     Splits the master calling list equally among 'staff' users.
     """
     try:
-        # 1. Get Eligible Users (Role != admin, or just all active users?)
-        # User requested: "send them to normal user not admin"
-        users_res = db.table("app_users").select("email").eq("is_active", True).neq("role", "admin").execute()
-        staff_emails = [u["email"] for u in users_res.data]
+        # 1. Get Eligible Users from Supabase Auth (ignore local app_users table)
+        # We need the official client for admin ops
+        supabase = get_supabase()
+        
+        # Determine if we have service role key privileges (attempt list_users)
+        # Note: This requires SUPABASE_SERVICE_ROLE_KEY to be set in env for full access
+        # but locally it might work if the user key has permissions.
+        
+        staff_emails = []
+        try:
+             # Fetch users from Auth
+             response = supabase.auth.admin.list_users()
+             # response is usually UserList with .users
+             users = response.users if hasattr(response, "users") else response
+             
+             # Filter out admin and ensure email exists
+             staff_emails = [
+                 u.email for u in users 
+                 if u.email and u.email != "admin@gmail.com"
+             ]
+        except Exception as auth_error:
+             # Fallback or error - if auth admin fails (e.g. no permissions), 
+             # we might need to rely on the manual table or raise error.
+             print(f"Auth Admin fetch failed: {auth_error}")
+             # If this fails, we can't do much if the user complained the table is wrong.
+             # Let's try to query app_users as a fallback but likely it is empty/wrong as reported.
+             raise HTTPException(
+                 status_code=500, 
+                 detail=f"Failed to sync users from Supabase Auth. Ensure SUPABASE_SERVICE_ROLE_KEY is set. Error: {str(auth_error)}"
+             )
         
         if not staff_emails:
             # Fallback: if no staff, maybe assign to admin or fail

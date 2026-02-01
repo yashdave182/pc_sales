@@ -32,14 +32,14 @@ def start_scheduler():
     # Schedule to run every day at 09:00 AM
     trigger = CronTrigger(hour=9, minute=0)
     
-    scheduler.add_job(
-        distribute_calls_job,
-        trigger=trigger,
-        id="daily_calling_distribution",
-        name="Distribute Calling List",
-        replace_existing=True
-    )
+    # scheduler.add_job(
+    #     distribute_calls_job,
+    #     trigger=trigger,
+    #     id="daily_calling_distribution",
+    #     name="Distribute Calling List",
+    #     replace_existing=True
+    # )
     
-    scheduler.start()
-    logger.info("Scheduler started - Daily distribution set for 09:00 AM")
+    # scheduler.start()
+    logger.info("Scheduler disabled per user request")
     return scheduler

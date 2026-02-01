@@ -32,6 +32,7 @@ import {
 } from "@mui/icons-material";
 import { ListSkeleton } from "../components/Skeletons";
 import { automationAPI } from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 
 type CallingListItem = {
   customer_id?: number;
@@ -315,16 +316,18 @@ export default function CallingList() {
           <WarningIcon color="warning" /> My Calling List (Today)
         </Typography>
         <Stack direction="row" spacing={1.5}>
-          <Button
-            variant="outlined"
-            color="secondary"
-            startIcon={<SendIcon />}
-            onClick={handleDistribute}
-            disabled={distributing}
-            title="Admin Tool: Manually Trigger Distribution"
-          >
-            {distributing ? "Distributing..." : "Run Distribution"}
-          </Button>
+          {user?.email === "admin@gmail.com" && (
+            <Button
+              variant="outlined"
+              color="secondary"
+              startIcon={<SendIcon />}
+              onClick={handleDistribute}
+              disabled={distributing}
+              title="Admin Tool: Manually Trigger Distribution"
+            >
+              {distributing ? "Distributing..." : "Run Distribution"}
+            </Button>
+          )}
           <Button
             variant="contained"
             startIcon={<RefreshIcon />}

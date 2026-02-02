@@ -78,7 +78,7 @@ export default function DemoDialog({ open, onClose, onSuccess }: DemoDialogProps
     setError(null);
 
     if (!formData.customer_id) {
-      setError("Please select a customer");
+      setError("Please select a Sabhasad");
       return;
     }
 
@@ -156,16 +156,16 @@ export default function DemoDialog({ open, onClose, onSuccess }: DemoDialogProps
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth required>
-                  <InputLabel>Customer</InputLabel>
+                  <InputLabel>Sabhasad</InputLabel>
                   <Select
                     value={formData.customer_id}
                     onChange={(e) =>
                       setFormData({ ...formData, customer_id: Number(e.target.value) })
                     }
-                    label="Customer"
+                    label="Sabhasad"
                   >
                     <MenuItem value={0}>
-                      <em>Select Customer</em>
+                      <em>Select Sabhasad</em>
                     </MenuItem>
                     {customers.map((customer) => (
                       <MenuItem key={customer.customer_id} value={customer.customer_id}>
@@ -178,13 +178,13 @@ export default function DemoDialog({ open, onClose, onSuccess }: DemoDialogProps
 
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
-                  <InputLabel>Distributor</InputLabel>
+                  <InputLabel>Mantri</InputLabel>
                   <Select
                     value={formData.distributor_id}
                     onChange={(e) =>
                       setFormData({ ...formData, distributor_id: Number(e.target.value) })
                     }
-                    label="Distributor"
+                    label="Mantri"
                   >
                     <MenuItem value={0}>
                       <em>None</em>

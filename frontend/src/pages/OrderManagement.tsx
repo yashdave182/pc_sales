@@ -677,7 +677,7 @@ export default function OrderManagement() {
                 <strong>Invoice No</strong>
               </TableCell>
               <TableCell>
-                <strong>Customer</strong>
+                <strong>Sabhasad</strong>
               </TableCell>
               <TableCell>
                 <strong>Order Date</strong>
@@ -797,7 +797,7 @@ export default function OrderManagement() {
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
                   <Typography variant="subtitle2" color="textSecondary">
-                    Customer Information
+                    Sabhasad Information
                   </Typography>
                   <Typography variant="body1" fontWeight="bold">
                     {selectedOrder.customer_name}

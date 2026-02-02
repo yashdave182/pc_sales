@@ -237,8 +237,8 @@ export default function Sales() {
             // Use existing customer
             customerId = existingCustomer.customer_id || 0;
             // Notify user
-            console.log("Duplicate customer found, using existing: " + existingCustomer.name);
-            if (!window.confirm(`Customer "${existingCustomer.name}" from ${existingCustomer.village || 'N/A'} with mobile ${newCustomerData.mobile} already exists. Use existing customer?`)) {
+            console.log("Duplicate Sabhasad found, using existing: " + existingCustomer.name);
+            if (!window.confirm(`Sabhasad "${existingCustomer.name}" from ${existingCustomer.village || 'N/A'} with mobile ${newCustomerData.mobile} already exists. Use existing Sabhasad?`)) {
               return;
             }
           } else {
@@ -262,7 +262,7 @@ export default function Sales() {
       } else {
         // Validate existing customer selection
         if (!customerId || customerId === 0) {
-          setError(t("sales.selectCustomer", "Please select a customer"));
+          setError(t("sales.selectCustomer", "Please select a Sabhasad"));
           return;
         }
       }
@@ -661,7 +661,7 @@ export default function Sales() {
                 sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}
               >
                 <Typography variant="subtitle2" color="text.secondary">
-                  {t("sales.customerSelection", "Customer:")}
+                  {t("sales.customerSelection", "Sabhasad:")}
                 </Typography>
                 <ToggleButtonGroup
                   value={customerMode}
@@ -676,11 +676,11 @@ export default function Sales() {
                 >
                   <ToggleButton value="existing">
                     <PeopleIcon sx={{ mr: 1, fontSize: 18 }} />
-                    {t("sales.existingCustomer", "Existing Customer")}
+                    {t("sales.existingCustomer", "Existing Sabhasad")}
                   </ToggleButton>
                   <ToggleButton value="new">
                     <PersonAddIcon sx={{ mr: 1, fontSize: 18 }} />
-                    {t("sales.newCustomer", "New Customer")}
+                    {t("sales.newCustomer", "New Sabhasad")}
                   </ToggleButton>
                 </ToggleButtonGroup>
               </Box>
@@ -703,7 +703,7 @@ export default function Sales() {
                   }
                 >
                   <MenuItem value={0}>
-                    {t("sales.selectCustomer", "Select Customer")}
+                    {t("sales.selectCustomer", "Select Sabhasad")}
                   </MenuItem>
                   {customers.map((customer) => (
                     <MenuItem
@@ -733,7 +733,7 @@ export default function Sales() {
                     }
                     placeholder={t(
                       "sales.enterCustomerName",
-                      "Enter customer name",
+                      "Enter Sabhasad name",
                     )}
                   />
                 </Grid>

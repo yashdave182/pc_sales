@@ -64,8 +64,8 @@ export default function Customers() {
       const response = await customerAPI.getAll({ limit: 1000 });
       setCustomers(response.data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load customers");
-      console.error("Error loading customers:", err);
+      setError(err instanceof Error ? err.message : "Failed to load Sabhasad");
+      console.error("Error loading Sabhasad:", err);
     } finally {
       setLoading(false);
     }
@@ -126,13 +126,13 @@ export default function Customers() {
       loadCustomers();
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save customer");
-      console.error("Error saving customer:", err);
+      setError(err instanceof Error ? err.message : "Failed to save Sabhasad");
+      console.error("Error saving Sabhasad:", err);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm("Are you sure you want to delete this customer?")) {
+    if (!window.confirm("Are you sure you want to delete this Sabhasad?")) {
       return;
     }
 
@@ -142,22 +142,22 @@ export default function Customers() {
       setError(null);
     } catch (err: any) {
       // Handle specific error messages from backend
-      let errorMessage = "Failed to delete customer";
+      let errorMessage = "Failed to delete Sabhasad";
 
       if (err.response?.data?.detail) {
         // Backend returned a detailed error message
         errorMessage = err.response.data.detail;
       } else if (err.response?.status === 400) {
         errorMessage =
-          "Cannot delete customer with existing records. Please delete related sales and demos first.";
+          "Cannot delete Sabhasad with existing records. Please delete related sales and demos first.";
       } else if (err.response?.status === 404) {
-        errorMessage = "Customer not found. It may have been already deleted.";
+        errorMessage = "Sabhasad not found. It may have been already deleted.";
       } else if (err.message) {
         errorMessage = err.message;
       }
 
       setError(errorMessage);
-      console.error("Error deleting customer:", err);
+      console.error("Error deleting Sabhasad:", err);
     }
   };
 

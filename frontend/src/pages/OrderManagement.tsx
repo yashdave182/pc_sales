@@ -50,6 +50,7 @@ import {
 } from "@mui/icons-material";
 import { TableSkeleton } from "../components/Skeletons";
 import { customerAPI, salesAPI, paymentAPI } from "../services/api";
+import { useTranslation } from "../hooks/useTranslation";
 
 interface Customer {
   customer_id: number;
@@ -91,6 +92,7 @@ interface OrderStatusUpdate {
 }
 
 export default function OrderManagement() {
+  const { t } = useTranslation();
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -677,7 +679,7 @@ export default function OrderManagement() {
                 <strong>Invoice No</strong>
               </TableCell>
               <TableCell>
-                <strong>Sabhasad</strong>
+                <strong>{t("customers.title", "Sabhasad")}</strong>
               </TableCell>
               <TableCell>
                 <strong>Order Date</strong>
@@ -797,7 +799,7 @@ export default function OrderManagement() {
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
                   <Typography variant="subtitle2" color="textSecondary">
-                    Sabhasad Information
+                    {t("customers.title", "Sabhasad")} Information
                   </Typography>
                   <Typography variant="body1" fontWeight="bold">
                     {selectedOrder.customer_name}

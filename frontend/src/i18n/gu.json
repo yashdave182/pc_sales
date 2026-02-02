@@ -1,11 +1,11 @@
 {
   "nav": {
     "dashboard": "ડેશબોર્ડ",
-    "customers": "ગ્રાહકો",
+    "customers": "સભાસદ",
     "sales": "વેચાણ",
     "payments": "ચૂકવણી",
     "demos": "પ્રદર્શન",
-    "distributors": "વિતરણકર્તાઓ",
+    "distributors": "મંત્રી",
     "orders": "ઓર્ડર વ્યવસ્થાપન",
     "reports": "અહેવાલો",
     "callingList": "કૉલિંગ યાદી",
@@ -52,8 +52,8 @@
     "subtitle": "આજે તમારી વેચાણમાં શું ચાલી રહ્યું છે",
     "quickActions": {
       "addCustomer": {
-        "title": "ગ્રાહક ઉમેરો",
-        "subtitle": "નવા ગ્રાહકની નોંધણી કરો"
+        "title": "સભાસદ ઉમેરો",
+        "subtitle": "નવા સભાસદની નોંધણી કરો"
       },
       "newSale": {
         "title": "નવી વેચાણ",
@@ -69,16 +69,16 @@
       }
     },
     "totalSales": "કુલ વેચાણ",
-    "totalCustomers": "કુલ ગ્રાહકો",
+    "totalCustomers": "કુલ સભાસદ",
     "totalPayments": "કુલ ચૂકવણીઓ",
     "pendingPayments": "બાકી ચૂકવણીઓ",
     "pendingDemos": "બાકી પ્રદર્શનો",
-    "activeCustomers": "સક્રિય ગ્રાહકો",
+    "activeCustomers": "સક્રિય સભાસદ",
     "transactions": "ટ્રાન્ઝેક્શન",
     "outstandingAmount": "બાકી રકમ",
     "revenue": "આવક",
     "orders": "ઓર્ડર",
-    "customers": "ગ્રાહકો",
+    "customers": "સભાસદ",
     "growth": "વૃદ્ધિ",
     "salesTrend": "વેચાણ પ્રવૃત્તિ",
     "salesTrendLast30Days": "છેલ્લા 30 દિવસની વેચાણ પ્રવૃત્તિ",
@@ -97,11 +97,11 @@
     "scheduleDemoCta": "પ્રદર્શન શેડ્યુલ કરો"
   },
   "customers": {
-    "title": "ગ્રાહકો",
-    "addCustomer": "ગ્રાહક ઉમેરો",
-    "editCustomer": "ગ્રાહક સંપાદિત કરો",
-    "deleteCustomer": "ગ્રાહક કાઢી નાખો",
-    "customerName": "ગ્રાહકનું નામ",
+    "title": "સભાસદ",
+    "addCustomer": "સભાસદ ઉમેરો",
+    "editCustomer": "સભાસદ સંપાદિત કરો",
+    "deleteCustomer": "સભાસદ કાઢી નાખો",
+    "customerName": "સભાસદનું નામ",
     "mobile": "મોબાઈલ",
     "village": "ગામ",
     "taluka": "તાલુકો",
@@ -109,17 +109,29 @@
     "status": "સ્થિતિ",
     "active": "સક્રિય",
     "inactive": "નિષ્ક્રિય",
-    "confirmDelete": "શું તમે ખરેખર આ ગ્રાહકને કાઢી નાખવા ઇચ્છો છો?",
-    "deletedSuccessfully": "ગ્રાહક સફળતાપૂર્વક કાઢી નાખ્યો",
-    "savedSuccessfully": "ગ્રાહક સફળતાપૂર્વક સંગ્રહિત",
-    "deleteError": "ગ્રાહક કાઢવામાં નિષ્ફળ",
-    "noCustomers": "કોઈ ગ્રાહકો મળ્યાં નથી"
+    "dataStructureDesc": "સિસ્ટમ આપમેળે વેચાણ, સભાસદ અને મંત્રી ડેટા શોધી કાઢશે",
+    "confirmDelete": "શું તમે ખરેખર આ સભાસદને કાઢી નાખવા ઇચ્છો છો?",
+    "deletedSuccessfully": "સભાસદ સફળતાપૂર્વક કાઢી નાખ્યો",
+    "savedSuccessfully": "સભાસદ સફળતાપૂર્વક સંગ્રહિત",
+    "deleteError": "સભાસદ કાઢવામાં નિષ્ફળ",
+    "noCustomers": "કોઈ સભાસદ મળ્યાં નથી",
+    "loadError": "સભાસદ લોડ કરવામાં નિષ્ફળ",
+    "saveError": "સભાસદ સાચવવામાં નિષ્ફળ",
+    "deleteDependencyError": "વર્તમાન રેકોર્ડ્સ સાથે સભાસદ કાઢી શકાતો નથી. કૃપા કરીને પહેલા સંબંધિત વેચાણ અને પ્રદર્શનો કાઢી નાખો.",
+    "notFoundError": "સભાસદ મળ્યો નથી. તે પહેલાથી જ કાઢી નાખવામાં આવ્યો હોઈ શકે છે."
   },
   "sales": {
     "title": "વેચાણ",
     "addSale": "વેચાણ ઉમેરો",
     "editSale": "વેચાણ સંપાદિત કરો",
-    "deleteSale": "વેચાણ કાઢી નાખો"
+    "deleteSale": "વેચાણ કાઢી નાખો",
+    "customerName": "સભાસદનું નામ",
+    "existingCustomer": "વર્તમાન સભાસદ",
+    "newCustomer": "નવો સભાસદ",
+    "customerSelection": "સભાસદ:",
+    "enterCustomerName": "સભાસદનું નામ દાખલ કરો",
+    "selectCustomer": "સભાસદ પસંદ કરો",
+    "duplicateCustomerConfirm": "સભાસદ \"{name}\" ({village}) મોબાઈલ {mobile} સાથે પહેલાથી જ અસ્તિત્વમાં છે. શું વર્તમાન સભાસદનો ઉપયોગ કરવો છે?"
   },
   "payments": {
     "title": "ચૂકવણી",
@@ -128,7 +140,7 @@
     "addPayment": "ચૂકવણી ઉમેરો",
     "editPayment": "ચૂકવણી સંપાદિત કરો",
     "deletePayment": "ચૂકવણી કાઢી નાખો",
-    "customerName": "ગ્રાહક નામ",
+    "customerName": "સભાસદ નામ",
     "amount": "રકમ",
     "date": "ચૂકવણી તારીખ",
     "method": "ચૂકવણી પદ્ધતિ",
@@ -158,7 +170,22 @@
     "scheduleDemo": "પ્રદર્શન શેડ્યુલ કરો"
   },
   "distributors": {
-    "title": "વિતરણકર્તાઓ"
+    "title": "મંત્રી",
+    "addDistributor": "મંત્રી ઉમેરો",
+    "editDistributor": "મંત્રી સંપાદિત કરો",
+    "deleteDistributor": "મંત્રી કાઢી નાખો",
+    "distributorName": "મંત્રીનું નામ",
+    "contactPerson": "સંપર્ક વ્યક્તિ",
+    "mobile": "મોબાઈલ",
+    "area": "વિસ્તાર",
+    "status": "સ્થિતિ",
+    "active": "સક્રિય",
+    "inactive": "નિષ્ક્રિય",
+    "confirmDelete": "શું તમે ખરેખર આ મંત્રીને કાઢી નાખવા માંગો છો?",
+    "deletedSuccessfully": "મંત્રી સફળતાપૂર્વક કાઢી નાખવામાં આવ્યા",
+    "savedSuccessfully": "મંત્રી સફળતાપૂર્વક સંગ્રહિત",
+    "deleteError": "મંત્રી કાઢી નાખવામાં નિષ્ફળ",
+    "noDistributors": "કોઈ મંત્રી મળ્યાં નથી"
   },
   "reports": {
     "title": "અહેવાલો",
@@ -180,6 +207,7 @@
   },
   "fields": {
     "id": "આઈડી",
+    "customer_code": "સભાસદ કોડ",
     "name": "નામ",
     "email": "ઈમેઈલ",
     "phone": "ફોન",

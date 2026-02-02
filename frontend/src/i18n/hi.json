@@ -1,17 +1,17 @@
 {
   "nav": {
     "dashboard": "डैशबोर्ड",
-    "customers": "ग्राहक",
+    "customers": "सभासद",
     "sales": "बिक्री",
     "payments": "भुगतान",
     "demos": "प्रदर्शन",
-    "distributors": "वितरक",
+    "distributors": "मंत्री",
     "orders": "ऑर्डर प्रबंधन",
+    "customerReport": "सभासद रिपोर्ट",
     "reports": "रिपोर्ट",
     "callingList": "कॉलिंग सूची",
     "import": "डेटा आयात"
   },
-
   "common": {
     "add": "जोड़ें",
     "edit": "संपादित करें",
@@ -40,7 +40,6 @@
     "copyright": "© 2025 बिक्री प्रबंधन",
     "salesManagementSystem": "बिक्री प्रबंधन प्रणाली"
   },
-
   "layout": {
     "toggleTheme": "थीम बदलें",
     "notifications": "सूचनाएँ",
@@ -48,15 +47,14 @@
     "profile": "प्रोफ़ाइल",
     "changeLanguage": "भाषा बदलें"
   },
-
   "dashboard": {
     "title": "डैशबोर्ड",
     "welcomeBack": "वापसी पर स्वागत है!",
     "subtitle": "आज आपकी बिक्री में क्या हो रहा है",
     "quickActions": {
       "addCustomer": {
-        "title": "ग्राहक जोड़ें",
-        "subtitle": "नया ग्राहक पंजीकृत करें"
+        "title": "सभासद जोड़ें",
+        "subtitle": "नया सभासद पंजीकृत करें"
       },
       "newSale": {
         "title": "नई बिक्री",
@@ -71,47 +69,40 @@
         "subtitle": "भुगतान प्राप्त करें"
       }
     },
-
     "totalSales": "कुल बिक्री",
-    "totalCustomers": "कुल ग्राहक",
+    "totalCustomers": "कुल सभासद",
     "totalPayments": "कुल भुगतान",
     "pendingPayments": "लंबित भुगतान",
     "pendingDemos": "लंबित प्रदर्शन",
-    "activeCustomers": "सक्रिय ग्राहक",
+    "activeCustomers": "सक्रिय सभासद",
     "transactions": "लेनदेन",
     "outstandingAmount": "बकाया राशि",
-
     "revenue": "राजस्व",
     "orders": "ऑर्डर",
-    "customers": "ग्राहक",
+    "customers": "सभासद",
     "growth": "वृद्धि",
-
     "salesTrend": "बिक्री प्रवृत्ति",
     "salesTrendLast30Days": "बिक्री प्रवृत्ति (पिछले 30 दिन)",
     "recentSales": "हाल की बिक्री",
     "upcomingDemos": "आगामी प्रदर्शन",
-
     "paymentStatus": "भुगतान स्थिति",
     "demoConversion": "प्रदर्शन रूपांतरण",
     "conversionRate": "रूपांतरण दर",
     "paid": "भुगतान",
     "pending": "लंबित",
-
     "overview": "सारांश",
     "amount": "राशि",
     "date": "तारीख",
-
     "noRecentSales": "कोई हाल की बिक्री नहीं मिली",
     "noUpcomingDemos": "कोई आगामी प्रदर्शन निर्धारित नहीं",
     "scheduleDemoCta": "प्रदर्शन शेड्यूल करें"
   },
-
   "customers": {
-    "title": "ग्राहक",
-    "addCustomer": "ग्राहक जोड़ें",
-    "editCustomer": "ग्राहक संपादित करें",
-    "deleteCustomer": "ग्राहक हटाएँ",
-    "customerName": "ग्राहक का नाम",
+    "title": "सभासद",
+    "addCustomer": "सभासद जोड़ें",
+    "editCustomer": "सभासद संपादित करें",
+    "deleteCustomer": "सभासद हटाएँ",
+    "customerName": "सभासद का नाम",
     "mobile": "मोबाइल",
     "village": "गाँव",
     "taluka": "तहसील",
@@ -119,20 +110,29 @@
     "status": "स्थिति",
     "active": "सक्रिय",
     "inactive": "निष्क्रिय",
-    "confirmDelete": "क्या आप वाकई इस ग्राहक को हटाना चाहते हैं?",
-    "deletedSuccessfully": "ग्राहक सफलतापूर्वक हटाया गया",
-    "savedSuccessfully": "ग्राहक सफलतापूर्वक सहेजा गया",
-    "deleteError": "ग्राहक हटाने में विफल",
-    "noCustomers": "कोई ग्राहक नहीं मिला"
+    "confirmDelete": "क्या आप वाकई इस सभासद को हटाना चाहते हैं?",
+    "deletedSuccessfully": "सभासद सफलतापूर्वक हटाया गया",
+    "savedSuccessfully": "सभासद सफलतापूर्वक सहेजा गया",
+    "deleteError": "सभासद हटाने में विफल",
+    "noCustomers": "कोई सभासद नहीं मिला",
+    "loadError": "सभासद लोड करने में विफल",
+    "saveError": "सभासद सहेजने में विफल",
+    "deleteDependencyError": "मौजूदा रिकॉर्ड के साथ सभासद को हटाया नहीं जा सकता। कृपया पहले संबंधित बिक्री और प्रदर्शन हटाएँ।",
+    "notFoundError": "सभासद नहीं मिला। इसे पहले ही हटाया जा सकता है।"
   },
-
   "sales": {
     "title": "बिक्री",
     "addSale": "बिक्री जोड़ें",
     "editSale": "बिक्री संपादित करें",
-    "deleteSale": "बिक्री हटाएँ"
+    "deleteSale": "बिक्री हटाएँ",
+    "customerName": "सभासद का नाम",
+    "existingCustomer": "मौजूदा सभासद",
+    "newCustomer": "नया सभासद",
+    "customerSelection": "सभासद:",
+    "enterCustomerName": "सभासद का नाम दर्ज करें",
+    "selectCustomer": "सभासद चुनें",
+    "duplicateCustomerConfirm": "सभासद \"{name}\" ({village}) मोबाइल {mobile} के साथ पहले से मौजूद है। क्या मौजूदा सभासद का उपयोग करें?"
   },
-
   "payments": {
     "title": "भुगतान",
     "subtitle": "भुगतान रिकॉर्ड और ट्रैक करें",
@@ -140,7 +140,7 @@
     "addPayment": "भुगतान जोड़ें",
     "editPayment": "भुगतान संपादित करें",
     "deletePayment": "भुगतान हटाएँ",
-    "customerName": "ग्राहक का नाम",
+    "customerName": "सभासद का नाम",
     "amount": "राशि",
     "date": "भुगतान तिथि",
     "method": "भुगतान विधि",
@@ -165,27 +165,37 @@
     "deleteError": "भुगतान हटाने में विफल",
     "noPayments": "कोई भुगतान नहीं मिला"
   },
-
   "demos": {
     "title": "प्रदर्शन",
     "scheduleDemo": "प्रदर्शन शेड्यूल करें"
   },
-
   "distributors": {
-    "title": "वितरक"
+    "title": "मंत्री",
+    "addDistributor": "मंत्री जोड़ें",
+    "editDistributor": "मंत्री संपादित करें",
+    "deleteDistributor": "मंत्री हटाएँ",
+    "distributorName": "मंत्री का नाम",
+    "contactPerson": "संपर्क व्यक्ति",
+    "mobile": "मोबाइल",
+    "area": "क्षेत्र",
+    "status": "स्थिति",
+    "active": "सक्रिय",
+    "inactive": "निष्क्रिय",
+    "confirmDelete": "क्या आप वाकई इस मंत्री को हटाना चाहते हैं?",
+    "deletedSuccessfully": "मंत्री सफलतापूर्वक हटाया गया",
+    "savedSuccessfully": "मंत्री सफलतापूर्वक सहेजा गया",
+    "deleteError": "मंत्री हटाने में विफल",
+    "noDistributors": "कोई मंत्री नहीं मिला"
   },
-
   "reports": {
     "title": "रिपोर्ट",
     "subtitle": "विस्तृत रिपोर्ट और इनसाइट्स बनाएँ",
     "from": "से",
     "to": "तक"
   },
-
   "import": {
     "title": "डेटा आयात"
   },
-
   "messages": {
     "loading": "लोड हो रहा है...",
     "success": "ऑपरेशन सफल",
@@ -195,9 +205,9 @@
     "invalidEmail": "अमान्य ईमेल पता",
     "invalidPhone": "अमान्य फ़ोन नंबर"
   },
-
   "fields": {
     "id": "आईडी",
+    "customer_code": "सभासद कोड",
     "name": "नाम",
     "email": "ईमेल",
     "phone": "फ़ोन",

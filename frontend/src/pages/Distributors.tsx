@@ -69,7 +69,7 @@ export default function Distributors() {
       setError(
         err instanceof Error
           ? err.message
-          : t("distributors.loadError", "Failed to load distributors"),
+          : t("distributors.loadError", "Failed to load Mantri"),
       );
       console.error("Error loading distributors:", err);
     } finally {
@@ -118,7 +118,7 @@ export default function Distributors() {
       setError(
         err instanceof Error
           ? err.message
-          : t("distributors.saveError", "Failed to save distributor"),
+          : t("distributors.saveError", "Failed to save Mantri"),
       );
       console.error("Error saving distributor:", err);
     }
@@ -154,7 +154,7 @@ export default function Distributors() {
     },
     {
       field: "mantri_mobile",
-      headerName: "Mantri Mobile",
+      headerName: t("distributors.mobile", "Mantri Mobile"),
       width: 150,
       renderCell: (params) => (
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
@@ -173,7 +173,7 @@ export default function Distributors() {
     },
     {
       field: "contact_in_group",
-      headerName: "In Group",
+      headerName: t("distributors.contactInGroup", "In Group"),
       width: 120,
       renderCell: (params) => (
         <Chip label={params.value || 0} size="small" color="secondary" />

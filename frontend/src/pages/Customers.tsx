@@ -64,7 +64,7 @@ export default function Customers() {
       const response = await customerAPI.getAll({ limit: 1000 });
       setCustomers(response.data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load Sabhasad");
+      setError(err instanceof Error ? err.message : t("customers.loadError", "Failed to load Sabhasad"));
       console.error("Error loading Sabhasad:", err);
     } finally {
       setLoading(false);
@@ -126,13 +126,13 @@ export default function Customers() {
       loadCustomers();
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save Sabhasad");
+      setError(err instanceof Error ? err.message : t("customers.saveError", "Failed to save Sabhasad"));
       console.error("Error saving Sabhasad:", err);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm("Are you sure you want to delete this Sabhasad?")) {
+    if (!window.confirm(t("customers.confirmDelete", "Are you sure you want to delete this Sabhasad?"))) {
       return;
     }
 
@@ -142,16 +142,16 @@ export default function Customers() {
       setError(null);
     } catch (err: any) {
       // Handle specific error messages from backend
-      let errorMessage = "Failed to delete Sabhasad";
+      let errorMessage = t("customers.deleteError", "Failed to delete Sabhasad");
 
       if (err.response?.data?.detail) {
         // Backend returned a detailed error message
         errorMessage = err.response.data.detail;
       } else if (err.response?.status === 400) {
         errorMessage =
-          "Cannot delete Sabhasad with existing records. Please delete related sales and demos first.";
+          t("customers.deleteDependencyError", "Cannot delete Sabhasad with existing records. Please delete related sales and demos first.");
       } else if (err.response?.status === 404) {
-        errorMessage = "Sabhasad not found. It may have been already deleted.";
+        errorMessage = t("customers.notFoundError", "Sabhasad not found. It may have been already deleted.");
       } else if (err.message) {
         errorMessage = err.message;
       }

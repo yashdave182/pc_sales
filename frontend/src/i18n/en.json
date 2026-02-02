@@ -113,7 +113,11 @@
     "deletedSuccessfully": "Sabhasad deleted successfully",
     "savedSuccessfully": "Sabhasad saved successfully",
     "deleteError": "Failed to delete Sabhasad",
-    "noCustomers": "No Sabhasad found"
+    "noCustomers": "No Sabhasad found",
+    "loadError": "Failed to load Sabhasad",
+    "saveError": "Failed to save Sabhasad",
+    "deleteDependencyError": "Cannot delete Sabhasad with existing records. Please delete related sales and demos first.",
+    "notFoundError": "Sabhasad not found. It may have been already deleted."
   },
   "sales": {
     "title": "Sales",
@@ -132,7 +136,13 @@
     "deletedSuccessfully": "Sale deleted successfully",
     "savedSuccessfully": "Sale saved successfully",
     "deleteError": "Failed to delete sale",
-    "noSales": "No sales found"
+    "noSales": "No sales found",
+    "existingCustomer": "Existing Sabhasad",
+    "newCustomer": "New Sabhasad",
+    "customerSelection": "Sabhasad:",
+    "enterCustomerName": "Enter Sabhasad name",
+    "selectCustomer": "Select Sabhasad",
+    "duplicateCustomerConfirm": "Sabhasad \"{name}\" from {village} with mobile {mobile} already exists. Use existing Sabhasad?"
   },
   "payments": {
     "title": "Payments",

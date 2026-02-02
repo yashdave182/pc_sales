@@ -238,7 +238,12 @@ export default function Sales() {
             customerId = existingCustomer.customer_id || 0;
             // Notify user
             console.log("Duplicate Sabhasad found, using existing: " + existingCustomer.name);
-            if (!window.confirm(`Sabhasad "${existingCustomer.name}" from ${existingCustomer.village || 'N/A'} with mobile ${newCustomerData.mobile} already exists. Use existing Sabhasad?`)) {
+            if (!window.confirm(
+              t("sales.duplicateCustomerConfirm", "Sabhasad \"{name}\" from {village} with mobile {mobile} already exists. Use existing Sabhasad?")
+                .replace("{name}", existingCustomer.name)
+                .replace("{village}", existingCustomer.village || 'N/A')
+                .replace("{mobile}", newCustomerData.mobile)
+            )) {
               return;
             }
           } else {

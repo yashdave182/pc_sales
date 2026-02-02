@@ -78,7 +78,7 @@ export default function DemoDialog({ open, onClose, onSuccess }: DemoDialogProps
     setError(null);
 
     if (!formData.customer_id) {
-      setError("Please select a Sabhasad");
+      setError(t("sales.selectCustomer", "Please select a Sabhasad"));
       return;
     }
 
@@ -156,16 +156,16 @@ export default function DemoDialog({ open, onClose, onSuccess }: DemoDialogProps
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth required>
-                  <InputLabel>Sabhasad</InputLabel>
+                  <InputLabel>{t("customers.title", "Sabhasad")}</InputLabel>
                   <Select
                     value={formData.customer_id}
                     onChange={(e) =>
                       setFormData({ ...formData, customer_id: Number(e.target.value) })
                     }
-                    label="Sabhasad"
+                    label={t("customers.title", "Sabhasad")}
                   >
                     <MenuItem value={0}>
-                      <em>Select Sabhasad</em>
+                      <em>{t("sales.selectCustomer", "Select Sabhasad")}</em>
                     </MenuItem>
                     {customers.map((customer) => (
                       <MenuItem key={customer.customer_id} value={customer.customer_id}>
@@ -178,13 +178,13 @@ export default function DemoDialog({ open, onClose, onSuccess }: DemoDialogProps
 
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
-                  <InputLabel>Mantri</InputLabel>
+                  <InputLabel>{t("distributors.title", "Mantri")}</InputLabel>
                   <Select
                     value={formData.distributor_id}
                     onChange={(e) =>
                       setFormData({ ...formData, distributor_id: Number(e.target.value) })
                     }
-                    label="Mantri"
+                    label={t("distributors.title", "Mantri")}
                   >
                     <MenuItem value={0}>
                       <em>None</em>

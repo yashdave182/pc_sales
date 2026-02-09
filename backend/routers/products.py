@@ -112,13 +112,13 @@ def update_product(
 def delete_product(product_id: int, db: SupabaseClient = Depends(get_db)):
     """Delete a product (soft delete by setting is_active to 0)"""
     try:
-        # Soft delete - set is_active to 0
-        print(f"[DEBUG] Attempting soft delete for product_id: {product_id}")
+        # Hard delete - permanently remove record
+        print(f"[DEBUG] Attempting HARD delete for product_id: {product_id}")
         
         response = (
             db.table("products")
             .eq("product_id", product_id)
-            .update({"is_active": 0})
+            .delete()
             .execute()
         )
         

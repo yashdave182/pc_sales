@@ -57,6 +57,9 @@ def create_product(product: Product, db: SupabaseClient = Depends(get_db)):
             "capacity_ltr": product.capacity_ltr,
             "category": product.category,
             "standard_rate": product.standard_rate,
+            "rate_gujarat": product.rate_gujarat,
+            "rate_maharashtra": product.rate_maharashtra,
+            "rate_mp": product.rate_mp,
             "is_active": product.is_active,
         }
 
@@ -82,6 +85,9 @@ def update_product(
             "capacity_ltr": product.capacity_ltr,
             "category": product.category,
             "standard_rate": product.standard_rate,
+            "rate_gujarat": product.rate_gujarat,
+            "rate_maharashtra": product.rate_maharashtra,
+            "rate_mp": product.rate_mp,
             "is_active": product.is_active,
         }
 

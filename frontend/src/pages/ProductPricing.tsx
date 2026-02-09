@@ -17,6 +17,15 @@ import {
     InputAdornment,
     IconButton,
     Tooltip,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Grid,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
 } from "@mui/material";
 import { TableSkeleton } from "../components/Skeletons";
 import {
@@ -24,6 +33,8 @@ import {
     Save as SaveIcon,
     Edit as EditIcon,
     Cancel as CancelIcon,
+    Add as AddIcon,
+    Delete as DeleteIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../contexts/AuthContext";
 import axios from "axios";
@@ -64,6 +75,24 @@ export default function ProductPricing() {
         {},
     );
     const [editMode, setEditMode] = useState<Record<number, boolean>>({});
+
+    // Add Product State
+    const [openAddDialog, setOpenAddDialog] = useState(false);
+    const [newProduct, setNewProduct] = useState<Partial<Product>>({
+        product_name: "",
+        packing_type: "",
+        capacity_ltr: 0,
+        category: "",
+        standard_rate: 0,
+        rate_gujarat: 0,
+        rate_maharashtra: 0,
+        rate_mp: 0,
+        is_active: 1
+    });
+
+    // Delete Product State
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [productToDelete, setProductToDelete] = useState<number | null>(null);
 
     // Check if user is admin
     useEffect(() => {
@@ -226,6 +255,102 @@ export default function ProductPricing() {
         }
     };
 
+    const handleAddClick = () => {
+        setNewProduct({
+            product_name: "",
+            packing_type: "",
+            capacity_ltr: 0,
+            category: "",
+            standard_rate: 0,
+            rate_gujarat: 0,
+            rate_maharashtra: 0,
+            rate_mp: 0,
+            is_active: 1
+        });
+        setOpenAddDialog(true);
+    };
+
+    const handleAddClose = () => {
+        setOpenAddDialog(false);
+    };
+
+    const handleAddChange = (field: keyof Product, value: any) => {
+        setNewProduct({
+            ...newProduct,
+            [field]: value
+        });
+    };
+
+    const handleAddSubmit = async () => {
+        try {
+            setSaving(true);
+            setError(null);
+
+            // Validate
+            if (!newProduct.product_name) {
+                setError("Product name is required");
+                setSaving(false);
+                return;
+            }
+
+            const response = await axios.post(
+                `${API_BASE_URL}/api/products/`,
+                newProduct,
+                {
+                    headers: {
+                        "x-user-email": user?.email,
+                    },
+                }
+            );
+
+            setSuccess("Product added successfully");
+            setOpenAddDialog(false);
+            loadProducts();
+        } catch (err: any) {
+            console.error("Error adding product:", err);
+            setError(err.response?.data?.detail || "Failed to add product");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDeleteClick = (productId: number) => {
+        setProductToDelete(productId);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleDeleteClose = () => {
+        setDeleteDialogOpen(false);
+        setProductToDelete(null);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!productToDelete) return;
+        try {
+            setSaving(true);
+            setError(null);
+
+            await axios.delete(
+                `${API_BASE_URL}/api/products/${productToDelete}`,
+                {
+                    headers: {
+                        "x-user-email": user?.email,
+                    },
+                }
+            );
+
+            setSuccess("Product deleted successfully");
+            setDeleteDialogOpen(false);
+            setProductToDelete(null);
+            loadProducts();
+        } catch (err: any) {
+            console.error("Error deleting product:", err);
+            setError(err.response?.data?.detail || "Failed to delete product");
+        } finally {
+            setSaving(false);
+        }
+    };
+
     if (!user || user.email !== "admin@gmail.com") {
         return (
             <Box
@@ -258,6 +383,14 @@ export default function ProductPricing() {
                     </Typography>
                 </Box>
                 <Box sx={{ display: "flex", gap: 1 }}>
+                    <Button
+                        variant="contained"
+                        startIcon={<AddIcon />}
+                        onClick={handleAddClick}
+                        disabled={saving}
+                    >
+                        Add Product
+                    </Button>
                     <Tooltip title="Refresh">
                         <IconButton onClick={loadProducts} color="primary" disabled={loading}>
                             <RefreshIcon />
@@ -269,6 +402,7 @@ export default function ProductPricing() {
                             startIcon={<SaveIcon />}
                             onClick={handleSaveAll}
                             disabled={saving}
+                            color="success"
                         >
                             Save All Changes
                         </Button>
@@ -487,17 +621,28 @@ export default function ProductPricing() {
                                                             </Tooltip>
                                                         </Box>
                                                     ) : (
-                                                        <Tooltip title="Edit Price">
-                                                            <IconButton
-                                                                size="small"
-                                                                color="primary"
-                                                                onClick={() =>
-                                                                    handleEdit(product)
-                                                                }
-                                                            >
-                                                                <EditIcon fontSize="small" />
-                                                            </IconButton>
-                                                        </Tooltip>
+                                                        <Box sx={{ display: "flex", gap: 1 }}>
+                                                            <Tooltip title="Edit Price">
+                                                                <IconButton
+                                                                    size="small"
+                                                                    color="primary"
+                                                                    onClick={() =>
+                                                                        handleEdit(product)
+                                                                    }
+                                                                >
+                                                                    <EditIcon fontSize="small" />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                            <Tooltip title="Delete">
+                                                                <IconButton
+                                                                    size="small"
+                                                                    color="error"
+                                                                    onClick={() => handleDeleteClick(product.product_id)}
+                                                                >
+                                                                    <DeleteIcon fontSize="small" />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                        </Box>
                                                     )}
                                                 </TableCell>
                                             </TableRow>
@@ -510,6 +655,94 @@ export default function ProductPricing() {
                     }
                 </CardContent >
             </Card >
+
+            {/* Add Product Dialog */}
+            <Dialog open={openAddDialog} onClose={handleAddClose} maxWidth="md" fullWidth>
+                <DialogTitle>Add New Product</DialogTitle>
+                <DialogContent>
+                    <Box sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} md={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Product Name"
+                                    value={newProduct.product_name}
+                                    onChange={(e) => handleAddChange("product_name", e.target.value)}
+                                    required
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Category"
+                                    value={newProduct.category}
+                                    onChange={(e) => handleAddChange("category", e.target.value)}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Packing Type"
+                                    value={newProduct.packing_type}
+                                    onChange={(e) => handleAddChange("packing_type", e.target.value)}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Capacity (Ltr)"
+                                    type="number"
+                                    value={newProduct.capacity_ltr}
+                                    onChange={(e) => handleAddChange("capacity_ltr", parseFloat(e.target.value))}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Standard Rate"
+                                    type="number"
+                                    value={newProduct.standard_rate}
+                                    onChange={(e) => {
+                                        const rat = parseFloat(e.target.value);
+                                        setNewProduct(prev => ({
+                                            ...prev,
+                                            standard_rate: rat,
+                                            rate_gujarat: prev.rate_gujarat || rat,
+                                            rate_maharashtra: prev.rate_maharashtra || rat,
+                                            rate_mp: prev.rate_mp || rat
+                                        }));
+                                    }}
+                                    InputProps={{
+                                        startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                                    }}
+                                />
+                            </Grid>
+                        </Grid>
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleAddClose}>Cancel</Button>
+                    <Button onClick={handleAddSubmit} variant="contained" disabled={saving}>
+                        Add Product
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={deleteDialogOpen} onClose={handleDeleteClose}>
+                <DialogTitle>Confirm Delete</DialogTitle>
+                <DialogContent>
+                    <Typography>
+                        Are you sure you want to delete this product? This action will mark the product as inactive.
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleDeleteClose}>Cancel</Button>
+                    <Button onClick={handleDeleteConfirm} color="error" variant="contained" disabled={saving}>
+                        Delete
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box >
     );
 }

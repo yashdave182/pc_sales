@@ -113,18 +113,27 @@ def delete_product(product_id: int, db: SupabaseClient = Depends(get_db)):
     """Delete a product (soft delete by setting is_active to 0)"""
     try:
         # Soft delete - set is_active to 0
+        print(f"[DEBUG] Attempting soft delete for product_id: {product_id}")
+        
         response = (
             db.table("products")
             .update({"is_active": 0})
             .eq("product_id", product_id)
             .execute()
         )
+        
+        print(f"[DEBUG] Soft delete response: {response.data}")
 
-        if not response.data or len(response.data) == 0:
-            raise HTTPException(status_code=404, detail="Product not found")
+        # Check if data exists in response
+        if not response.data:
+            print(f"[ERROR] Product {product_id} not found or update failed")
+            raise HTTPException(status_code=404, detail="Product not found or could not be updated")
 
-        return {"message": "Product deleted"}
+        return {"message": "Product deleted successfully", "id": product_id}
+        
     except HTTPException:
         raise
     except Exception as e:
+        print(f"[ERROR] Exception in delete_product: {str(e)}")
+        # Return the actual error message for debugging
         raise HTTPException(status_code=500, detail=f"Error deleting product: {str(e)}")

@@ -93,8 +93,8 @@ def update_product(
 
         response = (
             db.table("products")
-            .update(product_data)
             .eq("product_id", product_id)
+            .update(product_data)
             .execute()
         )
 
@@ -117,8 +117,8 @@ def delete_product(product_id: int, db: SupabaseClient = Depends(get_db)):
         
         response = (
             db.table("products")
-            .update({"is_active": 0})
             .eq("product_id", product_id)
+            .update({"is_active": 0})
             .execute()
         )
         

@@ -22,6 +22,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { demoAPI, customerAPI, productAPI, distributorAPI } from "../services/api";
 import type { Customer, Product, Distributor } from "../types";
+import { useTranslation } from "react-i18next";
 
 interface DemoDialogProps {
   open: boolean;
@@ -30,6 +31,7 @@ interface DemoDialogProps {
 }
 
 export default function DemoDialog({ open, onClose, onSuccess }: DemoDialogProps) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);

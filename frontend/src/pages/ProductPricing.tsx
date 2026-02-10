@@ -168,13 +168,39 @@ export default function ProductPricing() {
 
     const handleEdit = (product: Product) => {
         setEditMode({ ...editMode, [product.product_id]: true });
+
+        // Helper to safely get a rate or fallback
+        const getRate = (rate?: number) => rate || product.standard_rate || 0;
+        const rateGj = product.rate_gujarat || product.standard_rate || 0;
+        const rateMh = product.rate_maharashtra || product.standard_rate || 0;
+        const rateMp = product.rate_mp || product.standard_rate || 0;
+
         setEditingPrices({
             ...editingPrices,
             [product.product_id]: {
                 standard_rate: product.standard_rate || 0,
-                rate_gujarat: product.rate_gujarat || product.standard_rate || 0,
-                rate_maharashtra: product.rate_maharashtra || product.standard_rate || 0,
-                rate_mp: product.rate_mp || product.standard_rate || 0,
+                // Old Fields (keeping them for now)
+                rate_gujarat: rateGj,
+                rate_maharashtra: rateMh,
+                rate_mp: rateMp,
+
+                // Advanced Pricing - Gujarat
+                rate_gujarat_sabhasad: product.rate_gujarat_sabhasad || rateGj,
+                rate_gujarat_mantri: product.rate_gujarat_mantri || rateGj,
+                rate_gujarat_distributor: product.rate_gujarat_distributor || rateGj,
+                rate_gujarat_field_officer: product.rate_gujarat_field_officer || rateGj,
+
+                // Advanced Pricing - Maharashtra
+                rate_maharashtra_sabhasad: product.rate_maharashtra_sabhasad || rateMh,
+                rate_maharashtra_mantri: product.rate_maharashtra_mantri || rateMh,
+                rate_maharashtra_distributor: product.rate_maharashtra_distributor || rateMh,
+                rate_maharashtra_field_officer: product.rate_maharashtra_field_officer || rateMh,
+
+                // Advanced Pricing - Madhya Pradesh
+                rate_mp_sabhasad: product.rate_mp_sabhasad || rateMp,
+                rate_mp_mantri: product.rate_mp_mantri || rateMp,
+                rate_mp_distributor: product.rate_mp_distributor || rateMp,
+                rate_mp_field_officer: product.rate_mp_field_officer || rateMp,
             },
         });
     };

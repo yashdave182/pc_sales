@@ -60,6 +60,22 @@ def create_product(product: Product, db: SupabaseClient = Depends(get_db)):
             "rate_gujarat": product.rate_gujarat,
             "rate_maharashtra": product.rate_maharashtra,
             "rate_mp": product.rate_mp,
+            
+            # Advanced Pricing
+            "rate_gujarat_sabhasad": product.rate_gujarat_sabhasad,
+            "rate_gujarat_mantri": product.rate_gujarat_mantri,
+            "rate_gujarat_distributor": product.rate_gujarat_distributor,
+            "rate_gujarat_field_officer": product.rate_gujarat_field_officer,
+            
+            "rate_maharashtra_sabhasad": product.rate_maharashtra_sabhasad,
+            "rate_maharashtra_mantri": product.rate_maharashtra_mantri,
+            "rate_maharashtra_distributor": product.rate_maharashtra_distributor,
+            "rate_maharashtra_field_officer": product.rate_maharashtra_field_officer,
+
+            "rate_mp_sabhasad": product.rate_mp_sabhasad,
+            "rate_mp_mantri": product.rate_mp_mantri,
+            "rate_mp_distributor": product.rate_mp_distributor,
+            "rate_mp_field_officer": product.rate_mp_field_officer,
             "is_active": product.is_active,
         }
 
@@ -88,6 +104,22 @@ def update_product(
             "rate_gujarat": product.rate_gujarat,
             "rate_maharashtra": product.rate_maharashtra,
             "rate_mp": product.rate_mp,
+            
+            # Advanced Pricing
+            "rate_gujarat_sabhasad": product.rate_gujarat_sabhasad,
+            "rate_gujarat_mantri": product.rate_gujarat_mantri,
+            "rate_gujarat_distributor": product.rate_gujarat_distributor,
+            "rate_gujarat_field_officer": product.rate_gujarat_field_officer,
+            
+            "rate_maharashtra_sabhasad": product.rate_maharashtra_sabhasad,
+            "rate_maharashtra_mantri": product.rate_maharashtra_mantri,
+            "rate_maharashtra_distributor": product.rate_maharashtra_distributor,
+            "rate_maharashtra_field_officer": product.rate_maharashtra_field_officer,
+
+            "rate_mp_sabhasad": product.rate_mp_sabhasad,
+            "rate_mp_mantri": product.rate_mp_mantri,
+            "rate_mp_distributor": product.rate_mp_distributor,
+            "rate_mp_field_officer": product.rate_mp_field_officer,
             "is_active": product.is_active,
         }
 

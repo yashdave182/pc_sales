@@ -391,13 +391,13 @@ def create_sale(
                         try:
                             update_response = (
                                 db.table("demos")
+                                .eq("demo_id", demo_id)
                                 .update(
                                     {
                                         "conversion_status": "Converted",
                                         "notes": f"Auto-converted: Sale {invoice_no} created on {sale.sale_date}",
                                     }
                                 )
-                                .eq("demo_id", demo_id)
                                 .execute()
                             )
 
@@ -438,7 +438,7 @@ def create_sale(
                     new_status = "Partial"
                 
                 if new_status != "Pending":
-                    db.table("sales").update({"payment_status": new_status}).eq("sale_id", sale_id).execute()
+                    db.table("sales").eq("sale_id", sale_id).update({"payment_status": new_status}).execute()
                     created_sale["payment_status"] = new_status
                 
                 # Log payment activity
@@ -520,8 +520,8 @@ def update_sale(
 ):
     """Update a sale"""
     try:
-        # Correct order: table -> update -> eq -> execute
-        response = db.table("sales").update(sale_data).eq("sale_id", sale_id).execute()
+        # Correct order: table -> eq -> update -> execute
+        response = db.table("sales").eq("sale_id", sale_id).update(sale_data).execute()
 
         if not response.data:
             raise HTTPException(status_code=404, detail="Sale not found")

@@ -119,8 +119,8 @@ def update_customer(
 
         response = (
             db.table("customers")
-            .update(customer_data)
             .eq("customer_id", customer_id)
+            .update(customer_data)
             .execute()
         )
 

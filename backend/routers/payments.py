@@ -400,8 +400,8 @@ def update_payment(
         # Update payment
         response = (
             db.table("payments")
-            .update(payment_data)
             .eq("payment_id", payment_id)
+            .update(payment_data)
             .execute()
         )
 

@@ -190,68 +190,28 @@ export default function Dashboard() {
 
   const [collectedAmount, setCollectedAmount] = useState(0);
   const [loadingCollected, setLoadingCollected] = useState(false);
-  const [allPayments, setAllPayments] = useState<any[]>([]);
 
-  // 1. Fetch all payments once on mount
+  // 1. Fetch collected payments when range changes
   useEffect(() => {
-    const fetchAllPayments = async () => {
+    const fetchCollectedPayments = async () => {
       try {
         setLoadingCollected(true);
-        const response = await paymentAPI.getAll({ limit: 1000 });
-
-        let data = [];
-        if (Array.isArray(response)) {
-          data = response;
-        } else if (response && Array.isArray(response.data)) {
-          data = response.data;
-        }
-        setAllPayments(data);
+        const data = await dashboardAPI.getCollectedPayments(
+          collectedPaymentRange.start,
+          collectedPaymentRange.end
+        );
+        setCollectedAmount(data.total_amount || 0);
       } catch (err) {
-        console.error("Error fetching payments history:", err);
+        console.error("Error fetching collected payments:", err);
       } finally {
         setLoadingCollected(false);
       }
     };
-    fetchAllPayments();
-  }, []);
 
-  // 2. Filter in-memory whenever range or payments change (Instant)
-  useEffect(() => {
-    if (!collectedPaymentRange.start || !collectedPaymentRange.end || allPayments.length === 0) {
-      if (allPayments.length === 0 && !loadingCollected) setCollectedAmount(0);
-      return;
+    if (collectedPaymentRange.start && collectedPaymentRange.end) {
+      fetchCollectedPayments();
     }
-
-    const startStr = collectedPaymentRange.start;
-    const endStr = collectedPaymentRange.end;
-
-    // Helper to extract YYYY-MM-DD
-    const getDateStr = (d: string | Date) => {
-      if (!d) return "";
-      try {
-        // Handle ISO (YYYY-MM-DD...) directly
-        if (typeof d === 'string' && d.match(/^\d{4}-\d{2}-\d{2}/)) {
-          return d.substring(0, 10);
-        }
-        return new Date(d).toISOString().split('T')[0];
-      } catch (e) {
-        return "";
-      }
-    };
-
-    const total = allPayments.reduce((sum: number, p: any) => {
-      const pDateStr = getDateStr(p.payment_date);
-      const isMatch = pDateStr && pDateStr >= startStr && pDateStr <= endStr;
-
-      if (isMatch) {
-        return sum + (parseFloat(p.amount) || 0);
-      }
-      return sum;
-    }, 0);
-
-    setCollectedAmount(total);
-
-  }, [collectedPaymentRange, allPayments, loadingCollected]);
+  }, [collectedPaymentRange]);
 
 
   const loadSalesTrendByDateRange = useCallback(async () => {

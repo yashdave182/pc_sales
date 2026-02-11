@@ -12,155 +12,47 @@ router = APIRouter()
 # Dashboard Metrics
 # ======================
 @router.get("/metrics")
-def dashboard_metrics(
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
-    db: SupabaseClient = Depends(get_supabase)
-):
-    """Get dashboard metrics with optional date filtering"""
+def dashboard_metrics(db: SupabaseClient = Depends(get_supabase)):
+    """Get dashboard metrics using optimized RPC"""
     try:
-        print(f"Fetching dashboard metrics... Date range: {start_date} to {end_date}")
+        response = db.rpc("get_dashboard_metrics", {}).execute()
         
-        # Sales query
-        sales_query = db.table("sales").select("sale_id, total_amount, sale_date, payment_terms")
-        if start_date:
-            sales_query = sales_query.gte("sale_date", start_date)
-        if end_date:
-            sales_query = sales_query.lte("sale_date", end_date)
-        sales_response = sales_query.execute()
-        
-        total_sales = 0.0
-        sales_data_map = {}
-
-        if sales_response.data:
-            for sale in sales_response.data:
-                sale_id = sale.get("sale_id")
-                amount = float(sale.get("total_amount", 0) or 0)
-                total_sales += amount
-                sales_data_map[sale_id] = {
-                    "amount": amount,
-                    "date": sale.get("sale_date"),
-                    "terms": sale.get("payment_terms")
-                }
-
-        # Payments query
-        payments_query = db.table("payments").select("sale_id, amount, payment_date, payment_method")
-        if start_date:
-            payments_query = payments_query.gte("payment_date", start_date)
-        if end_date:
-            payments_query = payments_query.lte("payment_date", end_date)
-        payments_response = payments_query.execute()
-        
-        total_payments = 0.0
-        paid_by_sale = {}
-        payment_method_distribution = {}
-
-        if payments_response.data:
-            for payment in payments_response.data:
-                sale_id = payment.get("sale_id")
-                amount = float(payment.get("amount", 0) or 0)
-                method = payment.get("payment_method", "Other") or "Other"
-                
-                total_payments += amount
-                
-                # Aggregate by payment method
-                payment_method_distribution[method] = payment_method_distribution.get(method, 0.0) + amount
-
-                if sale_id:
-                    paid_by_sale[sale_id] = paid_by_sale.get(sale_id, 0.0) + amount
-
-        # Calculate actual pending amount
-        # Note: If date filtering is active, this calculates pending amount 
-        # for the SALES made in that period, considering PAYMENTS made in that period.
-        pending_amount = 0.0
-        today = datetime.now().date()
-        
-        for sale_id, sale_data in sales_data_map.items():
-            paid = paid_by_sale.get(sale_id, 0.0)
-            total = sale_data["amount"]
-            pending = total - paid
+        if not response.data:
+            return {
+                "total_sales": 0,
+                "total_transactions": 0,
+                "pending_amount": 0,
+                "total_customers": 0,
+                "active_customers": 0,
+                "demo_conversion_rate": 0,
+                "payment_method_distribution": {}
+            }
             
-            if pending > 0:
-                # Check if strictly due based on payment terms
-                is_due = True
-                terms_json = sale_data["terms"]
-                
-                if terms_json:
-                    try:
-                        terms = json.loads(terms_json)
-                        sale_date_str = sale_data["date"]
-                        if sale_date_str:
-                             sale_date = datetime.strptime(sale_date_str, "%Y-%m-%d").date()
-                             terms_type = terms.get("type")
-                             
-                             if terms_type == "after_days":
-                                 days = int(terms.get("days", 0))
-                                 due_date = sale_date + timedelta(days=days)
-                                 if today < due_date: 
-                                     is_due = False
-                                     
-                             elif terms_type == "emi":
-                                 strict_due = 0
-                                 parts = terms.get("emiParts", [])
-                                 for part in parts:
-                                     days = int(part.get("days", 0))
-                                     pct = float(part.get("percentage", 0))
-                                     if today >= sale_date + timedelta(days=days):
-                                         strict_due += (total * pct / 100)
-                                 
-                                 # If paid matches what's strictly due so far, don't count as pending
-                                 if paid >= strict_due:
-                                     is_due = False
-                    except Exception as e:
-                        print(f"Error parsing terms in metrics for sale {sale_id}: {e}")
-                
-                if is_due:
-                    pending_amount += pending
-
-        # Get total customers count (Lifetime metric, usually not filtered by short date ranges)
-        # If strict filtering is needed, we could filter by created_at
-        customers_response = db.table("customers").select("customer_id").execute()
-        total_customers = len(customers_response.data) if customers_response.data else 0
-
-        # Get total transactions count
-        total_transactions = len(sales_response.data) if sales_response.data else 0
-
-        # Get demo conversion rate
-        demos_response = db.table("demos").select("conversion_status").execute()
-
-        demo_conversion_rate = 0.0
-        converted_count = 0
-        total_demos = 0
-
-        if demos_response.data:
-            total_demos = len(demos_response.data)
-
-            # Count converted demos (case-insensitive)
-            for demo in demos_response.data:
-                status = demo.get("conversion_status", "").lower()
-                if status in ["converted", "won", "purchase", "completed", "sold"]:
-                    converted_count += 1
-
-            # Calculate percentage
-            if total_demos > 0:
-                demo_conversion_rate = round((converted_count / total_demos) * 100, 2)
-
-        metrics_result = {
-            "total_sales": round(total_sales, 2),
-            "total_payments": round(total_payments, 2),
-            "pending_amount": round(max(0, pending_amount), 2),  # Ensure non-negative
-            "total_customers": total_customers,
-            "total_transactions": total_transactions,
-            "demo_conversion_rate": demo_conversion_rate,
-            "payment_method_distribution": payment_method_distribution
-        }
-
-        return metrics_result
+        return response.data
     except Exception as e:
         print(f"Error in dashboard_metrics: {e}")
+        # Fallback to empty if RPC fails (e.g. not created yet)
         raise HTTPException(
-            status_code=500, detail=f"Error fetching dashboard metrics: {str(e)}"
+            status_code=500, detail=f"Error fetching metrics: {str(e)}"
         )
+
+
+@router.get("/collected-payments")
+def get_collected_payments(
+    start_date: str, 
+    end_date: str, 
+    db: SupabaseClient = Depends(get_supabase)
+):
+    """Get total collected payments for a date range using RPC"""
+    try:
+        params = {
+            "start_date": start_date,
+            "end_date": end_date
+        }
+        response = db.rpc("get_collected_payments", params).execute()
+        return {"total_amount": response.data or 0}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ======================

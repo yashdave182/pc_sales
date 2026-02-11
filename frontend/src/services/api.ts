@@ -129,6 +129,12 @@ export const dashboardAPI = {
 
     return response.data;
   },
+  getCollectedPayments: async (startDate: string, endDate: string) => {
+    const response = await apiClient.get("/api/dashboard/collected-payments", {
+      params: { start_date: startDate, end_date: endDate },
+    });
+    return response.data;
+  },
 };
 
 // Customer API

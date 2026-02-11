@@ -37,12 +37,6 @@ class ReportGenerator:
     def _setup_custom_styles(self):
         """Setup custom paragraph styles"""
         # Title style
-
-    def _get_ist_time_str(self, fmt: str = "%Y-%m-%d %H:%M:%S") -> str:
-        """Get current time in IST (UTC+5:30)"""
-        # UTC is 5 hours 30 minutes behind IST
-        ist_time = datetime.utcnow() + timedelta(hours=5, minutes=30)
-        return ist_time.strftime(fmt)
         self.styles.add(
             ParagraphStyle(
                 name="CustomTitle",
@@ -78,6 +72,12 @@ class ReportGenerator:
                 alignment=TA_RIGHT,
             )
         )
+
+    def _get_ist_time_str(self, fmt: str = "%Y-%m-%d %H:%M:%S") -> str:
+        """Get current time in IST (UTC+5:30)"""
+        # UTC is 5 hours 30 minutes behind IST
+        ist_time = datetime.utcnow() + timedelta(hours=5, minutes=30)
+        return ist_time.strftime(fmt)
 
     def _add_header(self, elements: List, title: str, date_range: Optional[str] = None):
         """Add report header"""

@@ -32,6 +32,7 @@ def get_sales_trend(
 ):
     """
     Get sales trend analysis by interval (daily, weekly, monthly)
+    using optimized Database RPC
     """
     try:
         # Default date range (last 30 days)
@@ -40,100 +41,35 @@ def get_sales_trend(
         if not start_date:
             start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
 
-        print(f"=== SALES TREND API CALLED ===")
-        print(f"Requested interval: {interval}")
-        print(f"Requested start_date: {start_date}")
-        print(f"Requested end_date: {end_date}")
+        print(f"=== SALES TREND API CALLED (RPC) ===")
+        print(f"Interval: {interval}, Start: {start_date}, End: {end_date}")
 
-        # Fetch ALL sales data first (Supabase .gte()/.lte() not working reliably)
-        response = (
-            db.table("sales")
-            .select("*, customers(name)")
-            .order("sale_date", desc=False)
-            .execute()
+        # Use Supabase RPC for server-side aggregation
+        params = {
+            "interval_type": interval,
+            "start_date": start_date,
+            "end_date": end_date
+        }
+        
+        response = db.rpc("get_sales_trend", params).execute()
+        
+        if not response.data:
+            return {"trends": []}
+            
+        trends_data = response.data
+        
+        # Transform for frontend if needed, but RPC returns correct shape
+        # structure: period, sales_count, total_amount, total_liters
+        
+        return {"trends": trends_data}
+
+    except Exception as e:
+        print(f"Error in get_sales_trend: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching sales trend: {str(e)}"
         )
 
-        all_sales = response.data or []
-        print(f"Database returned {len(all_sales)} total sales records")
-        
-        # Manual filtering by date range in Python
-        sales_data = [
-            sale for sale in all_sales
-            if start_date <= sale["sale_date"] <= end_date
-        ]
-        
-        print(f"After filtering: {len(sales_data)} sales records in date range")
-        
-        if sales_data:
-            dates = [s["sale_date"] for s in sales_data]
-            print(f"Date range in filtered results: {min(dates)} to {max(dates)}")
-            print(f"First 3 sale dates: {dates[:3]}")
-        else:
-            print("No sales data found for the given date range")
 
-
-
-        # Group sales by interval
-        trends = {}
-        
-        for sale in sales_data:
-            sale_date = datetime.strptime(sale["sale_date"], "%Y-%m-%d")
-            
-            # Determine the key based on interval
-            if interval == "daily":
-                key = sale_date.strftime("%Y-%m-%d")
-            elif interval == "weekly":
-                # Get week number and year
-                key = f"{sale_date.strftime('%Y')}-W{sale_date.strftime('%W')}"
-            elif interval == "monthly":
-                key = sale_date.strftime("%Y-%m")
-            else:
-                raise HTTPException(status_code=400, detail="Invalid interval. Use daily, weekly, or monthly")
-
-            if key not in trends:
-                trends[key] = {
-                    "period": key,
-                    "sales_count": 0,
-                    "total_amount": 0,
-                    "total_liters": 0,
-                    "sales": []
-                }
-
-            trends[key]["sales_count"] += 1
-            trends[key]["total_amount"] += sale.get("total_amount", 0)
-            trends[key]["total_liters"] += sale.get("total_liters", 0)
-            trends[key]["sales"].append({
-                "invoice_no": sale.get("invoice_no"),
-                "customer_name": sale.get("customers", {}).get("name") if sale.get("customers") else None,
-                "amount": sale.get("total_amount", 0),
-                "date": sale.get("sale_date")
-            })
-
-        # Convert to list and sort
-        trend_list = sorted(trends.values(), key=lambda x: x["period"])
-
-        # Calculate summary statistics
-        total_sales = sum(t["sales_count"] for t in trend_list)
-        total_revenue = sum(t["total_amount"] for t in trend_list)
-        total_liters = sum(t["total_liters"] for t in trend_list)
-        
-        avg_sales_per_period = total_sales / len(trend_list) if trend_list else 0
-        avg_revenue_per_period = total_revenue / len(trend_list) if trend_list else 0
-
-        return {
-            "interval": interval,
-            "start_date": start_date,
-            "end_date": end_date,
-            "summary": {
-                "total_sales": total_sales,
-                "total_revenue": total_revenue,
-                "total_liters": total_liters,
-                "periods_count": len(trend_list),
-                "avg_sales_per_period": round(avg_sales_per_period, 2),
-                "avg_revenue_per_period": round(avg_revenue_per_period, 2),
-            },
-            "trends": trend_list,
-        }
 
     except HTTPException:
         raise

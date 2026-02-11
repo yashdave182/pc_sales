@@ -118,9 +118,22 @@ def get_master_calling_list(db: SupabaseClient, inactive_days: int) -> List[Dict
         all_customers = db.table("customers").select("customer_id, name, mobile, village").eq("status", "Active").execute()
         
         # 2. Get recent sales (within inactive_days)
-        cutoff_date = (date.today() - timedelta(days=inactive_days)).isoformat()
-        recent_sales = db.table("sales").select("customer_id").gte("sale_date", cutoff_date).execute()
-        active_customer_ids = {s["customer_id"] for s in recent_sales.data}
+        # Fetching sales to filter in Python for accuracy
+        all_sales_res = db.table("sales").select("customer_id, sale_date").execute()
+        
+        cutoff_date_dt = date.today() - timedelta(days=inactive_days)
+        active_customer_ids = set()
+        
+        for sale in all_sales_res.data or []:
+            s_date_str = sale.get("sale_date")
+            if not s_date_str: continue
+            
+            try:
+                s_date = datetime.strptime(s_date_str, "%Y-%m-%d").date()
+                if s_date >= cutoff_date_dt:
+                    active_customer_ids.add(sale.get("customer_id"))
+            except ValueError:
+                continue
         
         count = 0
         for cust in all_customers.data or []:

@@ -45,16 +45,30 @@ def get_collected_payments(
 ):
     """Get total collected payments for a date range (Python Aggregation)"""
     try:
-        response = (
-            db.table("payments")
-            .select("amount")
-            .gte("payment_date", start_date)
-            .lte("payment_date", end_date)
-            .execute()
-        )
+        # Parse dates
+        try:
+            start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+            end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
+        # Fetch ALL payments (safer for text date filtering)
+        response = db.table("payments").select("payment_date, amount").execute()
         
         payments = response.data or []
-        total_amount = sum(p.get("amount", 0) for p in payments)
+        total_amount = 0
+        
+        for p in payments:
+            p_date_str = p.get("payment_date")
+            if not p_date_str:
+                continue
+                
+            try:
+                p_date = datetime.strptime(p_date_str, "%Y-%m-%d")
+                if start_dt <= p_date <= end_dt:
+                    total_amount += p.get("amount", 0)
+            except ValueError:
+                continue
         
         return {"total_amount": total_amount}
     except Exception as e:
@@ -70,13 +84,13 @@ def sales_trend(days: int = 30, db: SupabaseClient = Depends(get_supabase)):
     """Get sales trend for the last N days"""
     try:
         # Calculate date threshold
-        date_threshold = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        today = datetime.now()
+        cutoff_date = today - timedelta(days=days)
 
-        # Get sales after threshold
+        # Get ALL sales (safer for text date filtering)
         response = (
             db.table("sales")
             .select("sale_date, total_amount")
-            .gte("sale_date", date_threshold)
             .execute()
         )
 
@@ -86,13 +100,19 @@ def sales_trend(days: int = 30, db: SupabaseClient = Depends(get_supabase)):
         # Group by date and sum amounts
         trend_dict = {}
         for sale in response.data:
-            sale_date = sale.get("sale_date")
-            total_amount = sale.get("total_amount", 0) or 0
+            s_date_str = sale.get("sale_date")
+            if not s_date_str: continue
 
-            if sale_date:
-                if sale_date not in trend_dict:
-                    trend_dict[sale_date] = 0
-                trend_dict[sale_date] += total_amount
+            try:
+                sale_date = datetime.strptime(s_date_str, "%Y-%m-%d")
+                # Filter by date range in Python
+                if sale_date.date() >= cutoff_date.date() and sale_date.date() <= today.date():
+                    date_key = s_date_str
+                    if date_key not in trend_dict:
+                        trend_dict[date_key] = 0
+                    trend_dict[date_key] += sale.get("total_amount", 0) or 0
+            except ValueError:
+                continue
 
         # Convert to list and sort
         result = [

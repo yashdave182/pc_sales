@@ -41,11 +41,18 @@ def get_sales_trend(
         if not start_date:
             start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
 
-        print(f"=== SALES TREND API CALLED (RPC) ===")
+        # Parse start/end dates
+        try:
+            start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
+            end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
+        except ValueError:
+             raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
+        print(f"=== SALES TREND API CALLED (PYTHON) ===")
         print(f"Interval: {interval}, Start: {start_date}, End: {end_date}")
 
-        # Fetch raw sales data
-        query = db.table("sales").select("sale_date, total_amount, total_liters").gte("sale_date", start_date).lte("sale_date", end_date)
+        # Fetch ALL sales (since dataset is small and filtering TEXT dates in SQL is unreliable)
+        query = db.table("sales").select("sale_date, total_amount, total_liters")
         response = query.execute()
         sales_data = response.data or []
 
@@ -53,10 +60,17 @@ def get_sales_trend(
         trends = {}
         
         for sale in sales_data:
-            date_str = sale["sale_date"]
+            date_str = sale.get("sale_date")
+            if not date_str:
+                continue
+                
             try:
                 sale_date = datetime.strptime(date_str, "%Y-%m-%d")
             except ValueError:
+                continue
+            
+            # Filter by date range
+            if not (start_date_dt <= sale_date <= end_date_dt):
                 continue
 
             if interval == "daily":
@@ -119,12 +133,17 @@ def get_payment_trend(
         if not start_date:
             start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
 
-        # Fetch payment data with sales info
+        # Parse start/end dates
+        try:
+            start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
+            end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
+        except ValueError:
+             raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
+        # Fetch ALL payment data with sales info
         response = (
             db.table("payments")
             .select("*, sales(invoice_no, customers(name))")
-            .gte("payment_date", start_date)
-            .lte("payment_date", end_date)
             .order("payment_date", desc=False)
             .execute()
         )
@@ -136,7 +155,18 @@ def get_payment_trend(
         payment_methods = {}
         
         for payment in payments_data:
-            payment_date = datetime.strptime(payment["payment_date"], "%Y-%m-%d")
+            date_str = payment.get("payment_date")
+            if not date_str:
+                continue
+                
+            try:
+                payment_date = datetime.strptime(date_str, "%Y-%m-%d")
+            except ValueError:
+                continue
+            
+            # Filter by date range
+            if not (start_date_dt <= payment_date <= end_date_dt):
+                continue
             
             # Determine the key based on interval
             if interval == "daily":
@@ -168,7 +198,7 @@ def get_payment_trend(
             payment_methods[method] = payment_methods.get(method, {"count": 0, "amount": 0})
             payment_methods[method]["count"] += 1
             payment_methods[method]["amount"] += payment.get("amount", 0)
-
+            
             trends[key]["payments"].append({
                 "payment_id": payment.get("payment_id"),
                 "invoice_no": payment.get("sales", {}).get("invoice_no") if payment.get("sales") else None,
@@ -228,12 +258,10 @@ def generate_sales_order_summary_pdf(
         if not start_date:
             start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
 
-        # Fetch sales data with customer and payment info
+        # Fetch ALL sales (safer for text date filtering)
         response = (
             db.table("sales")
             .select("*, customers(name, mobile, village), payments(amount)")
-            .gte("sale_date", start_date)
-            .lte("sale_date", end_date)
             .order("sale_date", desc=True)
             .execute()
         )
@@ -242,7 +270,25 @@ def generate_sales_order_summary_pdf(
 
         # Prepare data for PDF
         processed_sales = []
+        
+        # Parse filter dates
+        try:
+            start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
+            end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
+        except ValueError:
+             raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
         for sale in sales_data:
+            s_date_str = sale.get("sale_date")
+            if not s_date_str: continue
+            
+            try:
+                s_date = datetime.strptime(s_date_str, "%Y-%m-%d")
+                if not (start_date_dt <= s_date <= end_date_dt):
+                    continue
+            except ValueError:
+                continue
+
             customer = sale.get("customers", {})
             payments = sale.get("payments", [])
             total_paid = sum(p.get("amount", 0) for p in payments)
@@ -351,19 +397,35 @@ def generate_invoices_pdf(
         if not start_date:
             start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
 
+        # Fetch ALL sales (safer for text date filtering)
         response = (
             db.table("sales")
             .select("*, customers(name)")
-            .gte("sale_date", start_date)
-            .lte("sale_date", end_date)
             .order("sale_date", desc=True)
             .execute()
         )
         sales = response.data or []
         
+        # Parse filter dates
+        try:
+            start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
+            end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
+        except ValueError:
+             raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
         # Format for report generator
         processed_sales = []
         for sale in sales:
+             s_date_str = sale.get("sale_date")
+             if not s_date_str: continue
+
+             try:
+                s_date = datetime.strptime(s_date_str, "%Y-%m-%d")
+                if not (start_date_dt <= s_date <= end_date_dt):
+                    continue
+             except ValueError:
+                continue
+
              processed_sales.append({
                 "invoice_no": sale.get("invoice_no"),
                 "customer_name": sale.get("customers", {}).get("name") if sale.get("customers") else "N/A",
@@ -400,22 +462,41 @@ def generate_payments_pdf(
         if not start_date:
             start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
 
+        # Fetch ALL payments (safer for text date filtering)
         response = (
             db.table("payments")
             .select("*, sales(invoice_no)")
-            .gte("payment_date", start_date)
-            .lte("payment_date", end_date)
             .order("payment_date", desc=True)
             .execute()
         )
         payments = response.data or []
         
-        # Enrich data
+        # Parse filter dates
+        try:
+            start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
+            end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
+        except ValueError:
+             raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
+        # Enrich data and filter
+        filtered_payments = []
         for p in payments:
+            p_date_str = p.get("payment_date")
+            if not p_date_str: continue
+
+            try:
+                p_date = datetime.strptime(p_date_str, "%Y-%m-%d")
+                if not (start_date_dt <= p_date <= end_date_dt):
+                    continue
+            except ValueError:
+                continue
+
             if p.get("sales"):
                 p["invoice_no"] = p["sales"].get("invoice_no")
+            
+            filtered_payments.append(p)
 
-        pdf_bytes = report_generator.generate_payment_report_pdf(payments, start_date, end_date)
+        pdf_bytes = report_generator.generate_payment_report_pdf(filtered_payments, start_date, end_date)
 
         return StreamingResponse(
             io.BytesIO(pdf_bytes),

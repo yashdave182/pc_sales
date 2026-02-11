@@ -44,24 +44,46 @@ def get_sales_trend(
         print(f"=== SALES TREND API CALLED (RPC) ===")
         print(f"Interval: {interval}, Start: {start_date}, End: {end_date}")
 
-        # Use Supabase RPC for server-side aggregation
-        params = {
-            "interval_type": interval,
-            "start_date": start_date,
-            "end_date": end_date
-        }
+        # Fetch raw sales data
+        query = db.table("sales").select("sale_date, total_amount, total_liters").gte("sale_date", start_date).lte("sale_date", end_date)
+        response = query.execute()
+        sales_data = response.data or []
+
+        # Aggregate data in Python
+        trends = {}
         
-        response = db.rpc("get_sales_trend", params).execute()
-        
-        if not response.data:
-            return {"trends": []}
+        for sale in sales_data:
+            date_str = sale["sale_date"]
+            try:
+                sale_date = datetime.strptime(date_str, "%Y-%m-%d")
+            except ValueError:
+                continue
+
+            if interval == "daily":
+                key = date_str
+            elif interval == "weekly":
+                key = f"{sale_date.strftime('%Y')}-W{sale_date.strftime('%W')}"
+            elif interval == "monthly":
+                key = sale_date.strftime("%Y-%m")
+            else:
+                key = date_str
+
+            if key not in trends:
+                trends[key] = {
+                    "period": key,
+                    "sales_count": 0,
+                    "total_amount": 0,
+                    "total_liters": 0
+                }
             
-        trends_data = response.data
+            trends[key]["sales_count"] += 1
+            trends[key]["total_amount"] += sale.get("total_amount", 0)
+            trends[key]["total_liters"] += sale.get("total_liters", 0)
+
+        # Convert to list and sort
+        trends_list = sorted(trends.values(), key=lambda x: x["period"])
         
-        # Transform for frontend if needed, but RPC returns correct shape
-        # structure: period, sales_count, total_amount, total_liters
-        
-        return {"trends": trends_data}
+        return {"trends": trends_list}
 
     except Exception as e:
         print(f"Error in get_sales_trend: {e}")

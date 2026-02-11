@@ -43,15 +43,22 @@ def get_collected_payments(
     end_date: str, 
     db: SupabaseClient = Depends(get_supabase)
 ):
-    """Get total collected payments for a date range using RPC"""
+    """Get total collected payments for a date range (Python Aggregation)"""
     try:
-        params = {
-            "start_date": start_date,
-            "end_date": end_date
-        }
-        response = db.rpc("get_collected_payments", params).execute()
-        return {"total_amount": response.data or 0}
+        response = (
+            db.table("payments")
+            .select("amount")
+            .gte("payment_date", start_date)
+            .lte("payment_date", end_date)
+            .execute()
+        )
+        
+        payments = response.data or []
+        total_amount = sum(p.get("amount", 0) for p in payments)
+        
+        return {"total_amount": total_amount}
     except Exception as e:
+        print(f"Error fetching collected payments: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

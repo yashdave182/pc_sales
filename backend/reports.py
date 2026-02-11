@@ -376,15 +376,14 @@ class ReportGenerator:
 
         # Summary
         total_payments = len(payments_data)
-        total_amount = sum(p.get("amount", 0) for p in payments_data)
+        total_amount = sum((p.get("amount") or 0) for p in payments_data)
 
         # Payment method breakdown
         payment_methods = {}
         for payment in payments_data:
-            method = payment.get("payment_method", "Unknown")
-            payment_methods[method] = payment_methods.get(method, 0) + payment.get(
-                "amount", 0
-            )
+            method = payment.get("payment_method") or "Unknown"
+            amount = payment.get("amount") or 0
+            payment_methods[method] = payment_methods.get(method, 0) + amount
 
         summary_data = [
             ["Total Payments", str(total_payments)],
@@ -428,9 +427,9 @@ class ReportGenerator:
                     [
                         payment.get("payment_date", "N/A"),
                         payment.get("invoice_no", "N/A"),
-                        payment.get("payment_method", "N/A"),
-                        f"₹{payment.get('amount', 0):,.2f}",
-                        payment.get("reference", "N/A")[:15],
+                        payment.get("payment_method") or "Unknown",
+                        f"₹{(payment.get('amount') or 0):,.2f}",
+                        (payment.get("reference") or "N/A")[:15],
                     ]
                 )
 

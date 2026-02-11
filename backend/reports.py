@@ -37,6 +37,12 @@ class ReportGenerator:
     def _setup_custom_styles(self):
         """Setup custom paragraph styles"""
         # Title style
+
+    def _get_ist_time_str(self, fmt: str = "%Y-%m-%d %H:%M:%S") -> str:
+        """Get current time in IST (UTC+5:30)"""
+        # UTC is 5 hours 30 minutes behind IST
+        ist_time = datetime.utcnow() + timedelta(hours=5, minutes=30)
+        return ist_time.strftime(fmt)
         self.styles.add(
             ParagraphStyle(
                 name="CustomTitle",
@@ -83,7 +89,7 @@ class ReportGenerator:
         elements.append(Paragraph(title, self.styles["CustomSubtitle"]))
 
         # Date info
-        date_text = f"Generated on: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}"
+        date_text = f"Generated on: {self._get_ist_time_str('%B %d, %Y at %I:%M %p')}"
         if date_range:
             date_text += f"<br/>{date_range}"
         elements.append(Paragraph(date_text, self.styles["CustomInfo"]))
@@ -227,7 +233,7 @@ class ReportGenerator:
                         "Average Sale (₹)",
                     ],
                     "Value": [
-                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        self._get_ist_time_str(),
                         f"{start_date or 'All'} to {end_date or 'All'}",
                         total_sales,
                         f"{total_revenue:,.2f}",
@@ -338,7 +344,7 @@ class ReportGenerator:
                         "Inactive Customers",
                     ],
                     "Value": [
-                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        self._get_ist_time_str(),
                         total_customers,
                         active_customers,
                         total_customers - active_customers,
@@ -477,7 +483,7 @@ class ReportGenerator:
                         "Average Payment (₹)",
                     ],
                     "Value": [
-                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        self._get_ist_time_str(),
                         f"{start_date or 'All'} to {end_date or 'All'}",
                         total_payments,
                         f"{total_amount:,.2f}",
@@ -568,7 +574,7 @@ class ReportGenerator:
                         "Total Revenue (₹)",
                     ],
                     "Value": [
-                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        self._get_ist_time_str(),
                         total_products,
                         total_quantity,
                         f"{total_revenue:,.2f}",
@@ -659,7 +665,7 @@ class ReportGenerator:
                         "Inactive Products",
                     ],
                     "Value": [
-                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        self._get_ist_time_str(),
                         total_products,
                         active_products,
                         total_products - active_products,
@@ -954,7 +960,7 @@ class ReportGenerator:
         footer_text = (
             f"<b>Thank you for your business!</b><br/>"
             f"<font size=8>This is a computer-generated invoice. "
-            f"Generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}</font>"
+            f"Generated on {self._get_ist_time_str('%B %d, %Y at %I:%M %p')}</font>"
         )
         
         footer_data = [[Paragraph(footer_text, footer_style)]]

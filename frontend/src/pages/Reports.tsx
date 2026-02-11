@@ -19,6 +19,7 @@ import {
   Paper,
   Chip,
   useTheme,
+  Divider,
 } from "@mui/material";
 import { TableSkeleton, ChartSkeleton } from "../components/Skeletons";
 import {
@@ -242,7 +243,107 @@ export default function Reports() {
                 onClick={generatePDF}
                 disabled={pdfLoading}
               >
-                {pdfLoading ? "Generating..." : "Generate PDF"}
+                {pdfLoading ? "Sales Report" : "Sales Report"}
+              </Button>
+            </Grid>
+          </Grid>
+
+          {/* Additional Reports */}
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
+            Additional Reports
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={3}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={async () => {
+                  try {
+                    setPdfLoading(true);
+                    const blob = await reportsAPI.getCustomersPdf({});
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `customers_report.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                  } catch (e) { console.error(e); setError("Failed to download Customers PDF"); }
+                  finally { setPdfLoading(false); }
+                }}
+                disabled={pdfLoading}
+              >
+                Customers PDF
+              </Button>
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={async () => {
+                  try {
+                    setPdfLoading(true);
+                    const blob = await reportsAPI.getInvoicesPdf({ start_date: dateRange.start, end_date: dateRange.end });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `invoices_report.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                  } catch (e) { console.error(e); setError("Failed to download Invoices PDF"); }
+                  finally { setPdfLoading(false); }
+                }}
+                disabled={pdfLoading}
+              >
+                Invoices PDF
+              </Button>
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={async () => {
+                  try {
+                    setPdfLoading(true);
+                    const blob = await reportsAPI.getPaymentsPdf({ start_date: dateRange.start, end_date: dateRange.end });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `payments_report.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                  } catch (e) { console.error(e); setError("Failed to download Payments PDF"); }
+                  finally { setPdfLoading(false); }
+                }}
+                disabled={pdfLoading}
+              >
+                Payments PDF
+              </Button>
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={async () => {
+                  try {
+                    setPdfLoading(true);
+                    const blob = await reportsAPI.getCallingListPdf();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `calling_list_report.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                  } catch (e) { console.error(e); setError("Failed to download Calling List PDF"); }
+                  finally { setPdfLoading(false); }
+                }}
+                disabled={pdfLoading}
+              >
+                Calling List PDF
               </Button>
             </Grid>
           </Grid>

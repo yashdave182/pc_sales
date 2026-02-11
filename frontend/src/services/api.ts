@@ -196,6 +196,38 @@ export const reportsAPI = {
     });
     return response.data;
   },
+
+  getCustomersPdf: async (params: { status?: string }) => {
+    const response = await apiClient.get("/api/reports/customers-pdf", {
+      params,
+      responseType: "blob",
+    });
+    return response.data;
+  },
+
+  getInvoicesPdf: async (params: { start_date?: string; end_date?: string }) => {
+    const response = await apiClient.get("/api/reports/invoices-pdf", {
+      params,
+      responseType: "blob",
+    });
+    return response.data;
+  },
+
+  getPaymentsPdf: async (params: { start_date?: string; end_date?: string }) => {
+    const response = await apiClient.get("/api/reports/payments-pdf", {
+      params,
+      responseType: "blob",
+    });
+    return response.data;
+  },
+
+  getCallingListPdf: async () => {
+    const response = await apiClient.get("/api/reports/calling-list-pdf", {
+      responseType: "blob",
+    });
+    return response.data;
+  },
+
 };
 
 // Distributor API

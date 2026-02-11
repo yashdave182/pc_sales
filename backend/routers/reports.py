@@ -346,6 +346,155 @@ def sales_summary(
             "average_sale": total_amount / total_sales if total_sales > 0 else 0,
         }
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error fetching sales summary: {str(e)}"
+# ... existing code ...
+
+@router.get("/customers-pdf")
+def generate_customers_pdf(
+    status: Optional[str] = None,
+    user_email: str = Depends(get_user_email),
+    db: SupabaseClient = Depends(get_db),
+):
+    """Generate Customers Report PDF"""
+    try:
+        query = db.table("customers").select("*").order("name")
+        if status:
+            query = query.eq("status", status)
+            
+        response = query.execute()
+        customers = response.data or []
+
+        pdf_bytes = report_generator.generate_customer_report_pdf(customers)
+
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=customers_report_{datetime.now().strftime('%Y%m%d')}.pdf"
+            }
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating PDF: {str(e)}")
+
+
+@router.get("/invoices-pdf")
+def generate_invoices_pdf(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    user_email: str = Depends(get_user_email),
+    db: SupabaseClient = Depends(get_db),
+):
+    """Generate Invoices List PDF (Reuse Sales Report logic for now)"""
+    try:
+        # Default date range (last 30 days)
+        if not end_date:
+            end_date = datetime.now().strftime("%Y-%m-%d")
+        if not start_date:
+            start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+
+        response = (
+            db.table("sales")
+            .select("*, customers(name)")
+            .gte("sale_date", start_date)
+            .lte("sale_date", end_date)
+            .order("sale_date", desc=True)
+            .execute()
+        )
+        sales = response.data or []
+        
+        # Format for report generator
+        processed_sales = []
+        for sale in sales:
+             processed_sales.append({
+                "invoice_no": sale.get("invoice_no"),
+                "customer_name": sale.get("customers", {}).get("name") if sale.get("customers") else "N/A",
+                "sale_date": sale.get("sale_date"),
+                "total_amount": sale.get("total_amount"),
+                "total_liters": sale.get("total_liters"),
+                "payment_status": sale.get("payment_status"),
+             })
+
+        pdf_bytes = report_generator.generate_sales_report_pdf(processed_sales, start_date, end_date)
+
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=invoices_report_{start_date}_{end_date}.pdf"
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating PDF: {str(e)}")
+
+
+@router.get("/payments-pdf")
+def generate_payments_pdf(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    user_email: str = Depends(get_user_email),
+    db: SupabaseClient = Depends(get_db),
+):
+    """Generate Payments Report PDF"""
+    try:
+        if not end_date:
+            end_date = datetime.now().strftime("%Y-%m-%d")
+        if not start_date:
+            start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+
+        response = (
+            db.table("payments")
+            .select("*, sales(invoice_no)")
+            .gte("payment_date", start_date)
+            .lte("payment_date", end_date)
+            .order("payment_date", desc=True)
+            .execute()
+        )
+        payments = response.data or []
+        
+        # Enrich data
+        for p in payments:
+            if p.get("sales"):
+                p["invoice_no"] = p["sales"].get("invoice_no")
+
+        pdf_bytes = report_generator.generate_payment_report_pdf(payments, start_date, end_date)
+
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=payments_report_{start_date}_{end_date}.pdf"
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating PDF: {str(e)}")
+
+
+@router.get("/calling-list-pdf")
+def generate_calling_list_pdf(
+    user_email: str = Depends(get_user_email),
+    db: SupabaseClient = Depends(get_db),
+):
+    """Generate Calling List PDF (Master or Assigned)"""
+    try:
+        # Fetch master calling list from automation logic
+        # We need to import the helper function or replicate logic. 
+        # Importing from sibling module:
+        from routers.automation import get_master_calling_list
+        
+        master_list = get_master_calling_list(db, inactive_days=30)
+        
+        # Sort by priority
+        master_list.sort(key=lambda x: (0 if x.get("priority") == "High" else 1 if x.get("priority") == "Medium" else 2))
+
+        pdf_bytes = report_generator.generate_calling_list_report_pdf(master_list)
+
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=calling_list_{datetime.now().strftime('%Y%m%d')}.pdf"
+            }
+        )
+    except Exception as e:
+         # Fallback if import fails or other error
+        print(f"Error: {e}")
+        raise HTTPException(status_code=500, detail=f"Error generating PDF: {str(e)}")

@@ -346,7 +346,9 @@ def sales_summary(
             "average_sale": total_amount / total_sales if total_sales > 0 else 0,
         }
     except Exception as e:
-# ... existing code ...
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching sales summary: {str(e)}"
+        )
 
 @router.get("/customers-pdf")
 def generate_customers_pdf(

@@ -520,8 +520,21 @@ def update_sale(
 ):
     """Update a sale"""
     try:
+        # Sanitize payload
+        clean_data = sale_data.copy()
+        
+        # Remove PK if present to avoid issues, though usually fine
+        if "sale_id" in clean_data:
+            del clean_data["sale_id"]
+            
+        # Fix empty date strings causing SQL errors (e.g. "" -> None)
+        date_fields = ["shipment_date", "dispatch_date", "delivery_date", "sale_date"]
+        for field in date_fields:
+            if field in clean_data and clean_data[field] == "":
+                clean_data[field] = None
+
         # Correct order: table -> eq -> update -> execute
-        response = db.table("sales").eq("sale_id", sale_id).update(sale_data).execute()
+        response = db.table("sales").eq("sale_id", sale_id).update(clean_data).execute()
 
         if not response.data:
             raise HTTPException(status_code=404, detail="Sale not found")

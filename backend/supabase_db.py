@@ -578,20 +578,11 @@ def print_migration_instructions():
 
 
 
-def get_supabase() -> Client:
+def get_supabase_admin() -> Client:
     """Return an authenticated Supabase client for admin operations"""
     # Prefer service role key for admin ops if available, otherwise fallback to anon key
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or SUPABASE_KEY
     return create_client(SUPABASE_URL, key)
-
-
-def get_db():
-    """Dependency to get DB client"""
-    db = SupabaseClient(SUPABASE_URL, SUPABASE_KEY)
-    try:
-        yield db
-    finally:
-        pass
 
 
 if __name__ == "__main__":

@@ -85,23 +85,17 @@ def get_unread_count(
 ):
     """Get count of unread notifications for a user"""
     try:
-        query = db.table("notifications").select("notification_id").eq("is_read", False)
-
-        response = query.execute()
-
-        if not response.data:
-            return {"count": 0}
+        query = db.table("notifications").select("notification_id", count="exact").eq("is_read", False)
 
         # Filter for user-specific and broadcast
         if user_email:
              query = query.or_(f"user_email.eq.{user_email},user_email.is.null")
              
         response = query.execute()
-
-        if not response.data:
-            return {"count": 0}
-
-        count = len(response.data)
+        
+        # count is usually in count attribute if explicitly requested, or we can use len(data)
+        # supabase-py wrapper I see earlier has "count" in SupabaseResponse
+        count = response.count if response.count is not None else len(response.data or [])
 
         return {"count": count}
 

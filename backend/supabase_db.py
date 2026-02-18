@@ -143,6 +143,11 @@ class SupabaseTable:
         self._filters.append(f"{column}=in.({values_str})")
         return self
 
+    def or_(self, filters: str):
+        """Filter: logical OR"""
+        self._filters.append(f"or=({filters})")
+        return self
+
     def order(self, column: str, desc: bool = False):
         """Order results"""
         self._order = f"{column}.{'desc' if desc else 'asc'}"

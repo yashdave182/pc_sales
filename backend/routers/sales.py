@@ -543,8 +543,15 @@ def update_sale(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error updating sale {sale_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error updating sale: {str(e)}")
+        error_msg = str(e)
+        if hasattr(e, "response") and e.response is not None:
+             try:
+                 error_msg += f" | Supabase Error: {e.response.text}"
+             except:
+                 pass
+        
+        print(f"Error updating sale {sale_id}: {error_msg}")
+        raise HTTPException(status_code=500, detail=f"Error updating sale: {error_msg}")
 
 
 @router.delete("/{sale_id}")

@@ -52,6 +52,7 @@ import type { Language } from "../i18n/i18n";
 import { languages } from "../i18n/i18n";
 import { useAuth } from "../contexts/AuthContext";
 import { notificationsAPI } from "../services/api";
+import { PERMISSIONS } from "../config/permissions";
 
 const drawerWidth = 260;
 
@@ -67,6 +68,7 @@ interface NavItem {
   icon: React.ReactElement;
   path: string;
   badge?: number;
+  permission?: string;
 }
 
 const navigationItems: NavItem[] = [
@@ -75,42 +77,70 @@ const navigationItems: NavItem[] = [
     labelKey: "nav.dashboard",
     icon: <DashboardIcon />,
     path: "/dashboard",
+    permission: PERMISSIONS.VIEW_DASHBOARD,
   },
   {
     id: "distributors",
     labelKey: "nav.distributors",
     icon: <GroupIcon />,
     path: "/distributors",
+    permission: PERMISSIONS.VIEW_DISTRIBUTORS,
   },
   {
     id: "orders",
     labelKey: "nav.orders",
     icon: <LocalShippingIcon />,
     path: "/orders",
+    permission: PERMISSIONS.VIEW_ORDERS,
   },
   {
     id: "payments",
     labelKey: "nav.payments",
     icon: <PaymentIcon />,
     path: "/payments",
+    permission: PERMISSIONS.VIEW_PAYMENTS,
+  },
+  {
+    id: "sales",
+    labelKey: "nav.sales",
+    icon: <ShoppingCartIcon />,
+    path: "/sales",
+    permission: PERMISSIONS.VIEW_SALES,
+  },
+  {
+    id: "customers",
+    labelKey: "nav.customers",
+    icon: <PeopleIcon />,
+    path: "/customers",
+    permission: PERMISSIONS.VIEW_CUSTOMERS,
+  },
+  {
+    id: "demos",
+    labelKey: "nav.demos",
+    icon: <ScienceIcon />,
+    path: "/demos",
+    permission: PERMISSIONS.GENERATE_LEADS,
   },
   {
     id: "reports",
     labelKey: "nav.reports",
     icon: <AssessmentIcon />,
     path: "/reports",
+    permission: PERMISSIONS.VIEW_ALL_ANALYSIS,
   },
   {
     id: "calling-list",
     labelKey: "nav.callingList",
     icon: <PhoneInTalkIcon />,
     path: "/calling-list",
+    permission: PERMISSIONS.VIEW_CALLING_LIST,
   },
   {
     id: "import",
     labelKey: "nav.import",
     icon: <CloudUploadIcon />,
     path: "/import",
+    permission: PERMISSIONS.ADMIN_ACCESS,
   },
 ];
 
@@ -139,7 +169,8 @@ export default function Layout({
   );
   const { t } = useTranslation();
   const { language, setLanguage } = useLanguageStore();
-  const { user, signOut } = useAuth();
+
+  const { user, signOut, hasPermission } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
   const handleDrawerToggle = () => {
@@ -263,8 +294,8 @@ export default function Layout({
       {/* Navigation Items */}
       <List sx={{ flex: 1, py: 2, px: 1 }}>
         {navigationItems.filter(item => {
-          if (item.id === 'reports') {
-            return user?.email === "admin@gmail.com";
+          if (item.permission) {
+            return hasPermission(item.permission);
           }
           return true;
         }).map((item) => {
@@ -317,8 +348,8 @@ export default function Layout({
           );
         })}
 
-        {/* Admin Navigation Item - Only for admin@gmail.com */}
-        {user?.email === "admin@gmail.com" && (
+        {/* Admin Navigation Item - Only for users with ADMIN_ACCESS */}
+        {hasPermission(PERMISSIONS.ADMIN_ACCESS) && (
           <>
             <Divider sx={{ my: 1 }} />
             <ListItem disablePadding sx={{ mb: 0.5 }}>

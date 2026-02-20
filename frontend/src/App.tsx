@@ -2,6 +2,7 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
+
   Navigate,
 } from "react-router-dom";
 import { ThemeProvider, CssBaseline } from "@mui/material";
@@ -27,6 +28,7 @@ import Admin from "./pages/Admin";
 import ProductPricing from "./pages/ProductPricing";
 import Notifications from "./pages/Notifications";
 import { createAppTheme } from "./theme/theme";
+import { PERMISSIONS } from "./config/permissions";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,7 +71,7 @@ function App() {
                 <Route
                   path="/dashboard"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_DASHBOARD}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Dashboard />
                         <QuickActions />
@@ -80,7 +82,7 @@ function App() {
                 <Route
                   path="/customers"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_CUSTOMERS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Customers />
                         <QuickActions />
@@ -91,7 +93,7 @@ function App() {
                 <Route
                   path="/sales"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_SALES}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Sales />
                         <QuickActions />
@@ -102,7 +104,7 @@ function App() {
                 <Route
                   path="/payments"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_PAYMENTS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Payments />
                         <QuickActions />
@@ -113,7 +115,7 @@ function App() {
                 <Route
                   path="/demos"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requiredPermission={PERMISSIONS.GENERATE_LEADS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Demos />
                         <QuickActions />
@@ -124,7 +126,7 @@ function App() {
                 <Route
                   path="/distributors"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_DISTRIBUTORS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Distributors />
                         <QuickActions />
@@ -135,7 +137,7 @@ function App() {
                 <Route
                   path="/reports"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_ALL_ANALYSIS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Reports />
                         <QuickActions />
@@ -146,7 +148,7 @@ function App() {
                 <Route
                   path="/import"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requiredPermission={PERMISSIONS.ADMIN_ACCESS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <DataImport />
                         <QuickActions />
@@ -157,7 +159,7 @@ function App() {
                 <Route
                   path="/calling-list"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_CALLING_LIST}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <CallingList />
                         <QuickActions />
@@ -168,7 +170,7 @@ function App() {
                 <Route
                   path="/orders"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_ORDERS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <OrderManagement />
                         <QuickActions />
@@ -179,7 +181,7 @@ function App() {
                 <Route
                   path="/admin"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requiredPermission={PERMISSIONS.ADMIN_ACCESS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Admin />
                         <QuickActions />
@@ -190,7 +192,7 @@ function App() {
                 <Route
                   path="/product-pricing"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requiredPermission={PERMISSIONS.ADMIN_ACCESS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <ProductPricing />
                         <QuickActions />

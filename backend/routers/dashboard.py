@@ -13,25 +13,58 @@ router = APIRouter()
 # ======================
 @router.get("/metrics")
 def dashboard_metrics(db: SupabaseClient = Depends(get_supabase)):
-    """Get dashboard metrics using optimized RPC"""
+    """Get dashboard metrics using Python aggregation (no RPC needed)"""
     try:
-        response = db.rpc("get_dashboard_metrics", {}).execute()
+        # 1. Sales Metrics
+        sales_response = db.table("sales").select("total_amount, payment_status").execute()
+        sales_data = sales_response.data or []
         
-        if not response.data:
-            return {
-                "total_sales": 0,
-                "total_transactions": 0,
-                "pending_amount": 0,
-                "total_customers": 0,
-                "active_customers": 0,
-                "demo_conversion_rate": 0,
-                "payment_method_distribution": {}
-            }
-            
-        return response.data
+        total_sales = sum((s.get("total_amount") or 0) for s in sales_data)
+        total_transactions = len(sales_data)
+        pending_amount = sum((s.get("total_amount") or 0) for s in sales_data if str(s.get("payment_status")).lower() == "pending")
+
+        # 2. Customer Metrics
+        customers_response = db.table("customers").select("status").execute()
+        customers_data = customers_response.data or []
+        
+        total_customers = len(customers_data)
+        active_customers = len([c for c in customers_data if str(c.get("status")).lower() == "active"])
+
+        # 3. Demo Conversion Rate
+        demos_response = db.table("demos").select("conversion_status").execute()
+        demos_data = demos_response.data or []
+        
+        total_demos = len(demos_data)
+        converted_demos = len([d for d in demos_data if str(d.get("conversion_status")).lower() == "converted"])
+        
+        demo_conversion_rate = 0
+        if total_demos > 0:
+            demo_conversion_rate = round((converted_demos / total_demos) * 100, 2)
+
+        # 4. Payment Method Distribution
+        payments_response = db.table("payments").select("payment_method, amount").execute()
+        payments_data = payments_response.data or []
+        
+        payment_method_distribution = {}
+        for p in payments_data:
+            method = p.get("payment_method") or "Unknown"
+            amount = p.get("amount") or 0
+            if method not in payment_method_distribution:
+                payment_method_distribution[method] = 0
+            payment_method_distribution[method] += amount
+
+        return {
+            "total_sales": total_sales,
+            "total_transactions": total_transactions,
+            "pending_amount": pending_amount,
+            "total_customers": total_customers,
+            "active_customers": active_customers,
+            "demo_conversion_rate": demo_conversion_rate,
+            "payment_method_distribution": payment_method_distribution
+        }
+
     except Exception as e:
         print(f"Error in dashboard_metrics: {e}")
-        # Fallback to empty if RPC fails (e.g. not created yet)
         raise HTTPException(
             status_code=500, detail=f"Error fetching metrics: {str(e)}"
         )

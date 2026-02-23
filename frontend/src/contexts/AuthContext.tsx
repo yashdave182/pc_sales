@@ -43,7 +43,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       return normalized;
     }
 
-    // 4. Fallback for users with no role at all
+    // 4. Hardcode admin by email if no metadata
+    if (user.email === 'admin@parulchemicals.com') {
+      return 'admin';
+    }
+
     console.warn("[Auth] User has no role in metadata. Defaulting to 'sales_manager'.");
     return 'sales_manager';
   };

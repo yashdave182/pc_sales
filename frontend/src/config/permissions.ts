@@ -74,6 +74,7 @@ export const ROLE_PERMISSIONS: Record<UserRole | string, Permission[]> = {
         PERMISSIONS.GENERATE_LEADS, // Can schedule demos
         PERMISSIONS.VIEW_ORDERS, // Can view order status
         PERMISSIONS.VIEW_DISTRIBUTORS,
+        PERMISSIONS.VIEW_ALL_ANALYSIS, // Restore access to reports
     ],
 
     [UserRole.LOGISTICS_MANAGER]: [
@@ -136,6 +137,7 @@ export const ROLE_PERMISSIONS: Record<UserRole | string, Permission[]> = {
     [UserRole.ADMIN]: [
         // Admin has everything
         PERMISSIONS.FULL_ACCESS,
+        PERMISSIONS.ADMIN_ACCESS,
         ...Object.values(PERMISSIONS)
     ]
 };

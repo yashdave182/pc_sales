@@ -13,8 +13,8 @@ const resolveApiBaseUrl = (): string => {
     (import.meta as any)?.env?.VITE_API_BASE_URL ||
     (import.meta as any)?.env?.VITE_API_URL;
 
-  // 3) Default fallback
-  const fallback = "http://127.0.0.1:8000";
+  // 3) Default fallback (Production URL)
+  const fallback = "https://pc-sales-8phu.onrender.com";
 
   const chosen = (windowOverride || envBase || fallback) as string;
 

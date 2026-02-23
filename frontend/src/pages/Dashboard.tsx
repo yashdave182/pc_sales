@@ -49,7 +49,7 @@ import {
 } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "../hooks/useTranslation";
-import { dashboardAPI, paymentAPI } from "../services/api"; // Added paymentAPI import
+import { dashboardAPI, paymentAPI, reportsAPI } from "../services/api"; // Added paymentAPI, reportsAPI import
 import { DashboardSkeleton, MetricCardSkeleton, ChartSkeleton, ListSkeleton } from "../components/Skeletons";
 import type {
   DashboardMetrics,
@@ -218,25 +218,11 @@ export default function Dashboard() {
     try {
       setLoadingChart(true);
 
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pc-sales-8phu.onrender.com";
-      const cacheBuster = `&_t=${Date.now()}`;
-      const url = `${API_BASE_URL}/api/reports/sales-trend?interval=daily&start_date=${salesDateRange.start}&end_date=${salesDateRange.end}${cacheBuster}`;
-
-      const response = await fetch(url, {
-        headers: {
-          "x-user-email": "admin@gmail.com",
-          "Cache-Control": "no-cache",
-          "Pragma": "no-cache"
-        },
+      const data = await reportsAPI.getSalesTrend({
+        interval: 'daily',
+        start_date: salesDateRange.start,
+        end_date: salesDateRange.end
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Failed to fetch sales trend:", errorText);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
 
       if (data.trends && data.trends.length > 0) {
         const firstDate = data.trends[0].period;

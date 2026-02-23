@@ -20,9 +20,15 @@ import {
   Payment as PaymentIcon,
   Close as CloseIcon,
   Phone as PhoneIcon,
+
   Search as SearchIcon,
+  AdminPanelSettings as AdminIcon,
+  GetApp as DownloadIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { PERMISSIONS } from '../config/permissions';
+import { Alert, Snackbar } from '@mui/material';
 
 interface QuickActionsProps {
   onQuickSearch?: (searchTerm: string) => void;
@@ -30,11 +36,13 @@ interface QuickActionsProps {
 
 export default function QuickActions({ onQuickSearch }: QuickActionsProps) {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
   const [open, setOpen] = useState(false);
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
+  const [permissionAlertOpen, setPermissionAlertOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const actions = [
+  const allActions = [
     {
       icon: <SearchIcon />,
       name: 'Quick Search',
@@ -43,6 +51,7 @@ export default function QuickActions({ onQuickSearch }: QuickActionsProps) {
         setOpen(false);
       },
       color: '#3b82f6',
+      show: true, // Always show
     },
     {
       icon: <PersonAddIcon />,
@@ -52,6 +61,7 @@ export default function QuickActions({ onQuickSearch }: QuickActionsProps) {
         setOpen(false);
       },
       color: '#10b981',
+      show: hasPermission(PERMISSIONS.INPUT_CUSTOMER_DATA),
     },
     {
       icon: <ShoppingCartIcon />,
@@ -61,6 +71,7 @@ export default function QuickActions({ onQuickSearch }: QuickActionsProps) {
         setOpen(false);
       },
       color: '#f59e0b',
+      show: hasPermission(PERMISSIONS.ADD_NEW_SALES),
     },
     {
       icon: <ScienceIcon />,
@@ -70,9 +81,29 @@ export default function QuickActions({ onQuickSearch }: QuickActionsProps) {
         setOpen(false);
       },
       color: '#7c3aed',
+      show: hasPermission(PERMISSIONS.GENERATE_LEADS), // Assuming leads relates to demos
     },
-
+    {
+      icon: <DownloadIcon />,
+      name: 'Export Reports',
+      onClick: () => {
+        // Example of "Block an action and show popup"
+        if (!hasPermission(PERMISSIONS.VIEW_ALL_ANALYSIS)) {
+          setPermissionAlertOpen(true);
+          // Keep speed dial open or close it? Let's keep it open so they see the context, 
+          // or close it and show the snackbar.
+          setOpen(false);
+          return;
+        }
+        navigate('/reports');
+        setOpen(false);
+      },
+      color: '#607d8b',
+      show: true, // Always show to demonstrate blocking
+    },
   ];
+
+  const actions = allActions.filter(action => action.show);
 
   const handleSearch = () => {
     if (searchTerm.trim()) {
@@ -183,6 +214,23 @@ export default function QuickActions({ onQuickSearch }: QuickActionsProps) {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Permission Denied Snackbar */}
+      <Snackbar
+        open={permissionAlertOpen}
+        autoHideDuration={6000}
+        onClose={() => setPermissionAlertOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setPermissionAlertOpen(false)}
+          severity="error"
+          sx={{ width: '100%' }}
+          variant="filled"
+        >
+          Action not allowed: You do not have permission to perform this action.
+        </Alert>
+      </Snackbar>
     </>
   );
 }

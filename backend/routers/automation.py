@@ -6,6 +6,7 @@ import random
 
 from fastapi import APIRouter, Depends, Query, HTTPException, Header
 from supabase_db import SupabaseClient, get_db, get_supabase
+from rbac_utils import verify_permission
 
 router = APIRouter()
 
@@ -163,10 +164,10 @@ def get_master_calling_list(db: SupabaseClient, inactive_days: int) -> List[Dict
 # ENDPOINTS
 # ==========================================
 
-@router.post("/run-distribution")
+@router.post("/run-distribution", dependencies=[Depends(verify_permission("run_call_distribution"))])
 def run_daily_distribution(
     db: SupabaseClient = Depends(get_db),
-    admin_email: str = Header(None, alias="x-user-email") # Basic security
+    admin_email: str = Header(None, alias="x-user-email")
 ):
     """
     Triggers the daily distribution process manually.
@@ -274,7 +275,7 @@ def run_daily_distribution(
         raise HTTPException(status_code=500, detail=f"Distribution failed: {str(e)}")
 
 
-@router.get("/my-assignments")
+@router.get("/my-assignments", dependencies=[Depends(verify_permission("view_calling_list"))])
 def get_my_assignments(
     user_email: str = Header(..., alias="x-user-email"),
     db: SupabaseClient = Depends(get_db)
@@ -333,7 +334,7 @@ def get_my_assignments(
         return {"assignments": [], "error": str(e)}
 
 # Keep the old endpoint for admin backward compatibility or reference
-@router.get("/calling-list")
+@router.get("/calling-list", dependencies=[Depends(verify_permission("view_calling_list"))])
 def get_daily_calling_list(
     limit: int = Query(50),
     db: SupabaseClient = Depends(get_db),

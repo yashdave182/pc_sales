@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from models import Product
 from supabase_db import SupabaseClient, get_db
+from rbac_utils import verify_permission
 
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(verify_permission("view_products"))])
 def get_products(db: SupabaseClient = Depends(get_db)):
     """Get all active products"""
     try:
@@ -17,7 +18,7 @@ def get_products(db: SupabaseClient = Depends(get_db)):
         )
 
 
-@router.get("/all")
+@router.get("/all", dependencies=[Depends(verify_permission("manage_products"))])
 def get_all_products(db: SupabaseClient = Depends(get_db)):
     """Get all products including inactive ones"""
     try:
@@ -29,7 +30,7 @@ def get_all_products(db: SupabaseClient = Depends(get_db)):
         )
 
 
-@router.get("/{product_id}")
+@router.get("/{product_id}", dependencies=[Depends(verify_permission("view_products"))])
 def get_product(product_id: int, db: SupabaseClient = Depends(get_db)):
     """Get a single product by ID"""
     try:
@@ -47,7 +48,7 @@ def get_product(product_id: int, db: SupabaseClient = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error fetching product: {str(e)}")
 
 
-@router.post("/")
+@router.post("/", dependencies=[Depends(verify_permission("manage_products"))])
 def create_product(product: Product, db: SupabaseClient = Depends(get_db)):
     """Create a new product"""
     try:
@@ -89,7 +90,7 @@ def create_product(product: Product, db: SupabaseClient = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error creating product: {str(e)}")
 
 
-@router.put("/{product_id}")
+@router.put("/{product_id}", dependencies=[Depends(verify_permission("manage_products"))])
 def update_product(
     product_id: int, product: Product, db: SupabaseClient = Depends(get_db)
 ):
@@ -140,7 +141,7 @@ def update_product(
         raise HTTPException(status_code=500, detail=f"Error updating product: {str(e)}")
 
 
-@router.delete("/{product_id}")
+@router.delete("/{product_id}", dependencies=[Depends(verify_permission("manage_products"))])
 def delete_product(product_id: int, db: SupabaseClient = Depends(get_db)):
     """Delete a product (soft delete by setting is_active to 0)"""
     try:

@@ -5,6 +5,7 @@ from activity_logger import get_activity_logger
 from fastapi import APIRouter, Depends, Header, HTTPException
 from models import Demo
 from supabase_db import SupabaseClient, get_supabase
+from rbac_utils import verify_permission
 
 from routers.notifications import create_notification_helper
 
@@ -14,7 +15,7 @@ router = APIRouter()
 # ======================
 # Get all demos
 # ======================
-@router.get("/")
+@router.get("/", dependencies=[Depends(verify_permission("view_demos"))])
 def get_demos(
     skip: int = 0,
     limit: int = 100,
@@ -103,7 +104,7 @@ def get_demos(
 # ======================
 # Get single demo
 # ======================
-@router.get("/{demo_id}")
+@router.get("/{demo_id}", dependencies=[Depends(verify_permission("view_demos"))])
 def get_demo(demo_id: int, db: SupabaseClient = Depends(get_supabase)):
     """Get a single demo by ID"""
     try:
@@ -156,7 +157,7 @@ def get_demo(demo_id: int, db: SupabaseClient = Depends(get_supabase)):
 # ======================
 # Create demo
 # ======================
-@router.post("/")
+@router.post("/", dependencies=[Depends(verify_permission("schedule_demo"))])
 def create_demo(
     demo: Demo,
     db: SupabaseClient = Depends(get_supabase),
@@ -224,7 +225,7 @@ def create_demo(
 # ======================
 # Update demo
 # ======================
-@router.put("/{demo_id}")
+@router.put("/{demo_id}", dependencies=[Depends(verify_permission("edit_demo"))])
 def update_demo(
     demo_id: int,
     demo_data: dict,
@@ -251,7 +252,7 @@ def update_demo(
 # ======================
 # Update demo status
 # ======================
-@router.put("/{demo_id}/status")
+@router.put("/{demo_id}/status", dependencies=[Depends(verify_permission("edit_demo"))])
 def update_demo_status(
     demo_id: int,
     conversion_status: str,
@@ -285,7 +286,7 @@ def update_demo_status(
 # ======================
 # Delete demo
 # ======================
-@router.delete("/{demo_id}")
+@router.delete("/{demo_id}", dependencies=[Depends(verify_permission("delete_demo"))])
 def delete_demo(demo_id: int, db: SupabaseClient = Depends(get_supabase)):
     """Delete a demo"""
 

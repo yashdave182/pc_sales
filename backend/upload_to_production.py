@@ -3,7 +3,7 @@ from pathlib import Path
 import requests
 
 # Production API URL
-API_URL = "https://pc-sales-8phu.onrender.com"
+API_URL = "http://127.0.0.1:8000"
 
 # Path to exported data files
 SCRIPT_DIR = Path(__file__).parent

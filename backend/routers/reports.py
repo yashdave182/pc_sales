@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Response
 from fastapi.responses import StreamingResponse
 from supabase_db import SupabaseClient, get_db
 from reports import ReportGenerator
+from rbac_utils import verify_permission
 import io
 
 router = APIRouter()
@@ -16,13 +17,13 @@ report_generator = ReportGenerator("Sales Management System")
 
 
 def get_user_email(user_email: Optional[str] = Header(None, alias="x-user-email")):
-    """Get user email from header"""
+    """Get user email from header (kept for backward compat where needed)"""
     if not user_email:
         raise HTTPException(status_code=401, detail="User email not provided")
     return user_email
 
 
-@router.get("/sales-trend")
+@router.get("/sales-trend", dependencies=[Depends(verify_permission("view_reports"))])
 def get_sales_trend(
     interval: str = "daily",  # daily, weekly, monthly
     start_date: Optional[str] = None,
@@ -115,7 +116,7 @@ def get_sales_trend(
         )
 
 
-@router.get("/payment-trend")
+@router.get("/payment-trend", dependencies=[Depends(verify_permission("view_reports"))])
 def get_payment_trend(
     interval: str = "daily",  # daily, weekly, monthly
     start_date: Optional[str] = None,
@@ -241,7 +242,7 @@ def get_payment_trend(
         )
 
 
-@router.get("/sales-order-summary-pdf")
+@router.get("/sales-order-summary-pdf", dependencies=[Depends(verify_permission("export_reports"))])
 def generate_sales_order_summary_pdf(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -329,7 +330,7 @@ def generate_sales_order_summary_pdf(
         )
 
 
-@router.get("/sales-summary")
+@router.get("/sales-summary", dependencies=[Depends(verify_permission("view_reports"))])
 def sales_summary(
     user_email: str = Depends(get_user_email),
     db: SupabaseClient = Depends(get_db)
@@ -354,7 +355,7 @@ def sales_summary(
             status_code=500, detail=f"Error fetching sales summary: {str(e)}"
         )
 
-@router.get("/customers-pdf")
+@router.get("/customers-pdf", dependencies=[Depends(verify_permission("export_reports"))])
 def generate_customers_pdf(
     status: Optional[str] = None,
     user_email: str = Depends(get_user_email),
@@ -382,7 +383,7 @@ def generate_customers_pdf(
         raise HTTPException(status_code=500, detail=f"Error generating PDF: {str(e)}")
 
 
-@router.get("/invoices-pdf")
+@router.get("/invoices-pdf", dependencies=[Depends(verify_permission("export_reports"))])
 def generate_invoices_pdf(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -448,7 +449,7 @@ def generate_invoices_pdf(
         raise HTTPException(status_code=500, detail=f"Error generating PDF: {str(e)}")
 
 
-@router.get("/payments-pdf")
+@router.get("/payments-pdf", dependencies=[Depends(verify_permission("export_reports"))])
 def generate_payments_pdf(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -509,7 +510,7 @@ def generate_payments_pdf(
         raise HTTPException(status_code=500, detail=f"Error generating PDF: {str(e)}")
 
 
-@router.get("/calling-list-pdf")
+@router.get("/calling-list-pdf", dependencies=[Depends(verify_permission("export_reports"))])
 def generate_calling_list_pdf(
     user_email: str = Depends(get_user_email),
     db: SupabaseClient = Depends(get_db),

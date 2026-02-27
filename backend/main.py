@@ -16,6 +16,7 @@ from routers import (
     products,
     reports,
     sales,
+    rbac,
 )
 from scheduler import start_scheduler
 
@@ -64,3 +65,4 @@ app.include_router(admin, prefix="/api/admin")
 app.include_router(imports, prefix="/api/imports")
 app.include_router(automation, prefix="/api/automation")
 app.include_router(notifications, prefix="/api/notifications")
+app.include_router(rbac, prefix="/api/rbac")

@@ -4,6 +4,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from supabase_db import SupabaseClient, get_supabase
+from rbac_utils import verify_permission
 
 router = APIRouter()
 
@@ -11,7 +12,7 @@ router = APIRouter()
 # ======================
 # Dashboard Metrics
 # ======================
-@router.get("/metrics")
+@router.get("/metrics", dependencies=[Depends(verify_permission("view_dashboard"))])
 def dashboard_metrics(db: SupabaseClient = Depends(get_supabase)):
     """Get dashboard metrics using Python aggregation (no RPC needed)"""
     try:
@@ -70,7 +71,7 @@ def dashboard_metrics(db: SupabaseClient = Depends(get_supabase)):
         )
 
 
-@router.get("/collected-payments")
+@router.get("/collected-payments", dependencies=[Depends(verify_permission("view_dashboard"))])
 def get_collected_payments(
     start_date: str, 
     end_date: str, 
@@ -112,7 +113,7 @@ def get_collected_payments(
 # ======================
 # Sales Trend
 # ======================
-@router.get("/sales-trend")
+@router.get("/sales-trend", dependencies=[Depends(verify_permission("view_dashboard"))])
 def sales_trend(days: int = 30, db: SupabaseClient = Depends(get_supabase)):
     """Get sales trend for the last N days"""
     try:
@@ -164,7 +165,7 @@ def sales_trend(days: int = 30, db: SupabaseClient = Depends(get_supabase)):
 # ======================
 # Recent Sales
 # ======================
-@router.get("/recent-sales")
+@router.get("/recent-sales", dependencies=[Depends(verify_permission("view_dashboard"))])
 def recent_sales(limit: int = 10, db: SupabaseClient = Depends(get_supabase)):
     """Get recent sales with customer information"""
     try:
@@ -217,7 +218,7 @@ def recent_sales(limit: int = 10, db: SupabaseClient = Depends(get_supabase)):
 # ======================
 # Upcoming Demos
 # ======================
-@router.get("/upcoming-demos")
+@router.get("/upcoming-demos", dependencies=[Depends(verify_permission("view_dashboard"))])
 def upcoming_demos(limit: int = 10, db: SupabaseClient = Depends(get_supabase)):
     """Get upcoming scheduled demos"""
     try:

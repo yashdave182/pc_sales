@@ -27,6 +27,7 @@ import OrderManagement from "./pages/OrderManagement";
 import Admin from "./pages/Admin";
 import ProductPricing from "./pages/ProductPricing";
 import Notifications from "./pages/Notifications";
+import RoleManagement from "./pages/RoleManagement";
 import { createAppTheme } from "./theme/theme";
 import { PERMISSIONS } from "./config/permissions";
 
@@ -115,7 +116,7 @@ function App() {
                 <Route
                   path="/demos"
                   element={
-                    <ProtectedRoute requiredPermission={PERMISSIONS.GENERATE_LEADS}>
+                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_DEMOS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Demos />
                         <QuickActions />
@@ -137,7 +138,7 @@ function App() {
                 <Route
                   path="/reports"
                   element={
-                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_ALL_ANALYSIS}>
+                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_REPORTS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Reports />
                         <QuickActions />
@@ -148,7 +149,7 @@ function App() {
                 <Route
                   path="/import"
                   element={
-                    <ProtectedRoute requiredPermission={PERMISSIONS.ADMIN_ACCESS}>
+                    <ProtectedRoute requiredPermission={PERMISSIONS.IMPORT_DATA}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <DataImport />
                         <QuickActions />
@@ -181,7 +182,7 @@ function App() {
                 <Route
                   path="/admin"
                   element={
-                    <ProtectedRoute requiredPermission={PERMISSIONS.ADMIN_ACCESS}>
+                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_ACTIVITY_LOGS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Admin />
                         <QuickActions />
@@ -192,10 +193,20 @@ function App() {
                 <Route
                   path="/product-pricing"
                   element={
-                    <ProtectedRoute requiredPermission={PERMISSIONS.ADMIN_ACCESS}>
+                    <ProtectedRoute requiredPermission={PERMISSIONS.MANAGE_PRICING}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <ProductPricing />
                         <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/role-management"
+                  element={
+                    <ProtectedRoute requiredPermission={PERMISSIONS.MANAGE_ROLES}>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <RoleManagement />
                       </Layout>
                     </ProtectedRoute>
                   }

@@ -1,167 +1,196 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { User, Session } from "@supabase/supabase-js";
-import { authService } from "../lib/supabaseClient";
-import { setUserEmail, clearUserEmail } from "../services/api";
-import { hasPermission } from "../config/permissions";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
+import { Session, User } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   role: string | null;
+  /** Set of permission_keys fetched from the backend — the single source of truth */
+  permissions: Set<string>;
+  /** True once the initial permission load has finished */
+  permissionsLoaded: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Instant JS check — no network, no DB */
   hasPermission: (permission: string) => boolean;
+  /** Force-refresh permissions from the server (e.g. after role change) */
+  refreshPermissions: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Normalize Supabase metadata role string → snake_case key */
+const normalizeRole = (raw: string | undefined | null): string | null => {
+  if (!raw) return null;
+  return raw.toLowerCase().replace(/ /g, "_");
+};
+
+/** Fetch the user's permission set from the backend (single call at login) */
+const fetchPermissionsFromBackend = async (
+  email: string
+): Promise<Set<string>> => {
+  try {
+    const API_BASE =
+      import.meta.env.VITE_API_URL ||
+      (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
+    const res = await fetch(`${API_BASE}/api/rbac/my-permissions`, {
+      headers: { "x-user-email": email },
+    });
+    if (!res.ok) {
+      console.warn("[Auth] Could not load permissions:", res.status);
+      return new Set();
+    }
+    const data = await res.json();
+    return new Set<string>(data.permissions || []);
+  } catch (err) {
+    console.error("[Auth] fetchPermissions error:", err);
+    return new Set();
+  }
+};
+
+// ─── Provider ─────────────────────────────────────────────────────────────────
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [permissions, setPermissions] = useState<Set<string>>(new Set());
+  const [permissionsLoaded, setPermissionsLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Helper to extract and normalize role
-  const getRole = (user: User | null): string | null => {
-    if (!user) return null;
-
-    // 1. Check user_metadata (where the roles are stored as per screenshot)
-    let role = user.user_metadata?.role;
-
-    // 2. Check app_metadata (legacy fallback)
-    if (!role) {
-      role = user.app_metadata?.role;
+  // ── Load permissions for a given user ───────────────────────────────────────
+  const loadPermissions = useCallback(async (currentUser: User | null) => {
+    if (!currentUser?.email) {
+      setPermissions(new Set());
+      setPermissionsLoaded(true);
+      return;
     }
 
-    // 3. Normalize: "Sales Manager" -> "sales_manager"
-    if (role && typeof role === 'string') {
-      const normalized = role.toLowerCase().replace(/ /g, '_');
-      console.log(`[Auth] Normalized role '${role}' to '${normalized}'`);
-      return normalized;
-    }
-
-    // 4. Hardcode admin by email if no metadata
-    if (user.email === 'admin@parulchemicals.com') {
-      return 'admin';
-    }
-
-    console.warn("[Auth] User has no role in metadata. Defaulting to 'sales_manager'.");
-    return 'sales_manager';
-  };
-
-  useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        const currentSession = await authService.getSession();
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-
-        const userRole = getRole(currentSession?.user ?? null);
-        setRole(userRole);
-
-        // Store user email for API requests
-        if (currentSession?.user?.email) {
-          setUserEmail(currentSession.user.email);
-        }
-      } catch (error) {
-        console.error("Error initializing auth:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initializeAuth();
-
-    // Listen for changes on auth state (sign in, sign out, etc.)
-    const {
-      data: { subscription },
-    } = authService.onAuthStateChange(async (event, currentSession) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-
-      const userRole = getRole(currentSession?.user ?? null);
-      setRole(userRole);
-
-      setLoading(false);
-
-      // Update user email in localStorage
-      if (currentSession?.user?.email) {
-        setUserEmail(currentSession.user.email);
-      } else {
-        clearUserEmail();
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
+    setPermissionsLoaded(false);
+    const perms = await fetchPermissionsFromBackend(currentUser.email);
+    setPermissions(perms);
+    setPermissionsLoaded(true);
+    console.log(`[Auth] Loaded ${perms.size} permissions for ${currentUser.email}`);
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    setLoading(true);
-    try {
-      const { session: newSession, user: newUser } = await authService.signIn(
-        email,
-        password,
-      );
-      setSession(newSession);
-      setUser(newUser);
+  // ── Initial auth check + subscriber ─────────────────────────────────────────
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      setSession(s);
+      setUser(s?.user ?? null);
+      setRole(normalizeRole(s?.user?.user_metadata?.role));
 
-      const userRole = getRole(newUser ?? null);
-      setRole(userRole);
-
-      // Store user email for API requests
-      if (newUser?.email) {
-        setUserEmail(newUser.email);
+      // Set user email in localStorage for API client interceptor
+      if (s?.user?.email) {
+        localStorage.setItem("user_email", s.user.email);
       }
-    } catch (error) {
-      throw error;
-    } finally {
-      setLoading(false);
+
+      loadPermissions(s?.user ?? null).finally(() => setLoading(false));
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, s) => {
+        setSession(s);
+        setUser(s?.user ?? null);
+        setRole(normalizeRole(s?.user?.user_metadata?.role));
+
+        if (s?.user?.email) {
+          localStorage.setItem("user_email", s.user.email);
+        } else {
+          localStorage.removeItem("user_email");
+          localStorage.removeItem("admin_email");
+        }
+
+        loadPermissions(s?.user ?? null);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, [loadPermissions]);
+
+  // ── hasPermission: pure JS, instant ─────────────────────────────────────────
+  const hasPermission = useCallback(
+    (permission: string): boolean => {
+      if (!user) return false;
+      // Admin and developer always pass (fail-safe if DB isn't set up yet)
+      if (role === "admin" || role === "developer") return true;
+      return permissions.has(permission);
+    },
+    [user, role, permissions]
+  );
+
+  // ── refreshPermissions: force re-fetch ──────────────────────────────────────
+  const refreshPermissions = useCallback(async () => {
+    await loadPermissions(user);
+  }, [user, loadPermissions]);
+
+  // ── Sign in ─────────────────────────────────────────────────────────────────
+  const signIn = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) throw error;
+
+    if (data.user?.email) {
+      localStorage.setItem("user_email", data.user.email);
+      if (
+        normalizeRole(data.user.user_metadata?.role) === "admin" ||
+        normalizeRole(data.user.user_metadata?.role) === "developer"
+      ) {
+        localStorage.setItem("admin_email", data.user.email);
+      }
     }
   };
 
+  // ── Sign out ─────────────────────────────────────────────────────────────────
   const signOut = async () => {
-    setLoading(true);
-    try {
-      await authService.signOut();
-      setSession(null);
-      setUser(null);
-      setRole(null);
-
-      // Clear user email from localStorage
-      clearUserEmail();
-    } catch (error) {
-      throw error;
-    } finally {
-      setLoading(false);
-    }
+    await supabase.auth.signOut();
+    setPermissions(new Set());
+    setPermissionsLoaded(false);
+    localStorage.removeItem("user_email");
+    localStorage.removeItem("admin_email");
   };
 
-  const checkPermission = (permission: string) => {
-    return hasPermission(role || undefined, permission);
-  };
-
-  const value = {
-    user,
-    session,
-    role,
-    loading,
-    signIn,
-    signOut,
-    hasPermission: checkPermission,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        role,
+        permissions,
+        permissionsLoaded,
+        loading,
+        signIn,
+        signOut,
+        hasPermission,
+        refreshPermissions,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
+// ─── Hook ─────────────────────────────────────────────────────────────────────
+export const useAuth = (): AuthContextType => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
+  return ctx;
 };

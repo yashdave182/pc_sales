@@ -14,7 +14,7 @@ const resolveApiBaseUrl = (): string => {
     (import.meta as any)?.env?.VITE_API_URL;
 
   // 3) Default fallback (Production URL)
-  const fallback = "https://pc-sales-8phu.onrender.com";
+  const fallback = "http://127.0.0.1:8000";
 
   const chosen = (windowOverride || envBase || fallback) as string;
 
@@ -532,5 +532,38 @@ export const clearUserEmail = () => {
   localStorage.removeItem("admin_email");
 };
 
+// ─── RBAC API ─────────────────────────────────────────────────────────────────
+export const rbacAPI = {
+  /** Get full list of roles (admin only) */
+  getRoles: () => apiClient.get("/api/rbac/roles").then((r) => r.data),
+
+  /** Get master permission list (admin only) */
+  getPermissions: () =>
+    apiClient.get("/api/rbac/permissions").then((r) => r.data),
+
+  /** Get permission IDs assigned to a specific role */
+  getRolePermissions: (roleId: number) =>
+    apiClient
+      .get(`/api/rbac/roles/${roleId}/permissions`)
+      .then((r) => r.data),
+
+  /** Replace a role's permissions with a new list */
+  updateRolePermissions: (roleId: number, permissionIds: number[]) =>
+    apiClient
+      .put(`/api/rbac/roles/${roleId}/permissions`, permissionIds)
+      .then((r) => r.data),
+
+  /** Create a new custom role */
+  createRole: (displayName: string, description?: string) =>
+    apiClient
+      .post("/api/rbac/roles", { display_name: displayName, description })
+      .then((r) => r.data),
+
+  /** Delete a non-system role */
+  deleteRole: (roleId: number) =>
+    apiClient.delete(`/api/rbac/roles/${roleId}`).then((r) => r.data),
+};
+
 // Export the axios instance for direct use if needed
 export default apiClient;
+

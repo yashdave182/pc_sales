@@ -6,6 +6,7 @@ from activity_logger import get_activity_logger
 from fastapi import APIRouter, Depends, Header, HTTPException
 from models import SaleCreate
 from supabase_db import SupabaseClient, get_supabase
+from rbac_utils import verify_permission
 
 from routers.notifications import create_notification_helper
 
@@ -44,7 +45,7 @@ def generate_invoice_no(db: SupabaseClient) -> str:
         return f"INV-{int(datetime.now().timestamp())}"
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(verify_permission("view_sales"))])
 def get_sales(db: SupabaseClient = Depends(get_supabase)):
     """Get all sales with customer information"""
     try:
@@ -80,7 +81,7 @@ def get_sales(db: SupabaseClient = Depends(get_supabase)):
 
 
 
-@router.get("/pending-payments")
+@router.get("/pending-payments", dependencies=[Depends(verify_permission("view_sales"))])
 def sales_with_pending(db: SupabaseClient = Depends(get_supabase)):
     """Get sales with pending payments"""
     try:
@@ -213,7 +214,7 @@ def sales_with_pending(db: SupabaseClient = Depends(get_supabase)):
         )
 
 
-@router.post("/")
+@router.post("/", dependencies=[Depends(verify_permission("create_sale"))])
 def create_sale(
     sale: SaleCreate,
     db: SupabaseClient = Depends(get_supabase),
@@ -475,7 +476,7 @@ def create_sale(
         raise HTTPException(status_code=500, detail=f"Error creating sale: {str(e)}")
 
 
-@router.get("/{sale_id}")
+@router.get("/{sale_id}", dependencies=[Depends(verify_permission("view_sales"))])
 def get_sale(sale_id: int, db: SupabaseClient = Depends(get_supabase)):
     """Get a single sale with items"""
     try:
@@ -514,7 +515,7 @@ def get_sale(sale_id: int, db: SupabaseClient = Depends(get_supabase)):
         raise HTTPException(status_code=500, detail=f"Error fetching sale: {str(e)}")
 
 
-@router.put("/{sale_id}")
+@router.put("/{sale_id}", dependencies=[Depends(verify_permission("edit_sale"))])
 def update_sale(
     sale_id: int, sale_data: dict, db: SupabaseClient = Depends(get_supabase)
 ):
@@ -554,7 +555,7 @@ def update_sale(
         raise HTTPException(status_code=500, detail=f"Error updating sale: {error_msg}")
 
 
-@router.delete("/{sale_id}")
+@router.delete("/{sale_id}", dependencies=[Depends(verify_permission("delete_sale"))])
 def delete_sale(sale_id: int, db: SupabaseClient = Depends(get_supabase)):
     """Delete a sale and its items"""
     try:
@@ -574,7 +575,7 @@ def delete_sale(sale_id: int, db: SupabaseClient = Depends(get_supabase)):
         raise HTTPException(status_code=500, detail=f"Error deleting sale: {str(e)}")
 
 
-@router.get("/{sale_id}/invoice-pdf")
+@router.get("/{sale_id}/invoice-pdf", dependencies=[Depends(verify_permission("download_invoice"))])
 def get_invoice_pdf(
     sale_id: int,
     db: SupabaseClient = Depends(get_supabase),

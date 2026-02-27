@@ -4,13 +4,14 @@ import requests
 from fastapi import APIRouter, Depends, Header, HTTPException
 from models import Payment
 from supabase_db import SupabaseClient, get_supabase
+from rbac_utils import verify_permission
 
 from routers.notifications import create_notification_helper
 
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(verify_permission("view_payments"))])
 def get_payments(
     skip: int = 0,
     limit: int = 100,
@@ -81,7 +82,7 @@ def get_payments(
         )
 
 
-@router.get("/pending")
+@router.get("/pending", dependencies=[Depends(verify_permission("view_payments"))])
 def get_pending(db: SupabaseClient = Depends(get_supabase)):
     """Get sales with pending payments"""
     try:
@@ -146,7 +147,7 @@ def get_pending(db: SupabaseClient = Depends(get_supabase)):
         )
 
 
-@router.get("/sale/{sale_id}")
+@router.get("/sale/{sale_id}", dependencies=[Depends(verify_permission("view_payments"))])
 def get_payment_history(sale_id: int, db: SupabaseClient = Depends(get_supabase)):
     """Get payment history for a specific sale"""
     try:
@@ -168,7 +169,7 @@ def get_payment_history(sale_id: int, db: SupabaseClient = Depends(get_supabase)
         )
 
 
-@router.get("/{payment_id}")
+@router.get("/{payment_id}", dependencies=[Depends(verify_permission("view_payments"))])
 def get_payment(payment_id: int, db: SupabaseClient = Depends(get_supabase)):
     """Get a single payment by ID"""
     try:
@@ -226,7 +227,7 @@ def test_payment_creation(payment: Payment):
     }
 
 
-@router.post("/")
+@router.post("/", dependencies=[Depends(verify_permission("record_payment"))])
 def create_payment(
     payment: Payment,
     db: SupabaseClient = Depends(get_supabase),
@@ -381,7 +382,7 @@ def create_payment(
         raise HTTPException(status_code=500, detail=f"Error creating payment: {str(e)}")
 
 
-@router.put("/{payment_id}")
+@router.put("/{payment_id}", dependencies=[Depends(verify_permission("edit_payment"))])
 def update_payment(
     payment_id: int, payment_data: dict, db: SupabaseClient = Depends(get_supabase)
 ):
@@ -447,7 +448,7 @@ def update_payment(
         raise HTTPException(status_code=500, detail=f"Error updating payment: {str(e)}")
 
 
-@router.delete("/{payment_id}")
+@router.delete("/{payment_id}", dependencies=[Depends(verify_permission("delete_payment"))])
 def delete_payment(payment_id: int, db: SupabaseClient = Depends(get_supabase)):
     """Delete a payment and update sale payment status"""
     try:

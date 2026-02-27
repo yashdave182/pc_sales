@@ -9,5 +9,6 @@ from .imports import router as imports
 from .notifications import router as notifications
 from .payments import router as payments
 from .products import router as products
+from .rbac import router as rbac
 from .reports import router as reports
 from .sales import router as sales

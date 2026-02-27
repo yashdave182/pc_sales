@@ -44,6 +44,7 @@ import {
   Logout as LogoutIcon,
   AdminPanelSettings as AdminIcon,
   AttachMoney as MoneyIcon,
+  Shield as ShieldIcon,
 } from "@mui/icons-material";
 
 import { useTranslation } from "../hooks/useTranslation";
@@ -119,14 +120,14 @@ const navigationItems: NavItem[] = [
     labelKey: "nav.demos",
     icon: <ScienceIcon />,
     path: "/demos",
-    permission: PERMISSIONS.GENERATE_LEADS,
+    permission: PERMISSIONS.VIEW_DEMOS,
   },
   {
     id: "reports",
     labelKey: "nav.reports",
     icon: <AssessmentIcon />,
     path: "/reports",
-    permission: PERMISSIONS.VIEW_ALL_ANALYSIS,
+    permission: PERMISSIONS.VIEW_REPORTS,
   },
   {
     id: "calling-list",
@@ -140,7 +141,7 @@ const navigationItems: NavItem[] = [
     labelKey: "nav.import",
     icon: <CloudUploadIcon />,
     path: "/import",
-    permission: PERMISSIONS.ADMIN_ACCESS,
+    permission: PERMISSIONS.IMPORT_DATA,
   },
 ];
 
@@ -149,6 +150,13 @@ const adminNavigationItem: NavItem = {
   labelKey: "nav.admin",
   icon: <AdminIcon />,
   path: "/admin",
+};
+
+const roleManagementNavItem: NavItem = {
+  id: "role-management",
+  labelKey: "nav.roleManagement",
+  icon: <ShieldIcon />,
+  path: "/role-management",
 };
 
 export default function Layout({
@@ -348,94 +356,106 @@ export default function Layout({
           );
         })}
 
-        {/* Admin Navigation Item - Only for users with ADMIN_ACCESS */}
-        {hasPermission(PERMISSIONS.ADMIN_ACCESS) && (
+        {/* Admin Navigation - Only for users with admin permissions */}
+        {(hasPermission(PERMISSIONS.VIEW_ACTIVITY_LOGS) || hasPermission(PERMISSIONS.MANAGE_PRICING) || hasPermission(PERMISSIONS.MANAGE_ROLES)) && (
           <>
             <Divider sx={{ my: 1 }} />
-            <ListItem disablePadding sx={{ mb: 0.5 }}>
-              <ListItemButton
-                onClick={() => handleNavigation(adminNavigationItem.path)}
-                sx={{
-                  borderRadius: 2,
-                  mx: 1,
-                  backgroundColor: isActive(adminNavigationItem.path)
-                    ? theme.palette.mode === "dark"
-                      ? "rgba(244, 67, 54, 0.16)"
-                      : "rgba(211, 47, 47, 0.08)"
-                    : "transparent",
-                  color: isActive(adminNavigationItem.path)
-                    ? "error.main"
-                    : "inherit",
-                  "&:hover": {
-                    backgroundColor:
-                      theme.palette.mode === "dark"
-                        ? "rgba(244, 67, 54, 0.08)"
-                        : "rgba(211, 47, 47, 0.04)",
-                  },
-                  transition: "all 0.2s",
-                }}
-              >
-                <ListItemIcon
+            {hasPermission(PERMISSIONS.VIEW_ACTIVITY_LOGS) && (
+              <ListItem disablePadding sx={{ mb: 0.5 }}>
+                <ListItemButton
+                  onClick={() => handleNavigation("/admin")}
                   sx={{
-                    color: isActive(adminNavigationItem.path)
-                      ? "error.main"
-                      : "inherit",
-                    minWidth: 40,
+                    borderRadius: 2,
+                    mx: 1,
+                    backgroundColor: isActive("/admin")
+                      ? theme.palette.mode === "dark"
+                        ? "rgba(244, 67, 54, 0.16)"
+                        : "rgba(211, 47, 47, 0.08)"
+                      : "transparent",
+                    color: isActive("/admin") ? "error.main" : "inherit",
+                    "&:hover": {
+                      backgroundColor:
+                        theme.palette.mode === "dark"
+                          ? "rgba(244, 67, 54, 0.08)"
+                          : "rgba(211, 47, 47, 0.04)",
+                    },
+                    transition: "all 0.2s",
                   }}
                 >
-                  {adminNavigationItem.icon}
-                </ListItemIcon>
-                <ListItemText
-                  primary={t(adminNavigationItem.labelKey, "Admin")}
-                  primaryTypographyProps={{
-                    fontWeight: isActive(adminNavigationItem.path) ? 600 : 500,
-                    fontSize: "0.95rem",
-                  }}
-                />
-              </ListItemButton>
-            </ListItem>
-            <ListItem disablePadding sx={{ mb: 0.5 }}>
-              <ListItemButton
-                onClick={() => handleNavigation("/product-pricing")}
-                sx={{
-                  borderRadius: 2,
-                  mx: 1,
-                  backgroundColor: isActive("/product-pricing")
-                    ? theme.palette.mode === "dark"
-                      ? "rgba(76, 175, 80, 0.16)"
-                      : "rgba(56, 142, 60, 0.08)"
-                    : "transparent",
-                  color: isActive("/product-pricing")
-                    ? "success.main"
-                    : "inherit",
-                  "&:hover": {
-                    backgroundColor:
-                      theme.palette.mode === "dark"
-                        ? "rgba(76, 175, 80, 0.08)"
-                        : "rgba(56, 142, 60, 0.04)",
-                  },
-                  transition: "all 0.2s",
-                }}
-              >
-                <ListItemIcon
+                  <ListItemIcon sx={{ color: isActive("/admin") ? "error.main" : "inherit", minWidth: 40 }}>
+                    <AdminIcon />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={t("nav.admin", "Admin")}
+                    primaryTypographyProps={{ fontWeight: isActive("/admin") ? 600 : 500, fontSize: "0.95rem" }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            )}
+            {hasPermission(PERMISSIONS.MANAGE_PRICING) && (
+              <ListItem disablePadding sx={{ mb: 0.5 }}>
+                <ListItemButton
+                  onClick={() => handleNavigation("/product-pricing")}
                   sx={{
-                    color: isActive("/product-pricing")
-                      ? "success.main"
-                      : "inherit",
-                    minWidth: 40,
+                    borderRadius: 2,
+                    mx: 1,
+                    backgroundColor: isActive("/product-pricing")
+                      ? theme.palette.mode === "dark"
+                        ? "rgba(76, 175, 80, 0.16)"
+                        : "rgba(56, 142, 60, 0.08)"
+                      : "transparent",
+                    color: isActive("/product-pricing") ? "success.main" : "inherit",
+                    "&:hover": {
+                      backgroundColor:
+                        theme.palette.mode === "dark"
+                          ? "rgba(76, 175, 80, 0.08)"
+                          : "rgba(56, 142, 60, 0.04)",
+                    },
+                    transition: "all 0.2s",
                   }}
                 >
-                  <MoneyIcon />
-                </ListItemIcon>
-                <ListItemText
-                  primary={t("nav.productPricing", "Product Pricing")}
-                  primaryTypographyProps={{
-                    fontWeight: isActive("/product-pricing") ? 600 : 500,
-                    fontSize: "0.95rem",
+                  <ListItemIcon sx={{ color: isActive("/product-pricing") ? "success.main" : "inherit", minWidth: 40 }}>
+                    <MoneyIcon />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={t("nav.productPricing", "Product Pricing")}
+                    primaryTypographyProps={{ fontWeight: isActive("/product-pricing") ? 600 : 500, fontSize: "0.95rem" }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            )}
+            {hasPermission(PERMISSIONS.MANAGE_ROLES) && (
+              <ListItem disablePadding sx={{ mb: 0.5 }}>
+                <ListItemButton
+                  onClick={() => handleNavigation(roleManagementNavItem.path)}
+                  sx={{
+                    borderRadius: 2,
+                    mx: 1,
+                    backgroundColor: isActive(roleManagementNavItem.path)
+                      ? theme.palette.mode === "dark"
+                        ? "rgba(99, 102, 241, 0.16)"
+                        : "rgba(99, 102, 241, 0.08)"
+                      : "transparent",
+                    color: isActive(roleManagementNavItem.path) ? "#6366f1" : "inherit",
+                    "&:hover": {
+                      backgroundColor:
+                        theme.palette.mode === "dark"
+                          ? "rgba(99, 102, 241, 0.08)"
+                          : "rgba(99, 102, 241, 0.04)",
+                    },
+                    transition: "all 0.2s",
                   }}
-                />
-              </ListItemButton>
-            </ListItem>
+                >
+                  <ListItemIcon sx={{ color: isActive(roleManagementNavItem.path) ? "#6366f1" : "inherit", minWidth: 40 }}>
+                    <ShieldIcon />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={t(roleManagementNavItem.labelKey, "Role Management")}
+                    primaryTypographyProps={{ fontWeight: isActive(roleManagementNavItem.path) ? 600 : 500, fontSize: "0.95rem" }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            )}
           </>
         )}
       </List>

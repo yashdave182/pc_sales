@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from models import Distributor
 from supabase_db import SupabaseClient, get_supabase
+from rbac_utils import verify_permission
 
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(verify_permission("view_distributors"))])
 def get_distributors(db: SupabaseClient = Depends(get_supabase)):
     """Get all distributors"""
     try:
@@ -26,7 +27,7 @@ def get_distributors(db: SupabaseClient = Depends(get_supabase)):
         )
 
 
-@router.post("/")
+@router.post("/", dependencies=[Depends(verify_permission("create_distributor"))])
 def create_distributor(
     distributor: Distributor,
     db: SupabaseClient = Depends(get_supabase),

@@ -5,11 +5,12 @@ from activity_logger import get_activity_logger
 from fastapi import APIRouter, Depends, Header, HTTPException
 from models import Customer
 from supabase_db import SupabaseClient, get_db
+from rbac_utils import verify_permission
 
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(verify_permission("view_customers"))])
 def get_customers(db: SupabaseClient = Depends(get_db)):
     """Get all customers"""
     try:
@@ -23,7 +24,7 @@ def get_customers(db: SupabaseClient = Depends(get_db)):
         )
 
 
-@router.get("/{customer_id}")
+@router.get("/{customer_id}", dependencies=[Depends(verify_permission("view_customers"))])
 def get_customer(customer_id: int, db: SupabaseClient = Depends(get_db)):
     """Get a single customer by ID"""
     try:
@@ -43,7 +44,7 @@ def get_customer(customer_id: int, db: SupabaseClient = Depends(get_db)):
         )
 
 
-@router.post("/")
+@router.post("/", dependencies=[Depends(verify_permission("create_customer"))])
 def create_customer(
     customer: Customer,
     db: SupabaseClient = Depends(get_db),
@@ -94,7 +95,7 @@ def create_customer(
         )
 
 
-@router.put("/{customer_id}")
+@router.put("/{customer_id}", dependencies=[Depends(verify_permission("edit_customer"))])
 def update_customer(
     customer_id: int,
     customer: Customer,
@@ -153,7 +154,7 @@ def update_customer(
         )
 
 
-@router.delete("/{customer_id}")
+@router.delete("/{customer_id}", dependencies=[Depends(verify_permission("delete_customer"))])
 def delete_customer(
     customer_id: int,
     db: SupabaseClient = Depends(get_db),

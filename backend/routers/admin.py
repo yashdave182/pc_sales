@@ -10,20 +10,12 @@ from activity_logger import get_activity_logger
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from supabase_db import SupabaseClient, get_db, get_supabase
 from models import UserCreate
+from rbac_utils import verify_admin_role, verify_permission
 
 router = APIRouter()
 
-# Admin email - only this user can access admin endpoints
-ADMIN_EMAIL = "admin@gmail.com"
-
-
-def verify_admin(user_email: Optional[str] = Header(None, alias="x-user-email")):
-    """Verify that the user is an admin"""
-    if not user_email or user_email != ADMIN_EMAIL:
-        raise HTTPException(
-            status_code=403, detail="Access denied. Admin privileges required."
-        )
-    return user_email
+# Legacy admin verify replaced by dynamic RBAC — kept for reference
+# ADMIN_EMAIL = "admin@gmail.com"
 
 
 @router.get("/health")
@@ -32,7 +24,7 @@ def health():
     return {"status": "ok"}
 
 
-@router.get("/activity-logs")
+@router.get("/activity-logs", dependencies=[Depends(verify_permission("view_activity_logs"))])
 def get_activity_logs(
     limit: int = 100,
     offset: int = 0,
@@ -41,7 +33,7 @@ def get_activity_logs(
     entity_type: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    admin_email: str = Depends(verify_admin),
+    admin_email: Optional[str] = Header(None, alias="x-user-email"),
     db: SupabaseClient = Depends(get_db),
 ):
     """
@@ -156,10 +148,10 @@ def get_activity_logs(
             )
 
 
-@router.get("/activity-logs/stats")
+@router.get("/activity-logs/stats", dependencies=[Depends(verify_permission("view_activity_logs"))])
 def get_activity_stats(
     days: int = 30,
-    admin_email: str = Depends(verify_admin),
+    admin_email: Optional[str] = Header(None, alias="x-user-email"),
     db: SupabaseClient = Depends(get_db),
 ):
     """
@@ -244,9 +236,9 @@ def get_activity_stats(
             )
 
 
-@router.get("/users")
+@router.get("/users", dependencies=[Depends(verify_permission("manage_users"))])
 def get_all_users(
-    admin_email: str = Depends(verify_admin),
+    admin_email: Optional[str] = Header(None, alias="x-user-email"),
     db: SupabaseClient = Depends(get_db),
 ):
     """
@@ -322,10 +314,10 @@ def get_all_users(
             )
 
 
-@router.delete("/activity-logs/{log_id}")
+@router.delete("/activity-logs/{log_id}", dependencies=[Depends(verify_permission("manage_activity_logs"))])
 def delete_activity_log(
     log_id: int,
-    admin_email: str = Depends(verify_admin),
+    admin_email: Optional[str] = Header(None, alias="x-user-email"),
     db: SupabaseClient = Depends(get_db),
 ):
     """
@@ -348,10 +340,10 @@ def delete_activity_log(
         )
 
 
-@router.delete("/activity-logs/bulk")
+@router.delete("/activity-logs/bulk", dependencies=[Depends(verify_permission("manage_activity_logs"))])
 def delete_old_activity_logs(
     days_old: int = 90,
-    admin_email: str = Depends(verify_admin),
+    admin_email: Optional[str] = Header(None, alias="x-user-email"),
     db: SupabaseClient = Depends(get_db),
 ):
     """
@@ -392,11 +384,11 @@ def delete_old_activity_logs(
         )
 
 
-@router.put("/update-product-price/{product_id}")
+@router.put("/update-product-price/{product_id}", dependencies=[Depends(verify_permission("manage_pricing"))])
 def update_product_price(
     product_id: int,
     price_data: dict,
-    admin_email: str = Depends(verify_admin),
+    admin_email: Optional[str] = Header(None, alias="x-user-email"),
     db: SupabaseClient = Depends(get_db),
 ):
     """
@@ -477,10 +469,10 @@ def update_product_price(
         )
 
 
-@router.post("/update-product-prices-bulk")
+@router.post("/update-product-prices-bulk", dependencies=[Depends(verify_permission("manage_pricing"))])
 def update_product_prices_bulk(
     bulk_data: dict,
-    admin_email: str = Depends(verify_admin),
+    admin_email: Optional[str] = Header(None, alias="x-user-email"),
     db: SupabaseClient = Depends(get_db),
 ):
     """
@@ -573,10 +565,10 @@ def update_product_prices_bulk(
         )
 
 
-@router.post("/users")
+@router.post("/users", dependencies=[Depends(verify_permission("manage_users"))])
 def create_user(
     user: UserCreate,
-    admin_email: str = Depends(verify_admin),
+    admin_email: Optional[str] = Header(None, alias="x-user-email"),
     db: SupabaseClient = Depends(get_db),
 ):
     """
@@ -587,7 +579,7 @@ def create_user(
         # Use Supabase Admin API to create user
         supabase = get_supabase()
         
-        # Create user with metadata
+        # Create user in Supabase Auth
         result = supabase.auth.admin.create_user({
             "email": user.email,
             "password": user.password,
@@ -598,14 +590,26 @@ def create_user(
         if not result:
             raise HTTPException(status_code=500, detail="Failed to create user")
 
+        # Also register in app_users table (source of truth for RBAC)
+        normalized_role = user.role.lower().replace(" ", "_")
+        try:
+            db.table("app_users").insert({
+                "email": user.email,
+                "name": user.email,   # default name until they update profile
+                "role": normalized_role,
+                "is_active": True,
+            }).execute()
+        except Exception as app_users_err:
+            print(f"[WARN] Could not insert into app_users: {app_users_err}")
+
         # Log activity
         logger = get_activity_logger(db)
         logger.log_activity(
-            user_email=admin_email,
+            user_email=admin_email or "system",
             action_type="CREATE_USER",
             action_description=f"Created new user {user.email} with role {user.role}",
             entity_type="user",
-            entity_id=None,  # We don't have integer ID for auth users
+            entity_id=None,
             metadata={"new_user_email": user.email, "role": user.role}
         )
         

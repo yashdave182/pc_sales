@@ -1,153 +1,89 @@
+/**
+ * permissions.ts
+ * ──────────────
+ * Permission key constants. These are the authoritative string keys that
+ * exist in the DB `permissions.permission_key` column and in the backend.
+ *
+ * Important: ROLE_PERMISSIONS and the static hasPermission() have been
+ * removed. Permission checking now happens dynamically via AuthContext
+ * (fetched from the backend once at login, cached in React state).
+ */
 
-export enum UserRole {
-    SALES_MANAGER = 'sales_manager',
-    LOGISTICS_MANAGER = 'logistics_manager',
-    TELECALLER = 'telecaller',
-    MARKETING_MANAGER = 'marketing_manager',
-    BUSINESS_ANALYST = 'business_analyst',
-    PRODUCT_MANAGER = 'product_manager',
-    DEVELOPER = 'developer',
-    ADMIN = 'admin'
-}
-
-export type Permission = string;
-
+// ─── Permission Key Registry ──────────────────────────────────────────────────
 export const PERMISSIONS = {
-    // Dashboard & General
-    VIEW_DASHBOARD: 'view_dashboard',
-    VIEW_CUSTOMERS: 'view_customers',
-    VIEW_SALES: 'view_sales',
-    VIEW_DISTRIBUTORS: 'view_distributors',
-    VIEW_ORDERS: 'view_orders',
-    VIEW_PAYMENTS: 'view_payments',
+    // Dashboard
+    VIEW_DASHBOARD: "view_dashboard",
+
+    // Customers
+    VIEW_CUSTOMERS: "view_customers",
+    CREATE_CUSTOMER: "create_customer",
+    EDIT_CUSTOMER: "edit_customer",
+    DELETE_CUSTOMER: "delete_customer",
 
     // Sales
-    MANAGE_SALES_ORDERS: 'manage_sales_orders', // Sales manager
-    COLLECT_PAYMENTS: 'collect_payments', // Sales manager
-    ADD_NEW_SALES: 'add_new_sales', // Sales manager
-    INPUT_DISPATCH_DETAILS: 'input_dispatch_details', // Sales manager
-    VIEW_CALLING_LIST: 'view_calling_list', // Sales manager, Telecallers
-    VIEW_PENDING_ORDERS: 'view_pending_orders', // Sales manager, Logistics manager
+    VIEW_SALES: "view_sales",
+    CREATE_SALE: "create_sale",
+    EDIT_SALE: "edit_sale",
+    DELETE_SALE: "delete_sale",
+    DOWNLOAD_INVOICE: "download_invoice",
 
-    // Logistics
-    MANAGE_ALL_ORDERS: 'manage_all_orders', // Logistics manager
-    DISPATCH_ORDERS: 'dispatch_orders', // Logistics manager
-    RETURN_STOCK: 'return_stock', // Logistics manager
-    MANAGE_INVENTORY: 'manage_inventory', // Logistics manager (stock in/out)
-    MANAGE_PRODUCT_MATERIALS: 'manage_product_materials', // Logistics manager
-    MANAGE_ROUTES: 'manage_routes', // Logistics manager, Marketing manager
+    // Orders
+    VIEW_ORDERS: "view_orders",
+    UPDATE_ORDER_STATUS: "update_order_status",
+    UPDATE_SHIPMENT_STATUS: "update_shipment_status",
+    CANCEL_ORDER: "cancel_order",
 
-    // Telecalling
-    VIEW_PENDING_PAYMENTS: 'view_pending_payments', // Telecallers
+    // Payments
+    VIEW_PAYMENTS: "view_payments",
+    RECORD_PAYMENT: "record_payment",
+    EDIT_PAYMENT: "edit_payment",
+    DELETE_PAYMENT: "delete_payment",
 
-    // Marketing
-    GENERATE_LEADS: 'generate_leads', // Marketing manager
-    INPUT_CUSTOMER_DATA: 'input_customer_data', // Marketing manager
-    ANALYZE_CUSTOMER_DATA: 'analyze_customer_data', // Marketing manager
-    PREDICTION_ANALYSIS: 'prediction_analysis', // Marketing manager
-    VIEW_MAPS: 'view_maps', // Marketing manager
+    // Demos
+    VIEW_DEMOS: "view_demos",
+    SCHEDULE_DEMO: "schedule_demo",
+    EDIT_DEMO: "edit_demo",
+    DELETE_DEMO: "delete_demo",
 
-    // Business Analysis
-    VIEW_ALL_ANALYSIS: 'view_all_analysis', // Business Analyst
+    // Distributors
+    VIEW_DISTRIBUTORS: "view_distributors",
+    CREATE_DISTRIBUTOR: "create_distributor",
 
-    // Admin / Product
-    ADMIN_ACCESS: 'admin_access', // Product manager, Developer
-    CHANGE_MANAGEMENT: 'change_management', // Product manager, Developer
+    // Reports
+    VIEW_REPORTS: "view_reports",
+    EXPORT_REPORTS: "export_reports",
 
-    // System
-    FULL_ACCESS: 'full_access', // Developer
+    // Calling List
+    VIEW_CALLING_LIST: "view_calling_list",
+    RUN_CALL_DISTRIBUTION: "run_call_distribution",
+
+    // Products & Pricing
+    VIEW_PRODUCTS: "view_products",
+    MANAGE_PRODUCTS: "manage_products",
+    MANAGE_PRICING: "manage_pricing",
+
+    // Data Import
+    IMPORT_DATA: "import_data",
+
+    // Admin
+    VIEW_ACTIVITY_LOGS: "view_activity_logs",
+    MANAGE_ACTIVITY_LOGS: "manage_activity_logs",
+    MANAGE_USERS: "manage_users",
+    MANAGE_ROLES: "manage_roles",
+    MANAGE_NOTIFICATIONS: "manage_notifications",
 } as const;
 
-export const ROLE_PERMISSIONS: Record<UserRole | string, Permission[]> = {
-    [UserRole.SALES_MANAGER]: [
-        PERMISSIONS.VIEW_DASHBOARD,
-        PERMISSIONS.MANAGE_SALES_ORDERS,
-        PERMISSIONS.COLLECT_PAYMENTS,
-        PERMISSIONS.ADD_NEW_SALES,
-        PERMISSIONS.INPUT_DISPATCH_DETAILS,
-        PERMISSIONS.VIEW_CALLING_LIST,
-        PERMISSIONS.VIEW_PENDING_ORDERS,
-        PERMISSIONS.INPUT_CUSTOMER_DATA,
-        PERMISSIONS.VIEW_CUSTOMERS,
-        PERMISSIONS.VIEW_SALES,
-        PERMISSIONS.VIEW_PAYMENTS,
-        PERMISSIONS.GENERATE_LEADS, // Can schedule demos
-        PERMISSIONS.VIEW_ORDERS, // Can view order status
-        PERMISSIONS.VIEW_DISTRIBUTORS,
-        PERMISSIONS.VIEW_ALL_ANALYSIS, // Restore access to reports
-    ],
+export type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS];
 
-    [UserRole.LOGISTICS_MANAGER]: [
-        PERMISSIONS.VIEW_DASHBOARD,
-        PERMISSIONS.MANAGE_ALL_ORDERS,
-        PERMISSIONS.DISPATCH_ORDERS, // dispatch orders
-        PERMISSIONS.RETURN_STOCK,
-        PERMISSIONS.MANAGE_INVENTORY, // stock inwards & outwards
-        PERMISSIONS.MANAGE_PRODUCT_MATERIALS,
-        PERMISSIONS.VIEW_PENDING_ORDERS,
-        PERMISSIONS.MANAGE_ROUTES,
-        PERMISSIONS.VIEW_ORDERS,
-        PERMISSIONS.VIEW_DISTRIBUTORS,
-        PERMISSIONS.VIEW_SALES, // Needs to see sales to dispatch
-    ],
-
-    [UserRole.TELECALLER]: [
-        PERMISSIONS.VIEW_DASHBOARD,
-        PERMISSIONS.VIEW_CALLING_LIST,
-        PERMISSIONS.VIEW_PENDING_PAYMENTS,
-        PERMISSIONS.VIEW_PAYMENTS, // To see payment list
-        PERMISSIONS.VIEW_CUSTOMERS, // Needs to see customer details to call
-    ],
-
-    [UserRole.MARKETING_MANAGER]: [
-        PERMISSIONS.VIEW_DASHBOARD,
-        PERMISSIONS.GENERATE_LEADS,
-        PERMISSIONS.INPUT_CUSTOMER_DATA,
-        PERMISSIONS.ANALYZE_CUSTOMER_DATA,
-        PERMISSIONS.PREDICTION_ANALYSIS,
-        PERMISSIONS.VIEW_MAPS,
-        PERMISSIONS.MANAGE_ROUTES,
-        PERMISSIONS.VIEW_CUSTOMERS,
-        PERMISSIONS.VIEW_DISTRIBUTORS,
-        PERMISSIONS.VIEW_SALES, // Analyze sales trends
-    ],
-
-    [UserRole.BUSINESS_ANALYST]: [
-        PERMISSIONS.VIEW_DASHBOARD,
-        PERMISSIONS.VIEW_ALL_ANALYSIS,
-        PERMISSIONS.ANALYZE_CUSTOMER_DATA,
-        // "Full access / no change management access" implies read-only on most things?
-        PERMISSIONS.PREDICTION_ANALYSIS,
-        PERMISSIONS.VIEW_SALES,
-        PERMISSIONS.VIEW_CUSTOMERS,
-    ],
-
-    [UserRole.PRODUCT_MANAGER]: [
-        PERMISSIONS.VIEW_DASHBOARD,
-        PERMISSIONS.ADMIN_ACCESS,
-        PERMISSIONS.CHANGE_MANAGEMENT,
-    ],
-
-    [UserRole.DEVELOPER]: [
-        // Developer has everything
-        PERMISSIONS.FULL_ACCESS,
-        ...Object.values(PERMISSIONS)
-    ],
-
-    [UserRole.ADMIN]: [
-        // Admin has everything
-        PERMISSIONS.FULL_ACCESS,
-        PERMISSIONS.ADMIN_ACCESS,
-        ...Object.values(PERMISSIONS)
-    ]
-};
-
-export const hasPermission = (userRole: string | undefined, permission: Permission): boolean => {
-    if (!userRole) return false;
-
-    // Developer & Admin override
-    if (userRole === UserRole.DEVELOPER || userRole === UserRole.ADMIN) return true;
-
-    const allowedPermissions = ROLE_PERMISSIONS[userRole] || [];
-    return allowedPermissions.includes(permission) || allowedPermissions.includes(PERMISSIONS.FULL_ACCESS);
-};
+// ─── Role Key Registry ────────────────────────────────────────────────────────
+// These match the `role_key` values in the `roles` DB table.
+export enum UserRole {
+    ADMIN = "admin",
+    DEVELOPER = "developer",
+    SALES_MANAGER = "sales_manager",
+    LOGISTICS_MANAGER = "logistics_manager",
+    TELECALLER = "telecaller",
+    MARKETING_MANAGER = "marketing_manager",
+    BUSINESS_ANALYST = "business_analyst",
+    PRODUCT_MANAGER = "product_manager",
+}

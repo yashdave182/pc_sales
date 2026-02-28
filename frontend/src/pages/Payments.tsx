@@ -32,9 +32,14 @@ import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { paymentAPI, salesAPI } from "../services/api";
 import type { Payment, PendingPayment } from "../types";
 import { useTranslation } from "../hooks/useTranslation";
+import PermissionGate from "../components/PermissionGate";
+import { usePermissionAction } from "../hooks/usePermissionAction";
+import PermissionToast from "../components/PermissionToast";
+import { PERMISSIONS } from "../config/permissions";
 
 export default function Payments() {
   const { t, tf } = useTranslation();
+  const { guard, toastState, closeToast } = usePermissionAction();
   const location = useLocation();
   const pendingSectionRef = useRef<HTMLDivElement>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -325,14 +330,16 @@ export default function Payments() {
       sortable: false,
 
       renderCell: (params) => (
-        <Button
-          size="small"
-          variant="contained"
-          onClick={() => handleOpenDialog(params.row)}
-          sx={{ fontSize: '0.75rem', px: 1 }}
-        >
-          {t("payments.recordPayment")}
-        </Button>
+        <PermissionGate permission={PERMISSIONS.RECORD_PAYMENT} block permissionLabel="record payment">
+          <Button
+            size="small"
+            variant="contained"
+            onClick={guard(() => handleOpenDialog(params.row), PERMISSIONS.RECORD_PAYMENT, "record payment")}
+            sx={{ fontSize: '0.75rem', px: 1 }}
+          >
+            {t("payments.recordPayment")}
+          </Button>
+        </PermissionGate>
       ),
     },
   ];
@@ -352,149 +359,189 @@ export default function Payments() {
   );
 
   return (
-    <Box>
-      {/* Header with Action Button */}
-      <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-            <PaymentIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-            {t("payments.title")}
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            {t("payments.subtitle", "Record and track payments")}
-          </Typography>
+    <PermissionGate permission={PERMISSIONS.VIEW_PAYMENTS} page permissionLabel="view payments">
+      <Box>
+        {/* Header with Action Button */}
+        <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+              <PaymentIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+              {t("payments.title")}
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              {t("payments.subtitle", "Record and track payments")}
+            </Typography>
+          </Box>
+          <TextField
+            placeholder={t("common.search", "Search...")}
+            size="small"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ width: 300, bgcolor: 'background.paper' }}
+          />
         </Box>
-        <TextField
-          placeholder={t("common.search", "Search...")}
-          size="small"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ width: 300, bgcolor: 'background.paper' }}
-        />
-      </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
 
-      {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card
-            sx={{
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            }}
-          >
-            <CardContent>
-              <Typography variant="body2" sx={{ color: "white", opacity: 0.9 }}>
-                {t("dashboard.totalPayments")}
-              </Typography>
-              <Typography
-                variant="h4"
-                sx={{ color: "white", fontWeight: 700, mt: 1 }}
-              >
-                {payments.length}
-              </Typography>
-            </CardContent>
-          </Card>
+        {/* Summary Cards */}
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              }}
+            >
+              <CardContent>
+                <Typography variant="body2" sx={{ color: "white", opacity: 0.9 }}>
+                  {t("dashboard.totalPayments")}
+                </Typography>
+                <Typography
+                  variant="h4"
+                  sx={{ color: "white", fontWeight: 700, mt: 1 }}
+                >
+                  {payments.length}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              onClick={() => pendingSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
+              sx={{
+                background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+                cursor: 'pointer',
+                transition: 'transform 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: 4
+                }
+              }}
+            >
+              <CardContent>
+                <Typography variant="body2" sx={{ color: "white", opacity: 0.9 }}>
+                  {t("dashboard.pendingPayments")}
+                </Typography>
+                <Typography
+                  variant="h4"
+                  sx={{ color: "white", fontWeight: 700, mt: 1 }}
+                >
+                  {pendingPayments.length}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              onClick={() => pendingSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
+              sx={{
+                background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+                cursor: 'pointer',
+                transition: 'transform 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: 4
+                }
+              }}
+            >
+              <CardContent>
+                <Typography variant="body2" sx={{ color: "white", opacity: 0.9 }}>
+                  {t("payments.totalPending", "Total Pending Amount")}
+                </Typography>
+                <Typography
+                  variant="h4"
+                  sx={{ color: "white", fontWeight: 700, mt: 1 }}
+                >
+                  ₹
+                  {pendingPayments
+                    .reduce((sum, p) => sum + p.pending_amount, 0)
+                    .toLocaleString()}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                background: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
+                transition: 'transform 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: 4
+                }
+              }}
+            >
+              <CardContent>
+                <Typography variant="body2" sx={{ color: "white", opacity: 0.9 }}>
+                  {t("dashboard.totalCollected", "Total Collected")}
+                </Typography>
+                <Typography
+                  variant="h4"
+                  sx={{ color: "white", fontWeight: 700, mt: 1 }}
+                >
+                  ₹
+                  {payments
+                    .reduce((sum, p) => sum + p.amount, 0)
+                    .toLocaleString()}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card
-            onClick={() => pendingSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
-            sx={{
-              background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-              cursor: 'pointer',
-              transition: 'transform 0.2s',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: 4
-              }
-            }}
-          >
-            <CardContent>
-              <Typography variant="body2" sx={{ color: "white", opacity: 0.9 }}>
-                {t("dashboard.pendingPayments")}
-              </Typography>
-              <Typography
-                variant="h4"
-                sx={{ color: "white", fontWeight: 700, mt: 1 }}
-              >
-                {pendingPayments.length}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card
-            onClick={() => pendingSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
-            sx={{
-              background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-              cursor: 'pointer',
-              transition: 'transform 0.2s',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: 4
-              }
-            }}
-          >
-            <CardContent>
-              <Typography variant="body2" sx={{ color: "white", opacity: 0.9 }}>
-                {t("payments.totalPending", "Total Pending Amount")}
-              </Typography>
-              <Typography
-                variant="h4"
-                sx={{ color: "white", fontWeight: 700, mt: 1 }}
-              >
-                ₹
-                {pendingPayments
-                  .reduce((sum, p) => sum + p.pending_amount, 0)
-                  .toLocaleString()}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card
-            sx={{
-              background: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
-              transition: 'transform 0.2s',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: 4
-              }
-            }}
-          >
-            <CardContent>
-              <Typography variant="body2" sx={{ color: "white", opacity: 0.9 }}>
-                {t("dashboard.totalCollected", "Total Collected")}
-              </Typography>
-              <Typography
-                variant="h4"
-                sx={{ color: "white", fontWeight: 700, mt: 1 }}
-              >
-                ₹
-                {payments
-                  .reduce((sum, p) => sum + p.amount, 0)
-                  .toLocaleString()}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
 
 
-      {/* Pending Payments */}
-      <div ref={pendingSectionRef}>
-        <Card sx={{ mb: 3 }}>
+        {/* Pending Payments */}
+        <div ref={pendingSectionRef}>
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 2,
+                }}
+              >
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  {t("dashboard.pendingPayments")}
+                </Typography>
+                <IconButton onClick={loadData} color="primary">
+                  <RefreshIcon />
+                </IconButton>
+              </Box>
+              <Box sx={{ height: 600, width: "100%" }}>
+                {loading ? (
+                  <TableSkeleton rows={10} columns={6} />
+                ) : (
+                  <DataGrid
+                    rows={filteredPendingPayments}
+                    columns={pendingColumns}
+                    getRowId={(row) => row.sale_id}
+                    pageSizeOptions={[5, 10, 25]}
+                    initialState={{
+                      pagination: { paginationModel: { pageSize: 10 } },
+                    }}
+                    disableRowSelectionOnClick
+                  />
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+
+        </div>
+
+        {/* Payment History */}
+        <Card>
           <CardContent>
             <Box
               sx={{
@@ -505,23 +552,29 @@ export default function Payments() {
               }}
             >
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                {t("dashboard.pendingPayments")}
+                {t("payments.history", "Payment History")}
               </Typography>
-              <IconButton onClick={loadData} color="primary">
-                <RefreshIcon />
-              </IconButton>
             </Box>
-            <Box sx={{ height: 600, width: "100%" }}>
+            <Box sx={{ height: 500, width: "100%" }}>
               {loading ? (
-                 <TableSkeleton rows={10} columns={6} />
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "100%",
+                  }}
+                >
+                  <CircularProgress />
+                </Box>
               ) : (
                 <DataGrid
-                  rows={filteredPendingPayments}
-                  columns={pendingColumns}
-                  getRowId={(row) => row.sale_id}
-                  pageSizeOptions={[5, 10, 25]}
+                  rows={filteredPayments}
+                  columns={paymentColumns}
+                  getRowId={(row) => row.payment_id}
+                  pageSizeOptions={[10, 25, 50]}
                   initialState={{
-                    pagination: { paginationModel: { pageSize: 10 } },
+                    pagination: { paginationModel: { pageSize: 25 } },
                   }}
                   disableRowSelectionOnClick
                 />
@@ -530,217 +583,174 @@ export default function Payments() {
           </CardContent>
         </Card>
 
-      </div>
-
-      {/* Payment History */}
-      <Card>
-        <CardContent>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mb: 2,
-            }}
-          >
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              {t("payments.history", "Payment History")}
-            </Typography>
-          </Box>
-          <Box sx={{ height: 500, width: "100%" }}>
-            {loading ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  height: "100%",
-                }}
-              >
-                <CircularProgress />
-              </Box>
-            ) : (
-              <DataGrid
-                rows={filteredPayments}
-                columns={paymentColumns}
-                getRowId={(row) => row.payment_id}
-                pageSizeOptions={[10, 25, 50]}
-                initialState={{
-                  pagination: { paginationModel: { pageSize: 25 } },
-                }}
-                disableRowSelectionOnClick
-              />
-            )}
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Payment Dialog */}
-      <Dialog
-        open={openDialog}
-        onClose={handleCloseDialog}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <ReceiptIcon />
-            {t("payments.recordPayment", "Record Payment")}
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                select
-                label={t("payments.selectInvoice", "Select Sale/Invoice *")}
-                value={formData.sale_id}
-                onChange={(e) =>
-                  setFormData({ ...formData, sale_id: Number(e.target.value) })
-                }
-              >
-                <MenuItem value={0}>
-                  {t("payments.selectInvoice", "Select Invoice")}
-                </MenuItem>
-                {pendingPayments.map((sale) => (
-                  <MenuItem key={sale.sale_id} value={sale.sale_id}>
-                    {sale.invoice_no} - {sale.customer_name} (₹
-                    {sale.pending_amount.toLocaleString()}{" "}
-                    {t("dashboard.pending")})
+        {/* Payment Dialog */}
+        <Dialog
+          open={openDialog}
+          onClose={handleCloseDialog}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <ReceiptIcon />
+              {t("payments.recordPayment", "Record Payment")}
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  select
+                  label={t("payments.selectInvoice", "Select Sale/Invoice *")}
+                  value={formData.sale_id}
+                  onChange={(e) =>
+                    setFormData({ ...formData, sale_id: Number(e.target.value) })
+                  }
+                >
+                  <MenuItem value={0}>
+                    {t("payments.selectInvoice", "Select Invoice")}
                   </MenuItem>
-                ))}
-              </TextField>
+                  {pendingPayments.map((sale) => (
+                    <MenuItem key={sale.sale_id} value={sale.sale_id}>
+                      {sale.invoice_no} - {sale.customer_name} (₹
+                      {sale.pending_amount.toLocaleString()}{" "}
+                      {t("dashboard.pending")})
+                    </MenuItem>
+                  ))}
+                </TextField>
 
-              {/* Purchase Summary Box */}
-              {formData.sale_id > 0 && (() => {
-                const selectedSale = pendingPayments.find(p => p.sale_id === formData.sale_id);
-                if (selectedSale) {
-                  return (
-                    <Paper variant="outlined" sx={{ mt: 2, p: 2, bgcolor: 'background.default' }}>
-                      <Typography variant="subtitle2" gutterBottom>Purchase Summary</Typography>
-                      {selectedSale.items_summary && (
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontStyle: 'italic' }}>
-                          Items: {selectedSale.items_summary}
-                        </Typography>
-                      )}
-                      <Grid container spacing={2}>
-                        <Grid item xs={4}>
-                          <Typography variant="caption" color="text.secondary">Total Amount</Typography>
-                          <Typography variant="body1" fontWeight="bold">₹{selectedSale.total_amount.toLocaleString()}</Typography>
+                {/* Purchase Summary Box */}
+                {formData.sale_id > 0 && (() => {
+                  const selectedSale = pendingPayments.find(p => p.sale_id === formData.sale_id);
+                  if (selectedSale) {
+                    return (
+                      <Paper variant="outlined" sx={{ mt: 2, p: 2, bgcolor: 'background.default' }}>
+                        <Typography variant="subtitle2" gutterBottom>Purchase Summary</Typography>
+                        {selectedSale.items_summary && (
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontStyle: 'italic' }}>
+                            Items: {selectedSale.items_summary}
+                          </Typography>
+                        )}
+                        <Grid container spacing={2}>
+                          <Grid item xs={4}>
+                            <Typography variant="caption" color="text.secondary">Total Amount</Typography>
+                            <Typography variant="body1" fontWeight="bold">₹{selectedSale.total_amount.toLocaleString()}</Typography>
+                          </Grid>
+                          <Grid item xs={4}>
+                            <Typography variant="caption" color="text.secondary">Paid Amount</Typography>
+                            <Typography variant="body1" color="success.main">₹{selectedSale.paid_amount.toLocaleString()}</Typography>
+                          </Grid>
+                          <Grid item xs={4}>
+                            <Typography variant="caption" color="text.secondary">Pending</Typography>
+                            <Typography variant="body1" color="error.main">₹{selectedSale.pending_amount.toLocaleString()}</Typography>
+                          </Grid>
                         </Grid>
-                        <Grid item xs={4}>
-                          <Typography variant="caption" color="text.secondary">Paid Amount</Typography>
-                          <Typography variant="body1" color="success.main">₹{selectedSale.paid_amount.toLocaleString()}</Typography>
-                        </Grid>
-                        <Grid item xs={4}>
-                          <Typography variant="caption" color="text.secondary">Pending</Typography>
-                          <Typography variant="body1" color="error.main">₹{selectedSale.pending_amount.toLocaleString()}</Typography>
-                        </Grid>
-                      </Grid>
-                    </Paper>
-                  );
-                }
-                return null;
-              })()}
+                      </Paper>
+                    );
+                  }
+                  return null;
+                })()}
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  type="date"
+                  label={t("payments.date", "Payment Date")}
+                  value={formData.payment_date}
+                  onChange={(e) =>
+                    setFormData({ ...formData, payment_date: e.target.value })
+                  }
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  select
+                  label={t("payments.method")}
+                  value={formData.payment_method}
+                  onChange={(e) =>
+                    setFormData({ ...formData, payment_method: e.target.value })
+                  }
+                >
+                  <MenuItem value="Cash">
+                    {t("payments.methodCash", "Cash")}
+                  </MenuItem>
+                  <MenuItem value="UPI">
+                    {t("payments.methodUpi", "UPI")}
+                  </MenuItem>
+                  <MenuItem value="Bank Transfer">
+                    {t("payments.methodBank", "Bank Transfer")}
+                  </MenuItem>
+                  <MenuItem value="Cheque">
+                    {t("payments.methodCheque", "Cheque")}
+                  </MenuItem>
+                  <MenuItem value="Card">
+                    {t("payments.methodCard", "Card")}
+                  </MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label={`${tf("amount")} *`}
+                  value={formData.amount}
+                  onChange={(e) =>
+                    setFormData({ ...formData, amount: Number(e.target.value) })
+                  }
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">₹</InputAdornment>
+                    ),
+                  }}
+                  inputProps={{ min: 0, step: 0.01 }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t("payments.rrn", "RRN / Transaction ID")}
+                  value={formData.rrn}
+                  onChange={(e) =>
+                    setFormData({ ...formData, rrn: e.target.value })
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t("payments.reference", "Reference")}
+                  value={formData.reference}
+                  onChange={(e) =>
+                    setFormData({ ...formData, reference: e.target.value })
+                  }
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={3}
+                  label={tf("notes")}
+                  value={formData.notes}
+                  onChange={(e) =>
+                    setFormData({ ...formData, notes: e.target.value })
+                  }
+                />
+              </Grid>
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                type="date"
-                label={t("payments.date", "Payment Date")}
-                value={formData.payment_date}
-                onChange={(e) =>
-                  setFormData({ ...formData, payment_date: e.target.value })
-                }
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                select
-                label={t("payments.method")}
-                value={formData.payment_method}
-                onChange={(e) =>
-                  setFormData({ ...formData, payment_method: e.target.value })
-                }
-              >
-                <MenuItem value="Cash">
-                  {t("payments.methodCash", "Cash")}
-                </MenuItem>
-                <MenuItem value="UPI">
-                  {t("payments.methodUpi", "UPI")}
-                </MenuItem>
-                <MenuItem value="Bank Transfer">
-                  {t("payments.methodBank", "Bank Transfer")}
-                </MenuItem>
-                <MenuItem value="Cheque">
-                  {t("payments.methodCheque", "Cheque")}
-                </MenuItem>
-                <MenuItem value="Card">
-                  {t("payments.methodCard", "Card")}
-                </MenuItem>
-              </TextField>
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                type="number"
-                label={`${tf("amount")} *`}
-                value={formData.amount}
-                onChange={(e) =>
-                  setFormData({ ...formData, amount: Number(e.target.value) })
-                }
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">₹</InputAdornment>
-                  ),
-                }}
-                inputProps={{ min: 0, step: 0.01 }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label={t("payments.rrn", "RRN / Transaction ID")}
-                value={formData.rrn}
-                onChange={(e) =>
-                  setFormData({ ...formData, rrn: e.target.value })
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label={t("payments.reference", "Reference")}
-                value={formData.reference}
-                onChange={(e) =>
-                  setFormData({ ...formData, reference: e.target.value })
-                }
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                multiline
-                rows={3}
-                label={tf("notes")}
-                value={formData.notes}
-                onChange={(e) =>
-                  setFormData({ ...formData, notes: e.target.value })
-                }
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>{t("common.cancel")}</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            {t("payments.recordPayment", "Record Payment")}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box >
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDialog}>{t("common.cancel")}</Button>
+            <Button onClick={handleSubmit} variant="contained">
+              {t("payments.recordPayment", "Record Payment")}
+            </Button>
+          </DialogActions>
+        </Dialog>
+        <PermissionToast state={toastState} onClose={closeToast} />
+      </Box>
+    </PermissionGate>
   );
 }

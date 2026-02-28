@@ -32,6 +32,10 @@ import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import { customerAPI } from "../services/api";
 import type { Customer } from "../types";
 import { useTranslation } from "../hooks/useTranslation";
+import { usePermissionAction } from "../hooks/usePermissionAction";
+import PermissionToast from "../components/PermissionToast";
+import PermissionGate from "../components/PermissionGate";
+import { PERMISSIONS } from "../config/permissions";
 
 export default function Customers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -52,6 +56,7 @@ export default function Customers() {
   });
 
   const { t, tf } = useTranslation();
+  const { guard, toastState, closeToast } = usePermissionAction();
 
   useEffect(() => {
     loadCustomers();
@@ -248,14 +253,14 @@ export default function Customers() {
         <Box>
           <IconButton
             size="small"
-            onClick={() => handleOpenDialog(params.row)}
+            onClick={guard(() => handleOpenDialog(params.row), PERMISSIONS.EDIT_CUSTOMER, "edit customers")}
             color="primary"
           >
             <EditIcon fontSize="small" />
           </IconButton>
           <IconButton
             size="small"
-            onClick={() => handleDelete(params.row.customer_id)}
+            onClick={guard(() => handleDelete(params.row.customer_id), PERMISSIONS.DELETE_CUSTOMER, "delete customers")}
             color="error"
           >
             <DeleteIcon fontSize="small" />
@@ -272,212 +277,215 @@ export default function Customers() {
   );
 
   return (
-    <Box>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-          {t("customers.title")}
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          {t("customers.manageSubtitle", "Manage your customer database")}
-        </Typography>
-      </Box>
+    <PermissionGate permission={PERMISSIONS.VIEW_CUSTOMERS} page permissionLabel="view customers">
+      <Box>
+        {/* Header */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+            {t("customers.title")}
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {t("customers.manageSubtitle", "Manage your customer database")}
+          </Typography>
+        </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
 
-      {/* Actions Bar */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              flexWrap: "wrap",
-              alignItems: "center",
-            }}
-          >
-            <TextField
-              placeholder={t("common.search")}
-              size="small"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
+        {/* Actions Bar */}
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Box
+              sx={{
+                display: "flex",
+                gap: 2,
+                flexWrap: "wrap",
+                alignItems: "center",
               }}
-              sx={{ flexGrow: 1, minWidth: 250 }}
-            />
-
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => handleOpenDialog()}
             >
-              {t("customers.addCustomer")}
-            </Button>
-
-            <IconButton onClick={loadCustomers} color="primary">
-              <RefreshIcon />
-            </IconButton>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Data Grid */}
-      <Card>
-        <CardContent>
-          <Box sx={{ height: 600, width: "100%" }}>
-            {loading ? (
-              <TableSkeleton rows={10} columns={5} />
-            ) : (
-              <DataGrid
-                rows={filteredCustomers}
-                columns={columns}
-                getRowId={(row) => row.customer_id}
-                pageSizeOptions={[10, 25, 50, 100]}
-                initialState={{
-                  pagination: {
-                    paginationModel: { pageSize: 25 },
-                  },
-                }}
-                disableRowSelectionOnClick
-                sx={{
-                  "& .MuiDataGrid-cell:focus": {
-                    outline: "none",
-                  },
-                }}
-              />
-            )}
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Add/Edit Dialog */}
-      <Dialog
-        open={openDialog}
-        onClose={handleCloseDialog}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          {editingCustomer
-            ? t("customers.editCustomer")
-            : t("customers.addCustomer")}
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
               <TextField
-                fullWidth
-                label={`${tf("name")} *`}
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label={`${tf("mobile")} *`}
-                value={formData.mobile}
-                onChange={(e) =>
-                  setFormData({ ...formData, mobile: e.target.value })
-                }
+                placeholder={t("common.search")}
+                size="small"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
                   startAdornment: (
-                    <InputAdornment position="start">+91</InputAdornment>
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
                   ),
                 }}
+                sx={{ flexGrow: 1, minWidth: 250 }}
               />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label={tf("village")}
-                value={formData.village}
-                onChange={(e) =>
-                  setFormData({ ...formData, village: e.target.value })
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label={tf("taluka")}
-                value={formData.taluka}
-                onChange={(e) =>
-                  setFormData({ ...formData, taluka: e.target.value })
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label={tf("district")}
-                value={formData.district}
-                onChange={(e) =>
-                  setFormData({ ...formData, district: e.target.value })
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                select
-                label="State"
-                value={formData.state || "Gujarat"}
-                onChange={(e) =>
-                  setFormData({ ...formData, state: e.target.value })
-                }
-              >
-                <MenuItem value="Gujarat">Gujarat</MenuItem>
-                <MenuItem value="Maharashtra">Maharashtra</MenuItem>
-                <MenuItem value="Madhya Pradesh">Madhya Pradesh</MenuItem>
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Adhar No"
-                value={formData.adhar_no || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, adhar_no: e.target.value })
-                }
-                placeholder="Enter 12-digit Aadhar"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                select
-                label={tf("status")}
-                value={formData.status}
-                onChange={(e) =>
-                  setFormData({ ...formData, status: e.target.value })
-                }
-              >
-                <MenuItem value="Active">{t("customers.active")}</MenuItem>
 
-                <MenuItem value="Inactive">{t("customers.inactive")}</MenuItem>
-              </TextField>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={guard(() => handleOpenDialog(), PERMISSIONS.CREATE_CUSTOMER, "create customers")}
+              >
+                {t("customers.addCustomer")}
+              </Button>
+
+              <IconButton onClick={loadCustomers} color="primary">
+                <RefreshIcon />
+              </IconButton>
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Data Grid */}
+        <Card>
+          <CardContent>
+            <Box sx={{ height: 600, width: "100%" }}>
+              {loading ? (
+                <TableSkeleton rows={10} columns={5} />
+              ) : (
+                <DataGrid
+                  rows={filteredCustomers}
+                  columns={columns}
+                  getRowId={(row) => row.customer_id}
+                  pageSizeOptions={[10, 25, 50, 100]}
+                  initialState={{
+                    pagination: {
+                      paginationModel: { pageSize: 25 },
+                    },
+                  }}
+                  disableRowSelectionOnClick
+                  sx={{
+                    "& .MuiDataGrid-cell:focus": {
+                      outline: "none",
+                    },
+                  }}
+                />
+              )}
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Add/Edit Dialog */}
+        <Dialog
+          open={openDialog}
+          onClose={handleCloseDialog}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            {editingCustomer
+              ? t("customers.editCustomer")
+              : t("customers.addCustomer")}
+          </DialogTitle>
+          <DialogContent>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={`${tf("name")} *`}
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={`${tf("mobile")} *`}
+                  value={formData.mobile}
+                  onChange={(e) =>
+                    setFormData({ ...formData, mobile: e.target.value })
+                  }
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">+91</InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={tf("village")}
+                  value={formData.village}
+                  onChange={(e) =>
+                    setFormData({ ...formData, village: e.target.value })
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={tf("taluka")}
+                  value={formData.taluka}
+                  onChange={(e) =>
+                    setFormData({ ...formData, taluka: e.target.value })
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={tf("district")}
+                  value={formData.district}
+                  onChange={(e) =>
+                    setFormData({ ...formData, district: e.target.value })
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  select
+                  label="State"
+                  value={formData.state || "Gujarat"}
+                  onChange={(e) =>
+                    setFormData({ ...formData, state: e.target.value })
+                  }
+                >
+                  <MenuItem value="Gujarat">Gujarat</MenuItem>
+                  <MenuItem value="Maharashtra">Maharashtra</MenuItem>
+                  <MenuItem value="Madhya Pradesh">Madhya Pradesh</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Adhar No"
+                  value={formData.adhar_no || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, adhar_no: e.target.value })
+                  }
+                  placeholder="Enter 12-digit Aadhar"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  select
+                  label={tf("status")}
+                  value={formData.status}
+                  onChange={(e) =>
+                    setFormData({ ...formData, status: e.target.value })
+                  }
+                >
+                  <MenuItem value="Active">{t("customers.active")}</MenuItem>
+
+                  <MenuItem value="Inactive">{t("customers.inactive")}</MenuItem>
+                </TextField>
+              </Grid>
             </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>{t("common.cancel")}</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            {t("common.save")}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDialog}>{t("common.cancel")}</Button>
+            <Button onClick={handleSubmit} variant="contained">
+              {t("common.save")}
+            </Button>
+          </DialogActions>
+        </Dialog>
+        <PermissionToast state={toastState} onClose={closeToast} />
+      </Box>
+    </PermissionGate>
   );
 }

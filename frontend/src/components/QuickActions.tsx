@@ -61,7 +61,7 @@ export default function QuickActions({ onQuickSearch }: QuickActionsProps) {
         setOpen(false);
       },
       color: '#10b981',
-      show: hasPermission(PERMISSIONS.INPUT_CUSTOMER_DATA),
+      show: hasPermission(PERMISSIONS.CREATE_CUSTOMER),
     },
     {
       icon: <ShoppingCartIcon />,
@@ -71,7 +71,7 @@ export default function QuickActions({ onQuickSearch }: QuickActionsProps) {
         setOpen(false);
       },
       color: '#f59e0b',
-      show: hasPermission(PERMISSIONS.ADD_NEW_SALES),
+      show: hasPermission(PERMISSIONS.CREATE_SALE),
     },
     {
       icon: <ScienceIcon />,
@@ -81,14 +81,14 @@ export default function QuickActions({ onQuickSearch }: QuickActionsProps) {
         setOpen(false);
       },
       color: '#7c3aed',
-      show: hasPermission(PERMISSIONS.GENERATE_LEADS), // Assuming leads relates to demos
+      show: hasPermission(PERMISSIONS.SCHEDULE_DEMO),
     },
     {
       icon: <DownloadIcon />,
       name: 'Export Reports',
       onClick: () => {
         // Example of "Block an action and show popup"
-        if (!hasPermission(PERMISSIONS.VIEW_ALL_ANALYSIS)) {
+        if (!hasPermission(PERMISSIONS.VIEW_REPORTS)) {
           setPermissionAlertOpen(true);
           // Keep speed dial open or close it? Let's keep it open so they see the context, 
           // or close it and show the snackbar.

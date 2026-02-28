@@ -21,9 +21,14 @@ import { demoAPI } from "../services/api";
 import type { Demo } from "../types";
 import DemoDialog from "../components/DemoDialog";
 import { useTranslation } from "../hooks/useTranslation";
+import PermissionGate from "../components/PermissionGate";
+import { usePermissionAction } from "../hooks/usePermissionAction";
+import PermissionToast from "../components/PermissionToast";
+import { PERMISSIONS } from "../config/permissions";
 
 export default function Demos() {
   const { t, tf } = useTranslation();
+  const { guard, toastState, closeToast } = usePermissionAction();
   const [demos, setDemos] = useState<Demo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,71 +112,76 @@ export default function Demos() {
   ];
 
   return (
-    <Box>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-          <ScienceIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-          {t("demos.title")}
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          {t("demos.subtitle", "Schedule and track product demonstrations")}
-        </Typography>
-      </Box>
+    <PermissionGate permission={PERMISSIONS.VIEW_DEMOS} page permissionLabel="view demos">
+      <Box>
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+            <ScienceIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+            {t("demos.title")}
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {t("demos.subtitle", "Schedule and track product demonstrations")}
+          </Typography>
+        </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
 
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setDialogOpen(true)}
-            >
-              {t("demos.addDemo")}
-            </Button>
-            <IconButton onClick={loadDemos} color="primary">
-              <RefreshIcon />
-            </IconButton>
-            <Box sx={{ ml: "auto" }}>
-              <Chip label={`Total Demos: ${demos.length}`} color="primary" />
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+              <PermissionGate permission={PERMISSIONS.SCHEDULE_DEMO} block permissionLabel="schedule demo">
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={guard(() => setDialogOpen(true), PERMISSIONS.SCHEDULE_DEMO, "schedule demo")}
+                >
+                  {t("demos.addDemo")}
+                </Button>
+              </PermissionGate>
+              <IconButton onClick={loadDemos} color="primary">
+                <RefreshIcon />
+              </IconButton>
+              <Box sx={{ ml: "auto" }}>
+                <Chip label={`Total Demos: ${demos.length}`} color="primary" />
+              </Box>
             </Box>
-          </Box>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <DemoDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        onSuccess={loadDemos}
-      />
+        <DemoDialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          onSuccess={loadDemos}
+        />
 
-      <Card>
-        <CardContent>
-          <Box sx={{ height: 600, width: "100%" }}>
-            {loading ? (
-              <TableSkeleton rows={10} columns={5} />
-            ) : (
-              <DataGrid
-                rows={demos}
-                columns={columns}
-                getRowId={(row) => row.demo_id}
-                pageSizeOptions={[10, 25, 50, 100]}
-                initialState={{
-                  pagination: {
-                    paginationModel: { pageSize: 25 },
-                  },
-                }}
-                disableRowSelectionOnClick
-              />
-            )}
-          </Box>
-        </CardContent>
-      </Card>
-    </Box>
+        <Card>
+          <CardContent>
+            <Box sx={{ height: 600, width: "100%" }}>
+              {loading ? (
+                <TableSkeleton rows={10} columns={5} />
+              ) : (
+                <DataGrid
+                  rows={demos}
+                  columns={columns}
+                  getRowId={(row) => row.demo_id}
+                  pageSizeOptions={[10, 25, 50, 100]}
+                  initialState={{
+                    pagination: {
+                      paginationModel: { pageSize: 25 },
+                    },
+                  }}
+                  disableRowSelectionOnClick
+                />
+              )}
+            </Box>
+          </CardContent>
+        </Card>
+        <PermissionToast state={toastState} onClose={closeToast} />
+      </Box>
+    </PermissionGate>
   );
 }

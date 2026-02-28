@@ -41,10 +41,15 @@ import { salesAPI, customerAPI, productAPI } from "../services/api";
 import type { Sale, Customer, Product, SaleItem } from "../types";
 
 import { useTranslation } from "../hooks/useTranslation";
+import PermissionGate from "../components/PermissionGate";
+import { usePermissionAction } from "../hooks/usePermissionAction";
+import PermissionToast from "../components/PermissionToast";
+import { PERMISSIONS } from "../config/permissions";
 
 export default function Sales() {
   const { t, tf } = useTranslation();
   const navigate = useNavigate();
+  const { guard, toastState, closeToast } = usePermissionAction();
   const [sales, setSales] = useState<Sale[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -558,626 +563,631 @@ export default function Sales() {
   ];
 
   return (
-    <Box>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-          <ShoppingCartIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-          {t("sales.title")}
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          {t("sales.subtitle", "Create and manage sales transactions")}
-        </Typography>
-      </Box>
+    <PermissionGate permission={PERMISSIONS.VIEW_SALES} page permissionLabel="view sales">
+      <Box>
+        {/* Header */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+            <ShoppingCartIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+            {t("sales.title")}
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {t("sales.subtitle", "Create and manage sales transactions")}
+          </Typography>
+        </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
 
-      {/* Actions */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleOpenDialog}
-              size="large"
-            >
-              {t("sales.addSale")}
-            </Button>
-            <IconButton onClick={() => loadData()} color="primary">
-              <RefreshIcon />
-            </IconButton>
-
-            <TextField
-              placeholder="Search sales..."
-              size="small"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ width: 300, ml: 2 }}
-            />
-
-            <Box sx={{ ml: "auto", display: "flex", gap: 2 }}>
-              <Chip
-                label={`${t("dashboard.totalSales")}: ${sales.length}`}
-                color="primary"
-              />
-              <Chip
-                label={`${t("dashboard.amount")}: ₹${sales.reduce((sum, s) => sum + s.total_amount, 0).toLocaleString()}`}
-                color="success"
-              />
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Sales Table */}
-      <Card>
-        <CardContent>
-          <Box sx={{ height: 600, width: "100%" }}>
-            {loading ? (
-              <TableSkeleton rows={10} columns={6} />
-            ) : (
-              <DataGrid
-                rows={filteredSales}
-                columns={columns}
-                getRowId={(row) => row.sale_id}
-                pageSizeOptions={[10, 25, 50, 100]}
-                initialState={{
-                  pagination: {
-                    paginationModel: { pageSize: 25 },
-                  },
-                }}
-                disableRowSelectionOnClick
-              />
-            )}
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Create Sale Dialog */}
-      <Dialog
-        open={openDialog}
-        onClose={handleCloseDialog}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <ReceiptIcon />
-            {t("sales.addSale")}
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            {/* Customer Mode Toggle */}
-            <Grid item xs={12}>
-              <Box
-                sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}
-              >
-                <Typography variant="subtitle2" color="text.secondary">
-                  {t("sales.customerSelection", "Sabhasad:")}
-                </Typography>
-                <ToggleButtonGroup
-                  value={customerMode}
-                  exclusive
-                  onChange={(e, newMode) => {
-                    if (newMode !== null) {
-                      setCustomerMode(newMode);
-                    }
-                  }}
-                  size="small"
-                  color="primary"
+        {/* Actions */}
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+              <PermissionGate permission={PERMISSIONS.CREATE_SALE} block permissionLabel="create sales">
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={guard(handleOpenDialog, PERMISSIONS.CREATE_SALE, "create sales")}
+                  size="large"
                 >
-                  <ToggleButton value="existing">
-                    <PeopleIcon sx={{ mr: 1, fontSize: 18 }} />
-                    {t("sales.existingCustomer", "Existing Sabhasad")}
-                  </ToggleButton>
-                  <ToggleButton value="new">
-                    <PersonAddIcon sx={{ mr: 1, fontSize: 18 }} />
-                    {t("sales.newCustomer", "New Sabhasad")}
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              </Box>
-              <Divider />
-            </Grid>
+                  {t("sales.addSale")}
+                </Button>
+              </PermissionGate>
+              <IconButton onClick={() => loadData()} color="primary">
+                <RefreshIcon />
+              </IconButton>
 
-            {/* Existing Customer Selection */}
-            {customerMode === "existing" && (
+              <TextField
+                placeholder="Search sales..."
+                size="small"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ width: 300, ml: 2 }}
+              />
+
+              <Box sx={{ ml: "auto", display: "flex", gap: 2 }}>
+                <Chip
+                  label={`${t("dashboard.totalSales")}: ${sales.length}`}
+                  color="primary"
+                />
+                <Chip
+                  label={`${t("dashboard.amount")}: ₹${sales.reduce((sum, s) => sum + s.total_amount, 0).toLocaleString()}`}
+                  color="success"
+                />
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Sales Table */}
+        <Card>
+          <CardContent>
+            <Box sx={{ height: 600, width: "100%" }}>
+              {loading ? (
+                <TableSkeleton rows={10} columns={6} />
+              ) : (
+                <DataGrid
+                  rows={filteredSales}
+                  columns={columns}
+                  getRowId={(row) => row.sale_id}
+                  pageSizeOptions={[10, 25, 50, 100]}
+                  initialState={{
+                    pagination: {
+                      paginationModel: { pageSize: 25 },
+                    },
+                  }}
+                  disableRowSelectionOnClick
+                />
+              )}
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Create Sale Dialog */}
+        <Dialog
+          open={openDialog}
+          onClose={handleCloseDialog}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <ReceiptIcon />
+              {t("sales.addSale")}
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              {/* Customer Mode Toggle */}
+              <Grid item xs={12}>
+                <Box
+                  sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}
+                >
+                  <Typography variant="subtitle2" color="text.secondary">
+                    {t("sales.customerSelection", "Sabhasad:")}
+                  </Typography>
+                  <ToggleButtonGroup
+                    value={customerMode}
+                    exclusive
+                    onChange={(e, newMode) => {
+                      if (newMode !== null) {
+                        setCustomerMode(newMode);
+                      }
+                    }}
+                    size="small"
+                    color="primary"
+                  >
+                    <ToggleButton value="existing">
+                      <PeopleIcon sx={{ mr: 1, fontSize: 18 }} />
+                      {t("sales.existingCustomer", "Existing Sabhasad")}
+                    </ToggleButton>
+                    <ToggleButton value="new">
+                      <PersonAddIcon sx={{ mr: 1, fontSize: 18 }} />
+                      {t("sales.newCustomer", "New Sabhasad")}
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+                </Box>
+                <Divider />
+              </Grid>
+
+              {/* Existing Customer Selection */}
+              {customerMode === "existing" && (
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    select
+                    label={`${t("customers.customerName")} *`}
+                    value={formData.customer_id}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        customer_id: Number(e.target.value),
+                      })
+                    }
+                  >
+                    <MenuItem value={0}>
+                      {t("sales.selectCustomer", "Select Sabhasad")}
+                    </MenuItem>
+                    {customers.map((customer) => (
+                      <MenuItem
+                        key={customer.customer_id}
+                        value={customer.customer_id}
+                      >
+                        {customer.name} - {customer.village}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+              )}
+
+              {/* New Customer Form */}
+              {customerMode === "new" && (
+                <>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label={`${t("customers.customerName")} *`}
+                      value={newCustomerData.name}
+                      onChange={(e) =>
+                        setNewCustomerData({
+                          ...newCustomerData,
+                          name: e.target.value,
+                        })
+                      }
+                      placeholder={t(
+                        "sales.enterCustomerName",
+                        "Enter Sabhasad name",
+                      )}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label={`${tf("mobile")} *`}
+                      value={newCustomerData.mobile}
+                      onChange={(e) =>
+                        setNewCustomerData({
+                          ...newCustomerData,
+                          mobile: e.target.value,
+                        })
+                      }
+                      placeholder="9876543210"
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">+91</InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      fullWidth
+                      required
+                      label={tf("village")}
+                      value={newCustomerData.village}
+                      onChange={(e) =>
+                        setNewCustomerData({
+                          ...newCustomerData,
+                          village: e.target.value,
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      fullWidth
+                      required
+                      label={tf("taluka")}
+                      value={newCustomerData.taluka}
+                      onChange={(e) =>
+                        setNewCustomerData({
+                          ...newCustomerData,
+                          taluka: e.target.value,
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      fullWidth
+                      required
+                      label={tf("district")}
+                      value={newCustomerData.district}
+                      onChange={(e) =>
+                        setNewCustomerData({
+                          ...newCustomerData,
+                          district: e.target.value,
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      fullWidth
+                      select
+                      required
+                      label="State"
+                      value={newCustomerData.state || "Gujarat"}
+                      onChange={(e) =>
+                        setNewCustomerData({
+                          ...newCustomerData,
+                          state: e.target.value,
+                        })
+                      }
+                    >
+                      <MenuItem value="Gujarat">Gujarat</MenuItem>
+                      <MenuItem value="Maharashtra">Maharashtra</MenuItem>
+                      <MenuItem value="Madhya Pradesh">Madhya Pradesh</MenuItem>
+                    </TextField>
+                  </Grid>
+                </>
+              )}
+
+              {/* Sale Date */}
+              <Grid item xs={12} sm={customerMode === "new" ? 12 : 6}>
+                <TextField
+                  fullWidth
+                  type="date"
+                  label={t("sales.date", "Sale Date")}
+                  value={formData.sale_date}
+                  onChange={(e) =>
+                    setFormData({ ...formData, sale_date: e.target.value })
+                  }
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              {/* Aadhar No for New Customer */}
+              {customerMode === "new" && (
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Adhar No"
+                    value={newCustomerData.adhar_no || ""}
+                    onChange={(e) =>
+                      setNewCustomerData({
+                        ...newCustomerData,
+                        adhar_no: e.target.value,
+                      })
+                    }
+                    placeholder="12-digit Aadhar"
+                  />
+                </Grid>
+              )}
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={tf("invoice_no")}
+                  value={formData.invoice_no}
+                  onChange={(e) =>
+                    setFormData({ ...formData, invoice_no: e.target.value })
+                  }
+                  placeholder={t("sales.invoiceNoPlaceholder", "Leave empty for auto-generation")}
+                />
+              </Grid>
+
+              {/* Payment Terms */}
+              <Grid item xs={12}>
+                <Divider sx={{ my: 1 }} />
+                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
+                  Payment Terms
+                </Typography>
+              </Grid>
+
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   select
-                  label={`${t("customers.customerName")} *`}
-                  value={formData.customer_id}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      customer_id: Number(e.target.value),
-                    })
-                  }
+                  label="Payment Type"
+                  value={paymentTerms.type}
+                  onChange={(e) => setPaymentTerms({ ...paymentTerms, type: e.target.value as any })}
                 >
-                  <MenuItem value={0}>
-                    {t("sales.selectCustomer", "Select Sabhasad")}
-                  </MenuItem>
-                  {customers.map((customer) => (
-                    <MenuItem
-                      key={customer.customer_id}
-                      value={customer.customer_id}
-                    >
-                      {customer.name} - {customer.village}
-                    </MenuItem>
-                  ))}
+                  <MenuItem value="on_delivery">On Delivery</MenuItem>
+                  <MenuItem value="after_delivery">After Delivery</MenuItem>
+                  <MenuItem value="advance">Advance Payment</MenuItem>
+                  <MenuItem value="after_days">After X Days</MenuItem>
+                  <MenuItem value="emi">EMI (4 Parts)</MenuItem>
                 </TextField>
               </Grid>
-            )}
 
-            {/* New Customer Form */}
-            {customerMode === "new" && (
-              <>
+              {/* Paid Amount - Visible for 'On Delivery' and 'Advance Payment' */}
+              {(paymentTerms.type === 'on_delivery' || paymentTerms.type === 'advance') && (
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    label={`${t("customers.customerName")} *`}
-                    value={newCustomerData.name}
+                    label="Paid Amount"
+                    type="number"
+                    value={formData.paid_amount}
                     onChange={(e) =>
-                      setNewCustomerData({
-                        ...newCustomerData,
-                        name: e.target.value,
-                      })
+                      setFormData({ ...formData, paid_amount: Number(e.target.value) })
                     }
-                    placeholder={t(
-                      "sales.enterCustomerName",
-                      "Enter Sabhasad name",
-                    )}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label={`${tf("mobile")} *`}
-                    value={newCustomerData.mobile}
-                    onChange={(e) =>
-                      setNewCustomerData({
-                        ...newCustomerData,
-                        mobile: e.target.value,
-                      })
-                    }
-                    placeholder="9876543210"
                     InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">+91</InputAdornment>
-                      ),
+                      startAdornment: <Typography sx={{ mr: 1 }}>₹</Typography>,
                     }}
+                    helperText={paymentTerms.type === 'advance' ? "Enter advance payment amount" : "Enter amount received on delivery"}
                   />
                 </Grid>
-                <Grid item xs={12} sm={4}>
+              )}
+
+              {/* After X Days */}
+              {paymentTerms.type === 'after_days' && (
+                <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    required
-                    label={tf("village")}
-                    value={newCustomerData.village}
-                    onChange={(e) =>
-                      setNewCustomerData({
-                        ...newCustomerData,
-                        village: e.target.value,
-                      })
-                    }
+                    type="number"
+                    label="Payment Due After (Days)"
+                    value={paymentTerms.days}
+                    onChange={(e) => setPaymentTerms({ ...paymentTerms, days: Number(e.target.value) })}
+                    inputProps={{ min: 0 }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={4}>
-                  <TextField
-                    fullWidth
-                    required
-                    label={tf("taluka")}
-                    value={newCustomerData.taluka}
-                    onChange={(e) =>
-                      setNewCustomerData({
-                        ...newCustomerData,
-                        taluka: e.target.value,
-                      })
-                    }
-                  />
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <TextField
-                    fullWidth
-                    required
-                    label={tf("district")}
-                    value={newCustomerData.district}
-                    onChange={(e) =>
-                      setNewCustomerData({
-                        ...newCustomerData,
-                        district: e.target.value,
-                      })
-                    }
-                  />
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <TextField
-                    fullWidth
-                    select
-                    required
-                    label="State"
-                    value={newCustomerData.state || "Gujarat"}
-                    onChange={(e) =>
-                      setNewCustomerData({
-                        ...newCustomerData,
-                        state: e.target.value,
-                      })
-                    }
-                  >
-                    <MenuItem value="Gujarat">Gujarat</MenuItem>
-                    <MenuItem value="Maharashtra">Maharashtra</MenuItem>
-                    <MenuItem value="Madhya Pradesh">Madhya Pradesh</MenuItem>
-                  </TextField>
-                </Grid>
-              </>
-            )}
+              )}
 
-            {/* Sale Date */}
-            <Grid item xs={12} sm={customerMode === "new" ? 12 : 6}>
-              <TextField
-                fullWidth
-                type="date"
-                label={t("sales.date", "Sale Date")}
-                value={formData.sale_date}
-                onChange={(e) =>
-                  setFormData({ ...formData, sale_date: e.target.value })
-                }
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            {/* Aadhar No for New Customer */}
-            {customerMode === "new" && (
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Adhar No"
-                  value={newCustomerData.adhar_no || ""}
-                  onChange={(e) =>
-                    setNewCustomerData({
-                      ...newCustomerData,
-                      adhar_no: e.target.value,
-                    })
-                  }
-                  placeholder="12-digit Aadhar"
-                />
-              </Grid>
-            )}
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label={tf("invoice_no")}
-                value={formData.invoice_no}
-                onChange={(e) =>
-                  setFormData({ ...formData, invoice_no: e.target.value })
-                }
-                placeholder={t("sales.invoiceNoPlaceholder", "Leave empty for auto-generation")}
-              />
-            </Grid>
-
-            {/* Payment Terms */}
-            <Grid item xs={12}>
-              <Divider sx={{ my: 1 }} />
-              <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                Payment Terms
-              </Typography>
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                select
-                label="Payment Type"
-                value={paymentTerms.type}
-                onChange={(e) => setPaymentTerms({ ...paymentTerms, type: e.target.value as any })}
-              >
-                <MenuItem value="on_delivery">On Delivery</MenuItem>
-                <MenuItem value="after_delivery">After Delivery</MenuItem>
-                <MenuItem value="advance">Advance Payment</MenuItem>
-                <MenuItem value="after_days">After X Days</MenuItem>
-                <MenuItem value="emi">EMI (4 Parts)</MenuItem>
-              </TextField>
-            </Grid>
-
-            {/* Paid Amount - Visible for 'On Delivery' and 'Advance Payment' */}
-            {(paymentTerms.type === 'on_delivery' || paymentTerms.type === 'advance') && (
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Paid Amount"
-                  type="number"
-                  value={formData.paid_amount}
-                  onChange={(e) =>
-                    setFormData({ ...formData, paid_amount: Number(e.target.value) })
-                  }
-                  InputProps={{
-                    startAdornment: <Typography sx={{ mr: 1 }}>₹</Typography>,
-                  }}
-                  helperText={paymentTerms.type === 'advance' ? "Enter advance payment amount" : "Enter amount received on delivery"}
-                />
-              </Grid>
-            )}
-
-            {/* After X Days */}
-            {paymentTerms.type === 'after_days' && (
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  type="number"
-                  label="Payment Due After (Days)"
-                  value={paymentTerms.days}
-                  onChange={(e) => setPaymentTerms({ ...paymentTerms, days: Number(e.target.value) })}
-                  inputProps={{ min: 0 }}
-                />
-              </Grid>
-            )}
-
-            {/* EMI Configuration */}
-            {paymentTerms.type === 'emi' && (
-              <>
-                {paymentTerms.emiParts.map((part, idx) => (
-                  <Grid item xs={12} sm={6} key={idx}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label={`Part ${part.part} - Due After (Days)`}
-                      value={part.days}
-                      onChange={(e) => {
-                        const newParts = [...paymentTerms.emiParts];
-                        newParts[idx] = { ...newParts[idx], days: Number(e.target.value) };
-                        setPaymentTerms({ ...paymentTerms, emiParts: newParts });
-                      }}
-                      inputProps={{ min: 0 }}
-                      helperText={`${part.percentage}% of total amount`}
-                    />
-                  </Grid>
-                ))}
-              </>
-            )}
-            <Grid item xs={12}>
-              <Divider sx={{ my: 2 }} />
-              <Box
-                sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}
-              >
-                <Typography variant="h6">
-                  {t("sales.itemsTitle", "Sale Items")}
-                </Typography>
-                <Button
-                  startIcon={<AddIcon />}
-                  onClick={handleAddItem}
-                  size="small"
-                >
-                  {t("sales.addItem", "Add Item")}
-                </Button>
-              </Box>
-            </Grid>
-            {items.map((item, index) => (
-              <Grid item xs={12} key={index}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} sm={5}>
-                        <TextField
-                          fullWidth
-                          select
-                          size="small"
-                          label={t("sales.product", "Product")}
-                          value={item.product_id || 0}
-                          onChange={(e) =>
-                            handleItemChange(
-                              index,
-                              "product_id",
-                              Number(e.target.value),
-                            )
-                          }
-                        >
-                          <MenuItem value={0}>
-                            {t("sales.selectProduct", "Select Product")}
-                          </MenuItem>
-                          {products.map((product) => (
-                            <MenuItem
-                              key={product.product_id}
-                              value={product.product_id}
-                            >
-                              {product.product_name}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      </Grid>
-                      <Grid item xs={12} sm={2}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          type="number"
-                          label={tf("quantity")}
-                          value={item.quantity}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            // Just use Number() which handles "01" -> 1. 
-                            // If the issue persists, the browser might be masking the update.
-                            // But let's act on the user's string directly to be sure.
-                            handleItemChange(
-                              index,
-                              "quantity",
-                              Number(val),
-                            )
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} sm={2}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          type="number"
-                          label={t("sales.rate", "Rate")}
-                          value={item.rate}
-                          onChange={(e) =>
-                            handleItemChange(
-                              index,
-                              "rate",
-                              Number(e.target.value),
-                            )
-                          }
-                        />
-                      </Grid>
-                      <Grid item xs={12} sm={2}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label={tf("amount")}
-                          value={item.amount || 0}
-                          InputProps={{
-                            readOnly: true,
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} sm={1}>
-                        <IconButton
-                          color="error"
-                          onClick={() => handleRemoveItem(index)}
-                          disabled={items.length === 1}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Grid>
+              {/* EMI Configuration */}
+              {paymentTerms.type === 'emi' && (
+                <>
+                  {paymentTerms.emiParts.map((part, idx) => (
+                    <Grid item xs={12} sm={6} key={idx}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label={`Part ${part.part} - Due After (Days)`}
+                        value={part.days}
+                        onChange={(e) => {
+                          const newParts = [...paymentTerms.emiParts];
+                          newParts[idx] = { ...newParts[idx], days: Number(e.target.value) };
+                          setPaymentTerms({ ...paymentTerms, emiParts: newParts });
+                        }}
+                        inputProps={{ min: 0 }}
+                        helperText={`${part.percentage}% of total amount`}
+                      />
                     </Grid>
-                  </CardContent>
-                </Card>
+                  ))}
+                </>
+              )}
+              <Grid item xs={12}>
+                <Divider sx={{ my: 2 }} />
+                <Box
+                  sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}
+                >
+                  <Typography variant="h6">
+                    {t("sales.itemsTitle", "Sale Items")}
+                  </Typography>
+                  <Button
+                    startIcon={<AddIcon />}
+                    onClick={handleAddItem}
+                    size="small"
+                  >
+                    {t("sales.addItem", "Add Item")}
+                  </Button>
+                </Box>
               </Grid>
-            ))}
-            <Grid item xs={12}>
-              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
-                <Typography variant="h6">
-                  {t("dashboard.amount")}: ₹{getTotalAmount().toLocaleString()}
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                multiline
-                rows={3}
-                label={tf("notes")}
-                value={formData.notes}
-                onChange={(e) =>
-                  setFormData({ ...formData, notes: e.target.value })
-                }
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>{t("common.cancel")}</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            {t("sales.addSale")}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Invoice Download Dialog */}
-      <Dialog
-        open={openInvoiceDialog}
-        onClose={() => setOpenInvoiceDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <CheckCircleIcon sx={{ color: "success.main", fontSize: 32 }} />
-            <Typography variant="h6">Sale Created Successfully!</Typography>
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            Would you like to download the invoice PDF for this sale?
-          </Typography>
-          {error && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {error}
-            </Alert>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setOpenInvoiceDialog(false);
-              setCreatedSaleId(null);
-            }}
-            disabled={downloadingPDF}
-          >
-            Skip
-          </Button>
-          <Button
-            onClick={async () => {
-              try {
-                setDownloadingPDF(true);
-                setError(null);
-
-                const API_BASE_URL =
-                  import.meta.env.VITE_API_BASE_URL ||
-                  "http://127.0.0.1:8000";
-
-                const response = await fetch(
-                  `${API_BASE_URL}/api/sales/${createdSaleId}/invoice-pdf`,
-                  {
-                    headers: {
-                      "x-user-email": "admin@gmail.com",
-                    },
+              {items.map((item, index) => (
+                <Grid item xs={12} key={index}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={5}>
+                          <TextField
+                            fullWidth
+                            select
+                            size="small"
+                            label={t("sales.product", "Product")}
+                            value={item.product_id || 0}
+                            onChange={(e) =>
+                              handleItemChange(
+                                index,
+                                "product_id",
+                                Number(e.target.value),
+                              )
+                            }
+                          >
+                            <MenuItem value={0}>
+                              {t("sales.selectProduct", "Select Product")}
+                            </MenuItem>
+                            {products.map((product) => (
+                              <MenuItem
+                                key={product.product_id}
+                                value={product.product_id}
+                              >
+                                {product.product_name}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+                        </Grid>
+                        <Grid item xs={12} sm={2}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            type="number"
+                            label={tf("quantity")}
+                            value={item.quantity}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              // Just use Number() which handles "01" -> 1. 
+                              // If the issue persists, the browser might be masking the update.
+                              // But let's act on the user's string directly to be sure.
+                              handleItemChange(
+                                index,
+                                "quantity",
+                                Number(val),
+                              )
+                            }}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={2}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            type="number"
+                            label={t("sales.rate", "Rate")}
+                            value={item.rate}
+                            onChange={(e) =>
+                              handleItemChange(
+                                index,
+                                "rate",
+                                Number(e.target.value),
+                              )
+                            }
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={2}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label={tf("amount")}
+                            value={item.amount || 0}
+                            InputProps={{
+                              readOnly: true,
+                            }}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={1}>
+                          <IconButton
+                            color="error"
+                            onClick={() => handleRemoveItem(index)}
+                            disabled={items.length === 1}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+              <Grid item xs={12}>
+                <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+                  <Typography variant="h6">
+                    {t("dashboard.amount")}: ₹{getTotalAmount().toLocaleString()}
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={3}
+                  label={tf("notes")}
+                  value={formData.notes}
+                  onChange={(e) =>
+                    setFormData({ ...formData, notes: e.target.value })
                   }
-                );
+                />
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDialog}>{t("common.cancel")}</Button>
+            <Button onClick={handleSubmit} variant="contained">
+              {t("sales.addSale")}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
-                if (!response.ok) {
-                  throw new Error("Failed to generate PDF");
-                }
-
-                // Create blob from response
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `invoice_${createdSaleId}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-
-                // Close dialog after successful download
+        {/* Invoice Download Dialog */}
+        <Dialog
+          open={openInvoiceDialog}
+          onClose={() => setOpenInvoiceDialog(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <CheckCircleIcon sx={{ color: "success.main", fontSize: 32 }} />
+              <Typography variant="h6">Sale Created Successfully!</Typography>
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              Would you like to download the invoice PDF for this sale?
+            </Typography>
+            {error && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {error}
+              </Alert>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => {
                 setOpenInvoiceDialog(false);
                 setCreatedSaleId(null);
-              } catch (err: any) {
-                console.error("Error downloading PDF:", err);
-                setError("Failed to download invoice PDF. Please try again.");
-              } finally {
-                setDownloadingPDF(false);
+              }}
+              disabled={downloadingPDF}
+            >
+              Skip
+            </Button>
+            <Button
+              onClick={async () => {
+                try {
+                  setDownloadingPDF(true);
+                  setError(null);
+
+                  const API_BASE_URL =
+                    import.meta.env.VITE_API_BASE_URL ||
+                    "http://127.0.0.1:8000";
+
+                  const response = await fetch(
+                    `${API_BASE_URL}/api/sales/${createdSaleId}/invoice-pdf`,
+                    {
+                      headers: {
+                        "x-user-email": "admin@gmail.com",
+                      },
+                    }
+                  );
+
+                  if (!response.ok) {
+                    throw new Error("Failed to generate PDF");
+                  }
+
+                  // Create blob from response
+                  const blob = await response.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `invoice_${createdSaleId}.pdf`;
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  document.body.removeChild(a);
+
+                  // Close dialog after successful download
+                  setOpenInvoiceDialog(false);
+                  setCreatedSaleId(null);
+                } catch (err: any) {
+                  console.error("Error downloading PDF:", err);
+                  setError("Failed to download invoice PDF. Please try again.");
+                } finally {
+                  setDownloadingPDF(false);
+                }
+              }}
+              variant="contained"
+              startIcon={
+                downloadingPDF ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  <DownloadIcon />
+                )
               }
-            }}
-            variant="contained"
-            startIcon={
-              downloadingPDF ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                <DownloadIcon />
-              )
-            }
-            disabled={downloadingPDF}
-          >
-            {downloadingPDF ? "Downloading..." : "Download PDF"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box >
+              disabled={downloadingPDF}
+            >
+              {downloadingPDF ? "Downloading..." : "Download PDF"}
+            </Button>
+          </DialogActions>
+        </Dialog>
+        <PermissionToast state={toastState} onClose={closeToast} />
+      </Box>
+    </PermissionGate>
   );
 }

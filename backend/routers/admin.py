@@ -8,7 +8,7 @@ from typing import List, Optional
 
 from activity_logger import get_activity_logger
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from supabase_db import SupabaseClient, get_db, get_supabase
+from supabase_db import SupabaseClient, get_db
 from models import UserCreate
 from rbac_utils import verify_admin_role, verify_permission
 
@@ -572,26 +572,29 @@ def create_user(
     db: SupabaseClient = Depends(get_db),
 ):
     """
-    Create a new user with a specific role
-    Only accessible by admin users
+    Create a new user with a specific role.
+    Only accessible by admin users.
     """
     try:
-        # Use Supabase Admin API to create user
-        supabase = get_supabase()
-        
-        # Create user in Supabase Auth
-        result = supabase.auth.admin.create_user({
+        # Use the official supabase-py client (has .auth.admin) — NOT our custom REST client
+        from supabase_db import get_supabase_admin
+        supabase_admin = get_supabase_admin()
+
+        # Create user in Supabase Auth using the Admin API
+        result = supabase_admin.auth.admin.create_user({
             "email": user.email,
             "password": user.password,
             "email_confirm": True,
             "user_metadata": {"role": user.role}
         })
-        
-        if not result:
-            raise HTTPException(status_code=500, detail="Failed to create user")
 
-        # Also register in app_users table (source of truth for RBAC)
+        if not result or not result.user:
+            raise HTTPException(status_code=500, detail="Failed to create user in Supabase Auth")
+
+        # Look up the role_key in the roles table so we store the canonical key
         normalized_role = user.role.lower().replace(" ", "_")
+
+        # Register in app_users table (source of truth for RBAC)
         try:
             db.table("app_users").insert({
                 "email": user.email,
@@ -612,9 +615,11 @@ def create_user(
             entity_id=None,
             metadata={"new_user_email": user.email, "role": user.role}
         )
-        
+
         return {"message": "User created successfully", "user": {"email": user.email, "role": user.role}}
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Error creating user: {e}")
         raise HTTPException(status_code=500, detail=str(e))

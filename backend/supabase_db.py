@@ -584,10 +584,20 @@ def print_migration_instructions():
 
 
 def get_supabase_admin() -> Client:
-    """Return an authenticated Supabase client for admin operations"""
-    # Prefer service role key for admin ops if available, otherwise fallback to anon key
-    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or SUPABASE_KEY
-    return create_client(SUPABASE_URL, key)
+    """
+    Return an authenticated Supabase client for admin operations.
+    Requires SUPABASE_SERVICE_ROLE_KEY — the service role key from your Supabase project
+    (Settings → API → service_role key). This is different from the anon key.
+    The service role key bypasses Row Level Security and can call auth.admin APIs.
+    """
+    service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    if not service_key:
+        raise ValueError(
+            "SUPABASE_SERVICE_ROLE_KEY is not set in .env. "
+            "Go to your Supabase project → Settings → API → copy the 'service_role' key "
+            "and add it as SUPABASE_SERVICE_ROLE_KEY=<key> in the backend .env file."
+        )
+    return create_client(SUPABASE_URL, service_key)
 
 
 if __name__ == "__main__":

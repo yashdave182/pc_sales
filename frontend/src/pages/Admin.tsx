@@ -85,15 +85,23 @@ export default function Admin() {
   const [creatingUser, setCreatingUser] = useState(false);
   const [creationSuccess, setCreationSuccess] = useState<string | null>(null);
 
-  const roles = [
-    "Sales Manager",
-    "Logistics Manager",
-    "Telecaller",
-    "Marketing Manager",
-    "Business Analyst",
-    "Product Manager",
-    "Developer",
-  ];
+  // Roles fetched from DB — includes custom roles
+  const [roles, setRoles] = useState<{ role_key: string; display_name: string }[]>([]);
+
+  // Fetch all roles from DB on mount
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/rbac/roles`, {
+          headers: { "x-user-email": user?.email || "" },
+        });
+        setRoles(response.data || []);
+      } catch (err) {
+        console.error("Failed to fetch roles:", err);
+      }
+    };
+    if (user?.email) fetchRoles();
+  }, [user?.email]);
 
   // Check if user is admin
   useEffect(() => {
@@ -315,11 +323,15 @@ export default function Admin() {
                   label="Role"
                   onChange={(e) => setNewUserRole(e.target.value)}
                 >
-                  {roles.map((role) => (
-                    <MenuItem key={role} value={role}>
-                      {role}
-                    </MenuItem>
-                  ))}
+                  {roles.length === 0 ? (
+                    <MenuItem disabled>Loading roles...</MenuItem>
+                  ) : (
+                    roles.map((role) => (
+                      <MenuItem key={role.role_key} value={role.role_key}>
+                        {role.display_name}
+                      </MenuItem>
+                    ))
+                  )}
                 </Select>
               </FormControl>
             </Grid>

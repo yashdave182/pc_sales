@@ -198,6 +198,17 @@ def load_and_process(file_bytes: bytes):
         df.columns[20]: 'CURRENT_BUSINESS',
     }
     df = df.rename(columns=col_map)
+
+    # Remove any rows that look like repeated column headers
+    # (e.g. SR_NO = "SR NO", VILLAGE = "VILLAGE", etc.)
+    header_keywords = {'sr no', 'sr_no', 'sr. no', 'village', 'mantri name', 'taluka', 'district'}
+    def is_header_row(row):
+        val = str(row.get('SR_NO', '')).strip().lower()
+        village = str(row.get('VILLAGE', '')).strip().lower()
+        return val in header_keywords or village in header_keywords
+    header_mask = df.apply(is_header_row, axis=1)
+    df = df[~header_mask].reset_index(drop=True)
+
     total_raw = len(df)
 
     # Drop incomplete rows

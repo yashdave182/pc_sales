@@ -520,6 +520,25 @@ export const notificationsAPI = {
   },
 };
 
+// Algorithm API
+export const algorithmAPI = {
+  run: async (file?: File, useSample: boolean = false) => {
+    if (useSample) {
+      const response = await apiClient.post('/api/algorithm/run?use_sample=true', undefined, {
+        timeout: 60000,
+      });
+      return response.data;
+    }
+    const formData = new FormData();
+    if (file) formData.append('file', file);
+    const response = await apiClient.post('/api/algorithm/run', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000,
+    });
+    return response.data;
+  },
+};
+
 // Helper to set user email for requests
 export const setUserEmail = (email: string) => {
   localStorage.setItem("user_email", email);

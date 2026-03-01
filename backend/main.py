@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import (
     admin,
+    algorithm,
     analytics,
     automation,
     customers,
@@ -61,6 +62,7 @@ app.include_router(dashboard, prefix="/api/dashboard")
 app.include_router(reports, prefix="/api/reports")
 app.include_router(analytics, prefix="/api/analytics")
 app.include_router(admin, prefix="/api/admin")
+app.include_router(algorithm, prefix="/api/algorithm")
 app.include_router(imports, prefix="/api/imports")
 app.include_router(automation, prefix="/api/automation")
 app.include_router(notifications, prefix="/api/notifications")

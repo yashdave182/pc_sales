@@ -56,6 +56,7 @@ export const PERMISSIONS = {
 
     // System
     FULL_ACCESS: 'full_access', // Developer
+    RUN_ALGORITHM: 'run_algorithm', // Sales Manager, Business Analyst, Admin
 } as const;
 
 export const ROLE_PERMISSIONS: Record<UserRole | string, Permission[]> = {
@@ -75,6 +76,7 @@ export const ROLE_PERMISSIONS: Record<UserRole | string, Permission[]> = {
         PERMISSIONS.VIEW_ORDERS, // Can view order status
         PERMISSIONS.VIEW_DISTRIBUTORS,
         PERMISSIONS.VIEW_ALL_ANALYSIS, // Restore access to reports
+        PERMISSIONS.RUN_ALGORITHM, // Can run Mantri scoring algorithm
     ],
 
     [UserRole.LOGISTICS_MANAGER]: [
@@ -120,6 +122,7 @@ export const ROLE_PERMISSIONS: Record<UserRole | string, Permission[]> = {
         PERMISSIONS.PREDICTION_ANALYSIS,
         PERMISSIONS.VIEW_SALES,
         PERMISSIONS.VIEW_CUSTOMERS,
+        PERMISSIONS.RUN_ALGORITHM,
     ],
 
     [UserRole.PRODUCT_MANAGER]: [

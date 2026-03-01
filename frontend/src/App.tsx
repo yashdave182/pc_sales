@@ -25,6 +25,7 @@ import DataImport from "./pages/DataImport";
 import CallingList from "./pages/CallingList";
 import OrderManagement from "./pages/OrderManagement";
 import Admin from "./pages/Admin";
+import Algorithm from "./pages/Algorithm";
 import ProductPricing from "./pages/ProductPricing";
 import Notifications from "./pages/Notifications";
 import { createAppTheme } from "./theme/theme";
@@ -195,6 +196,17 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.ADMIN_ACCESS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <ProductPricing />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/algorithm"
+                  element={
+                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_ALL_ANALYSIS}>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <Algorithm />
                         <QuickActions />
                       </Layout>
                     </ProtectedRoute>

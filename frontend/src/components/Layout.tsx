@@ -136,6 +136,13 @@ const navigationItems: NavItem[] = [
     permission: PERMISSIONS.VIEW_CALLING_LIST,
   },
   {
+    id: "algorithm",
+    labelKey: "nav.algorithm",
+    icon: <ScienceIcon />,
+    path: "/algorithm",
+    permission: PERMISSIONS.VIEW_ALL_ANALYSIS,
+  },
+  {
     id: "import",
     labelKey: "nav.import",
     icon: <CloudUploadIcon />,

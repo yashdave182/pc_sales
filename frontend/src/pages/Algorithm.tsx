@@ -319,179 +319,152 @@ export default function Algorithm() {
             {/* ── Results Table ── */}
             {result && result.rows.length > 0 && (
                 <Paper sx={{ borderRadius: 3, overflow: 'hidden', mb: 3 }}>
-                    <Box sx={{ position: 'relative', display: 'flex' }}>
-                        {/* Scrollable Left Section */}
-                        <TableContainer
-                            sx={{
-                                maxHeight: 600,
-                                flex: 1,
-                                overflowX: 'auto',
-                                mr: `${stickyTotalWidth}px`,
-                            }}
-                        >
-                            <Table stickyHeader size="small">
-                                <TableHead>
-                                    <TableRow>
-                                        {ORIGINAL_COLUMNS.map((col) => (
-                                            <TableCell
-                                                key={col.key}
-                                                sx={{
-                                                    fontWeight: 700,
-                                                    fontSize: '0.75rem',
-                                                    minWidth: col.width,
-                                                    bgcolor: theme.palette.mode === 'dark' ? '#1a237e' : '#2C4770',
-                                                    color: '#fff',
-                                                    whiteSpace: 'nowrap',
-                                                    borderRight: `1px solid ${alpha('#fff', 0.1)}`,
-                                                }}
-                                            >
-                                                {col.label}
-                                            </TableCell>
-                                        ))}
-                                        {SCORE_COLUMNS.map((col) => (
-                                            <TableCell
-                                                key={col.key}
-                                                sx={{
-                                                    fontWeight: 700,
-                                                    fontSize: '0.75rem',
-                                                    minWidth: col.width,
-                                                    bgcolor: theme.palette.mode === 'dark' ? '#283593' : '#D6E4FF',
-                                                    color: theme.palette.mode === 'dark' ? '#fff' : '#1F3864',
-                                                    whiteSpace: 'nowrap',
-                                                    borderRight: `1px solid ${alpha('#000', 0.1)}`,
-                                                    textAlign: 'center',
-                                                }}
-                                            >
-                                                {col.label}
-                                            </TableCell>
-                                        ))}
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {result.rows.map((row, i) => {
-                                        const priority = getPriorityColor(String(row.PRIORITY_LABEL || ''));
-                                        const isAlt = i % 2 === 0;
-                                        const rowBg = isAlt
-                                            ? (theme.palette.mode === 'dark' ? alpha('#fff', 0.02) : '#F8FAFF')
-                                            : 'transparent';
+                    <TableContainer sx={{ maxHeight: 600, overflow: 'auto' }}>
+                        <Table stickyHeader size="small" sx={{ minWidth: 2200 }}>
+                            <TableHead>
+                                <TableRow>
+                                    {ORIGINAL_COLUMNS.map((col) => (
+                                        <TableCell
+                                            key={col.key}
+                                            sx={{
+                                                fontWeight: 700,
+                                                fontSize: '0.75rem',
+                                                minWidth: col.width,
+                                                bgcolor: theme.palette.mode === 'dark' ? '#1a237e' : '#2C4770',
+                                                color: '#fff',
+                                                whiteSpace: 'nowrap',
+                                                borderRight: `1px solid ${alpha('#fff', 0.1)}`,
+                                            }}
+                                        >
+                                            {col.label}
+                                        </TableCell>
+                                    ))}
+                                    {SCORE_COLUMNS.map((col) => (
+                                        <TableCell
+                                            key={col.key}
+                                            sx={{
+                                                fontWeight: 700,
+                                                fontSize: '0.75rem',
+                                                minWidth: col.width,
+                                                bgcolor: theme.palette.mode === 'dark' ? '#283593' : '#D6E4FF',
+                                                color: theme.palette.mode === 'dark' ? '#fff' : '#1F3864',
+                                                whiteSpace: 'nowrap',
+                                                borderRight: `1px solid ${alpha('#000', 0.1)}`,
+                                                textAlign: 'center',
+                                            }}
+                                        >
+                                            {col.label}
+                                        </TableCell>
+                                    ))}
+                                    {/* Sticky score header cells */}
+                                    {STICKY_COLUMNS.map((col, idx) => {
+                                        const rightOffset = STICKY_COLUMNS.slice(idx + 1).reduce((s, c) => s + c.width, 0);
                                         return (
-                                            <TableRow key={i} hover sx={{ bgcolor: rowBg }}>
-                                                {ORIGINAL_COLUMNS.map((col) => (
-                                                    <TableCell
-                                                        key={col.key}
-                                                        sx={{
-                                                            fontSize: '0.8rem',
-                                                            whiteSpace: 'nowrap',
-                                                            borderRight: `1px solid ${alpha('#000', 0.05)}`,
-                                                        }}
-                                                    >
-                                                        {row[col.key] ?? ''}
-                                                    </TableCell>
-                                                ))}
-                                                {SCORE_COLUMNS.map((col) => (
-                                                    <TableCell
-                                                        key={col.key}
-                                                        sx={{
-                                                            fontSize: '0.8rem',
-                                                            textAlign: 'center',
-                                                            fontWeight: 500,
-                                                            borderRight: `1px solid ${alpha('#000', 0.05)}`,
-                                                        }}
-                                                    >
-                                                        {row[col.key] ?? ''}
-                                                    </TableCell>
-                                                ))}
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-
-                        {/* Sticky Right Section */}
-                        <Box
-                            sx={{
-                                position: 'absolute',
-                                right: 0,
-                                top: 0,
-                                bottom: 0,
-                                width: stickyTotalWidth,
-                                bgcolor: theme.palette.background.paper,
-                                borderLeft: `3px solid ${theme.palette.primary.main}`,
-                                boxShadow: '-4px 0 12px rgba(0,0,0,0.08)',
-                                zIndex: 10,
-                                overflow: 'auto',
-                                maxHeight: 600,
-                            }}
-                        >
-                            <Table stickyHeader size="small">
-                                <TableHead>
-                                    <TableRow>
-                                        {STICKY_COLUMNS.map((col) => (
                                             <TableCell
                                                 key={col.key}
                                                 sx={{
                                                     fontWeight: 800,
                                                     fontSize: '0.75rem',
                                                     minWidth: col.width,
+                                                    width: col.width,
                                                     bgcolor: theme.palette.mode === 'dark' ? '#b71c1c' : '#764ba2',
                                                     color: '#fff',
                                                     whiteSpace: 'nowrap',
                                                     textAlign: 'center',
-                                                    borderRight: `1px solid ${alpha('#fff', 0.2)}`,
+                                                    position: 'sticky',
+                                                    right: rightOffset,
+                                                    zIndex: 12,
+                                                    borderLeft: idx === 0 ? `3px solid ${theme.palette.primary.main}` : 'none',
+                                                    boxShadow: idx === 0 ? '-4px 0 12px rgba(0,0,0,0.08)' : 'none',
                                                 }}
                                             >
                                                 {col.label}
                                             </TableCell>
-                                        ))}
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {result.rows.map((row, i) => {
-                                        const priority = getPriorityColor(String(row.PRIORITY_LABEL || ''));
-                                        const isAlt = i % 2 === 0;
-                                        const rowBg = isAlt
-                                            ? (theme.palette.mode === 'dark' ? alpha('#fff', 0.02) : '#F8FAFF')
-                                            : 'transparent';
-                                        return (
-                                            <TableRow key={i} sx={{ bgcolor: rowBg }}>
-                                                {/* Rank */}
-                                                <TableCell sx={{ textAlign: 'center', fontWeight: 700, fontSize: '0.85rem' }}>
-                                                    {row.PRIORITY_RANK}
-                                                </TableCell>
-                                                {/* Priority Label */}
-                                                <TableCell sx={{ textAlign: 'center', p: 0.5 }}>
-                                                    <Chip
-                                                        label={`${priority.emoji} ${row.PRIORITY_LABEL}`}
-                                                        size="small"
-                                                        sx={{
-                                                            bgcolor: priority.bg,
-                                                            color: priority.fg,
-                                                            fontWeight: 700,
-                                                            fontSize: '0.7rem',
-                                                            height: 24,
-                                                        }}
-                                                    />
-                                                </TableCell>
-                                                {/* Total Score */}
-                                                <TableCell
-                                                    sx={{
-                                                        textAlign: 'center',
-                                                        fontWeight: 800,
-                                                        fontSize: '1rem',
-                                                        color: priority.fg,
-                                                        bgcolor: alpha(priority.fg, 0.06),
-                                                    }}
-                                                >
-                                                    {row.TOTAL_SCORE}
-                                                </TableCell>
-                                            </TableRow>
                                         );
                                     })}
-                                </TableBody>
-                            </Table>
-                        </Box>
-                    </Box>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {result.rows.map((row, i) => {
+                                    const priority = getPriorityColor(String(row.PRIORITY_LABEL || ''));
+                                    const isAlt = i % 2 === 0;
+                                    const rowBg = isAlt
+                                        ? (theme.palette.mode === 'dark' ? '#1e1e2e' : '#F8FAFF')
+                                        : (theme.palette.mode === 'dark' ? '#121212' : '#ffffff');
+                                    return (
+                                        <TableRow key={i} hover sx={{ bgcolor: rowBg }}>
+                                            {ORIGINAL_COLUMNS.map((col) => (
+                                                <TableCell
+                                                    key={col.key}
+                                                    sx={{
+                                                        fontSize: '0.8rem',
+                                                        whiteSpace: 'nowrap',
+                                                        borderRight: `1px solid ${alpha('#000', 0.05)}`,
+                                                    }}
+                                                >
+                                                    {row[col.key] ?? ''}
+                                                </TableCell>
+                                            ))}
+                                            {SCORE_COLUMNS.map((col) => (
+                                                <TableCell
+                                                    key={col.key}
+                                                    sx={{
+                                                        fontSize: '0.8rem',
+                                                        textAlign: 'center',
+                                                        fontWeight: 500,
+                                                        borderRight: `1px solid ${alpha('#000', 0.05)}`,
+                                                    }}
+                                                >
+                                                    {row[col.key] ?? ''}
+                                                </TableCell>
+                                            ))}
+                                            {/* Sticky score data cells */}
+                                            {STICKY_COLUMNS.map((col, idx) => {
+                                                const rightOffset = STICKY_COLUMNS.slice(idx + 1).reduce((s, c) => s + c.width, 0);
+                                                const isRank = col.key === 'PRIORITY_RANK';
+                                                const isLabel = col.key === 'PRIORITY_LABEL';
+                                                const isScore = col.key === 'TOTAL_SCORE';
+                                                return (
+                                                    <TableCell
+                                                        key={col.key}
+                                                        sx={{
+                                                            position: 'sticky',
+                                                            right: rightOffset,
+                                                            zIndex: 5,
+                                                            backgroundColor: rowBg + ' !important',
+                                                            textAlign: 'center',
+                                                            fontWeight: isRank || isScore ? 800 : 400,
+                                                            fontSize: isScore ? '1rem' : '0.85rem',
+                                                            color: isScore ? priority.fg : 'inherit',
+                                                            borderLeft: idx === 0 ? `3px solid ${theme.palette.primary.main}` : 'none',
+                                                            boxShadow: idx === 0 ? '-4px 0 12px rgba(0,0,0,0.08)' : 'none',
+                                                            p: isLabel ? 0.5 : undefined,
+                                                        }}
+                                                    >
+                                                        {isLabel ? (
+                                                            <Chip
+                                                                label={`${priority.emoji} ${row.PRIORITY_LABEL}`}
+                                                                size="small"
+                                                                sx={{
+                                                                    bgcolor: priority.bg,
+                                                                    color: priority.fg,
+                                                                    fontWeight: 700,
+                                                                    fontSize: '0.7rem',
+                                                                    height: 24,
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            row[col.key] ?? ''
+                                                        )}
+                                                    </TableCell>
+                                                );
+                                            })}
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
                 </Paper>
             )}
 

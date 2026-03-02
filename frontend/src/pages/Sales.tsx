@@ -42,14 +42,11 @@ import type { Sale, Customer, Product, SaleItem } from "../types";
 
 import { useTranslation } from "../hooks/useTranslation";
 import PermissionGate from "../components/PermissionGate";
-import { usePermissionAction } from "../hooks/usePermissionAction";
-import PermissionToast from "../components/PermissionToast";
 import { PERMISSIONS } from "../config/permissions";
 
 export default function Sales() {
   const { t, tf } = useTranslation();
   const navigate = useNavigate();
-  const { guard, toastState, closeToast } = usePermissionAction();
   const [sales, setSales] = useState<Sale[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -586,11 +583,11 @@ export default function Sales() {
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-              <PermissionGate permission={PERMISSIONS.CREATE_SALE} block permissionLabel="create sales">
+              <PermissionGate permission={PERMISSIONS.CREATE_SALE}>
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
-                  onClick={guard(handleOpenDialog, PERMISSIONS.CREATE_SALE, "create sales")}
+                  onClick={handleOpenDialog}
                   size="large"
                 >
                   {t("sales.addSale")}
@@ -1186,7 +1183,6 @@ export default function Sales() {
             </Button>
           </DialogActions>
         </Dialog>
-        <PermissionToast state={toastState} onClose={closeToast} />
       </Box>
     </PermissionGate>
   );

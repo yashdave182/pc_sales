@@ -22,13 +22,10 @@ import type { Demo } from "../types";
 import DemoDialog from "../components/DemoDialog";
 import { useTranslation } from "../hooks/useTranslation";
 import PermissionGate from "../components/PermissionGate";
-import { usePermissionAction } from "../hooks/usePermissionAction";
-import PermissionToast from "../components/PermissionToast";
 import { PERMISSIONS } from "../config/permissions";
 
 export default function Demos() {
   const { t, tf } = useTranslation();
-  const { guard, toastState, closeToast } = usePermissionAction();
   const [demos, setDemos] = useState<Demo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -133,11 +130,11 @@ export default function Demos() {
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-              <PermissionGate permission={PERMISSIONS.SCHEDULE_DEMO} block permissionLabel="schedule demo">
+              <PermissionGate permission={PERMISSIONS.SCHEDULE_DEMO}>
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
-                  onClick={guard(() => setDialogOpen(true), PERMISSIONS.SCHEDULE_DEMO, "schedule demo")}
+                  onClick={() => setDialogOpen(true)}
                 >
                   {t("demos.addDemo")}
                 </Button>
@@ -180,7 +177,6 @@ export default function Demos() {
             </Box>
           </CardContent>
         </Card>
-        <PermissionToast state={toastState} onClose={closeToast} />
       </Box>
     </PermissionGate>
   );

@@ -52,8 +52,6 @@ import {
 import PermissionGate from "../components/PermissionGate";
 import { useAuth } from "../contexts/AuthContext";
 import { PERMISSIONS } from "../config/permissions";
-import { usePermissionAction } from "../hooks/usePermissionAction";
-import PermissionToast from "../components/PermissionToast";
 import type {
     DashboardMetrics,
     SalesTrendData,
@@ -137,7 +135,6 @@ export default function Dashboard() {
     const navigate = useNavigate();
     const { t } = useTranslation();
     const { hasPermission } = useAuth();
-    const { guard, toastState, closeToast } = usePermissionAction();
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -574,8 +571,6 @@ export default function Dashboard() {
                     </Card>
                 </Grid>
             </Grid>
-
-            <PermissionToast state={toastState} onClose={closeToast} />
         </Box>
     );
 }

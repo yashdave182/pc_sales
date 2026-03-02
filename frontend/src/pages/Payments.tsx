@@ -33,13 +33,10 @@ import { paymentAPI, salesAPI } from "../services/api";
 import type { Payment, PendingPayment } from "../types";
 import { useTranslation } from "../hooks/useTranslation";
 import PermissionGate from "../components/PermissionGate";
-import { usePermissionAction } from "../hooks/usePermissionAction";
-import PermissionToast from "../components/PermissionToast";
 import { PERMISSIONS } from "../config/permissions";
 
 export default function Payments() {
   const { t, tf } = useTranslation();
-  const { guard, toastState, closeToast } = usePermissionAction();
   const location = useLocation();
   const pendingSectionRef = useRef<HTMLDivElement>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -330,11 +327,11 @@ export default function Payments() {
       sortable: false,
 
       renderCell: (params) => (
-        <PermissionGate permission={PERMISSIONS.RECORD_PAYMENT} block permissionLabel="record payment">
+        <PermissionGate permission={PERMISSIONS.RECORD_PAYMENT}>
           <Button
             size="small"
             variant="contained"
-            onClick={guard(() => handleOpenDialog(params.row), PERMISSIONS.RECORD_PAYMENT, "record payment")}
+            onClick={() => handleOpenDialog(params.row)}
             sx={{ fontSize: '0.75rem', px: 1 }}
           >
             {t("payments.recordPayment")}
@@ -749,7 +746,6 @@ export default function Payments() {
             </Button>
           </DialogActions>
         </Dialog>
-        <PermissionToast state={toastState} onClose={closeToast} />
       </Box>
     </PermissionGate>
   );

@@ -32,8 +32,6 @@ import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import { customerAPI } from "../services/api";
 import type { Customer } from "../types";
 import { useTranslation } from "../hooks/useTranslation";
-import { usePermissionAction } from "../hooks/usePermissionAction";
-import PermissionToast from "../components/PermissionToast";
 import PermissionGate from "../components/PermissionGate";
 import { PERMISSIONS } from "../config/permissions";
 
@@ -56,7 +54,6 @@ export default function Customers() {
   });
 
   const { t, tf } = useTranslation();
-  const { guard, toastState, closeToast } = usePermissionAction();
 
   useEffect(() => {
     loadCustomers();
@@ -251,20 +248,24 @@ export default function Customers() {
       sortable: false,
       renderCell: (params) => (
         <Box>
-          <IconButton
-            size="small"
-            onClick={guard(() => handleOpenDialog(params.row), PERMISSIONS.EDIT_CUSTOMER, "edit customers")}
-            color="primary"
-          >
-            <EditIcon fontSize="small" />
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={guard(() => handleDelete(params.row.customer_id), PERMISSIONS.DELETE_CUSTOMER, "delete customers")}
-            color="error"
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
+          <PermissionGate permission={PERMISSIONS.EDIT_CUSTOMER}>
+            <IconButton
+              size="small"
+              onClick={() => handleOpenDialog(params.row)}
+              color="primary"
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </PermissionGate>
+          <PermissionGate permission={PERMISSIONS.DELETE_CUSTOMER}>
+            <IconButton
+              size="small"
+              onClick={() => handleDelete(params.row.customer_id)}
+              color="error"
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </PermissionGate>
         </Box>
       ),
     },
@@ -321,13 +322,15 @@ export default function Customers() {
                 sx={{ flexGrow: 1, minWidth: 250 }}
               />
 
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={guard(() => handleOpenDialog(), PERMISSIONS.CREATE_CUSTOMER, "create customers")}
-              >
-                {t("customers.addCustomer")}
-              </Button>
+              <PermissionGate permission={PERMISSIONS.CREATE_CUSTOMER}>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => handleOpenDialog()}
+                >
+                  {t("customers.addCustomer")}
+                </Button>
+              </PermissionGate>
 
               <IconButton onClick={loadCustomers} color="primary">
                 <RefreshIcon />
@@ -484,7 +487,6 @@ export default function Customers() {
             </Button>
           </DialogActions>
         </Dialog>
-        <PermissionToast state={toastState} onClose={closeToast} />
       </Box>
     </PermissionGate>
   );

@@ -126,6 +126,12 @@ export default function CallingList() {
   const [adminTab, setAdminTab] = useState(false);
   const [adminAssignments, setAdminAssignments] = useState<any>(null);
 
+  // Bulk assign
+  const [bulkEmail, setBulkEmail] = useState("");
+  const [bulkPriority, setBulkPriority] = useState("Medium");
+  const [bulkCount, setBulkCount] = useState(10);
+  const [bulkLoading, setBulkLoading] = useState(false);
+
   // ── Load Assignments ───────────────────────────────────
   const loadAssignments = useCallback(async (page = 1) => {
     try {
@@ -460,34 +466,109 @@ export default function CallingList() {
             </Box>
           )}
 
-          {adminAssignments?.assignments && adminAssignments.assignments.length > 0 && (
-            <Box>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Reassign Calls</Typography>
-              <Stack spacing={1}>
-                {adminAssignments.assignments.filter((a: any) => a.status === "Pending").slice(0, 20).map((a: any) => (
-                  <Stack key={a.assignment_id} direction="row" alignItems="center" spacing={2} sx={{ p: 1, borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
-                    <Typography variant="body2" sx={{ flex: 1, fontWeight: 500 }}>
-                      {a.name || "Unknown"} — {a.village || ""}
-                    </Typography>
-                    <Chip size="small" label={a.user_email} variant="outlined" />
-                    <ReassignIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                    <FormControl size="small" sx={{ minWidth: 160 }}>
-                      <InputLabel>Reassign to</InputLabel>
-                      <Select
-                        label="Reassign to"
-                        value=""
-                        onChange={(e) => handleReassign(a.assignment_id, e.target.value as string)}
-                      >
-                        {telecallers.filter(t => t.email !== a.user_email).map(t => (
-                          <MenuItem key={t.email} value={t.email}>{t.name || t.email}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Stack>
+          {/* Bulk Assign Section */}
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>Bulk Assign by Priority</Typography>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="flex-end" sx={{ mb: 3 }}>
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel>Telecaller</InputLabel>
+              <Select label="Telecaller" value={bulkEmail} onChange={(e) => setBulkEmail(e.target.value as string)}>
+                {telecallers.map(t => (
+                  <MenuItem key={t.email} value={t.email}>{t.name || t.email}</MenuItem>
                 ))}
-              </Stack>
-            </Box>
-          )}
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Priority</InputLabel>
+              <Select label="Priority" value={bulkPriority} onChange={(e) => setBulkPriority(e.target.value as string)}>
+                <MenuItem value="High">🔴 High</MenuItem>
+                <MenuItem value="Medium">🟡 Medium</MenuItem>
+                <MenuItem value="Low">🟢 Low</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              size="small"
+              type="number"
+              label="Count"
+              value={bulkCount}
+              onChange={(e) => setBulkCount(Math.max(1, parseInt(e.target.value) || 1))}
+              sx={{ width: 90 }}
+              inputProps={{ min: 1 }}
+            />
+            <Button
+              variant="contained"
+              size="small"
+              disabled={!bulkEmail || bulkLoading}
+              startIcon={bulkLoading ? <CircularProgress size={16} /> : <DistributeIcon />}
+              onClick={async () => {
+                try {
+                  setBulkLoading(true);
+                  const res = await automationAPI.bulkReassign(bulkEmail, bulkPriority, bulkCount);
+                  setToast({ msg: res.message, severity: "success" });
+                  loadAdminAssignments();
+                } catch (e: any) {
+                  setToast({ msg: e?.response?.data?.detail || "Bulk assign failed", severity: "error" });
+                } finally {
+                  setBulkLoading(false);
+                }
+              }}
+            >
+              Assign {bulkCount} Calls
+            </Button>
+          </Stack>
+
+          <Divider sx={{ my: 2 }} />
+
+          {adminAssignments?.assignments && adminAssignments.assignments.length > 0 && (() => {
+            const pendingList = adminAssignments.assignments.filter((a: any) => a.status === "Pending");
+            const adminPageSize = 15;
+            const adminTotalPages = Math.ceil(pendingList.length / adminPageSize);
+            return (
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                  Reassign Calls ({pendingList.length} pending)
+                </Typography>
+                <Stack spacing={1}>
+                  {pendingList
+                    .slice(
+                      (adminAssignments._adminPage || 0) * adminPageSize,
+                      ((adminAssignments._adminPage || 0) + 1) * adminPageSize
+                    )
+                    .map((a: any) => (
+                      <Stack key={a.assignment_id} direction="row" alignItems="center" spacing={2} sx={{ p: 1, borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
+                        <Typography variant="body2" sx={{ flex: 1, fontWeight: 500 }}>
+                          {a.name || "Unknown"} — {a.village || ""}
+                        </Typography>
+                        <Chip size="small" label={a.user_email} variant="outlined" />
+                        <ReassignIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                        <FormControl size="small" sx={{ minWidth: 160 }}>
+                          <InputLabel>Reassign to</InputLabel>
+                          <Select
+                            label="Reassign to"
+                            value=""
+                            onChange={(e) => handleReassign(a.assignment_id, e.target.value as string)}
+                          >
+                            {telecallers.filter(t => t.email !== a.user_email).map(t => (
+                              <MenuItem key={t.email} value={t.email}>{t.name || t.email}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Stack>
+                    ))}
+                </Stack>
+                {pendingList.length > adminPageSize && (
+                  <TablePagination
+                    component="div"
+                    count={pendingList.length}
+                    page={adminAssignments._adminPage || 0}
+                    rowsPerPage={adminPageSize}
+                    onPageChange={(_, p) => setAdminAssignments({ ...adminAssignments, _adminPage: p })}
+                    rowsPerPageOptions={[adminPageSize]}
+                  />
+                )}
+              </Box>
+            );
+          })()}
         </Paper>
       )}
 

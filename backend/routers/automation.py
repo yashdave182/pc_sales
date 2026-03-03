@@ -28,6 +28,11 @@ class ReassignRequest(BaseModel):
     assignment_id: int
     new_user_email: str
 
+class BulkReassignRequest(BaseModel):
+    target_email: str
+    priority: str  # 'High', 'Medium', 'Low'
+    count: int  # how many to assign
+
 VALID_OUTCOMES = {'connected', 'not_reachable', 'callback', 'wrong_number'}
 
 # ─── Distribution Logic ──────────────────────────────────
@@ -525,3 +530,64 @@ def get_distribution_status(
         "past_deadline": past_deadline,
         "minutes_until_deadline": minutes_remaining,
     }
+
+
+@router.post("/admin/bulk-reassign")
+def admin_bulk_reassign(
+    body: BulkReassignRequest,
+    db: SupabaseClient = Depends(get_db),
+):
+    """
+    Admin: Reassign N pending calls of a given priority to a specific telecaller.
+    Picks from other telecallers' pending assignments.
+    """
+    if body.count < 1:
+        raise HTTPException(status_code=400, detail="Count must be at least 1")
+
+    try:
+        today_str = date.today().isoformat()
+
+        # Get pending assignments of this priority NOT already assigned to target
+        res = db.table("calling_assignments") \
+            .select("assignment_id, user_email") \
+            .eq("assigned_date", today_str) \
+            .eq("status", "Pending") \
+            .eq("priority", body.priority) \
+            .neq("user_email", body.target_email) \
+            .limit(body.count) \
+            .execute()
+
+        candidates = res.data or []
+        if not candidates:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No pending {body.priority} calls available to reassign"
+            )
+
+        reassigned = 0
+        for a in candidates:
+            db.table("calling_assignments") \
+                .eq("assignment_id", a["assignment_id"]) \
+                .update({"user_email": body.target_email})
+            reassigned += 1
+
+        # Notify the telecaller
+        db.table("notifications").insert({
+            "user_email": body.target_email,
+            "title": "📞 Bulk Calls Assigned",
+            "message": f"{reassigned} {body.priority} priority calls have been assigned to you by admin.",
+            "notification_type": "info",
+            "entity_type": "calling_list",
+            "is_read": False,
+        }).execute()
+
+        return {
+            "message": f"Reassigned {reassigned} {body.priority} calls to {body.target_email}",
+            "reassigned": reassigned,
+            "requested": body.count,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Bulk reassign failed: {e}")

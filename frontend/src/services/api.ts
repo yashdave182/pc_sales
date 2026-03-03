@@ -380,6 +380,14 @@ export const automationAPI = {
     const response = await apiClient.get("/api/automation/distribution-status");
     return response.data;
   },
+  bulkReassign: async (targetEmail: string, priority: string, count: number) => {
+    const response = await apiClient.post("/api/automation/admin/bulk-reassign", {
+      target_email: targetEmail,
+      priority,
+      count,
+    });
+    return response.data;
+  },
 };
 // File/Import API
 

@@ -363,7 +363,7 @@ def get_telecallers(
 def get_admin_assignments(
     target_date: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=500),
     db: SupabaseClient = Depends(get_db),
 ):
     """Admin: view all assignments for a date, grouped summary."""

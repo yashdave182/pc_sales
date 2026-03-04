@@ -535,6 +535,52 @@ def get_distribution_status(
     }
 
 
+@router.post("/admin/refresh-distribution")
+def admin_refresh_distribution(
+    admin_email: str = Header(None, alias="x-user-email"),
+    db: SupabaseClient = Depends(get_db),
+):
+    """
+    Admin: Refresh distribution — re-distribute all uncalled (Pending) assignments
+    from today using the same load-aware logic. Effectively a manual midnight reset.
+    """
+    try:
+        today_str = date.today().isoformat()
+
+        # 1. Get all pending assignments for today
+        pending_res = db.table("calling_assignments") \
+            .select("assignment_id") \
+            .eq("assigned_date", today_str) \
+            .eq("status", "Pending") \
+            .execute()
+        pending = pending_res.data or []
+
+        if not pending:
+            return {"message": "No pending assignments to refresh", "status": "empty", "refreshed": 0}
+
+        # 2. Delete all pending assignments (keep completed ones)
+        for p in pending:
+            db.table("calling_assignments") \
+                .eq("assignment_id", p["assignment_id"]) \
+                .delete()
+
+        # 3. Re-run distribution (this creates fresh assignments)
+        # First remove today's marker so distribution runs
+        result = distribute_calls(db, admin_email or "admin")
+
+        return {
+            "message": f"Refreshed: removed {len(pending)} pending, re-distributed",
+            "status": "success",
+            "removed": len(pending),
+            "distribution": result,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Refresh failed: {e}")
+
+
 @router.post("/admin/bulk-reassign")
 def admin_bulk_reassign(
     body: BulkReassignRequest,

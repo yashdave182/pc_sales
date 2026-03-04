@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Box,
   Typography,
@@ -24,15 +24,13 @@ import {
   FormControl,
   InputLabel,
   Divider,
+  LinearProgress,
   useTheme,
   alpha,
 } from "@mui/material";
 import {
   Phone as PhoneIcon,
-  PhoneCallback as PhoneCallbackIcon,
-  PersonOff as PersonOffIcon,
   CheckCircle as CheckIcon,
-  Cancel as CancelIcon,
   Refresh as RefreshIcon,
   Send as DistributeIcon,
   SwapHoriz as ReassignIcon,
@@ -41,6 +39,11 @@ import {
   Place as PlaceIcon,
   Assignment as AssignmentIcon,
   AdminPanelSettings as AdminIcon,
+  PhoneDisabled as PhoneDisabledIcon,
+  CallMissed as CallMissedIcon,
+  ReportProblem as WrongIcon,
+  Schedule as ScheduleIcon,
+  Autorenew as AutorenewIcon,
 } from "@mui/icons-material";
 import { automationAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
@@ -62,78 +65,108 @@ interface Assignment {
   district?: string;
 }
 
-interface Pagination {
-  page: number;
-  limit: number;
-  total: number;
-  total_pages: number;
-}
+interface Pagination { page: number; limit: number; total: number; total_pages: number; }
+interface Summary { total: number; pending: number; called: number; }
+interface Telecaller { email: string; name: string; role: string; }
 
-interface Summary {
-  total: number;
-  pending: number;
-  called: number;
-}
-
-interface Telecaller {
-  email: string;
-  name: string;
-  role: string;
-}
-
-// ── Outcome Options ────────────────────────────────────
+// ── Constants ──────────────────────────────────────────
 const CALL_OUTCOMES = [
-  { value: "connected", label: "✅ Connected — Spoke with the person", color: "#2e7d32" },
-  { value: "not_reachable", label: "📵 Not Reachable — No answer / switched off", color: "#d32f2f" },
-  { value: "callback", label: "🔄 Call Back Later — Asked to call again", color: "#ed6c02" },
-  { value: "wrong_number", label: "❌ Wrong Number — Invalid contact", color: "#9e9e9e" },
+  { value: "connected", label: "Connected", desc: "Spoke with the person", icon: <CheckIcon />, color: "#16a34a" },
+  { value: "not_reachable", label: "Not Reachable", desc: "No answer / switched off", icon: <PhoneDisabledIcon />, color: "#dc2626" },
+  { value: "callback", label: "Call Back Later", desc: "Asked to call again", icon: <CallMissedIcon />, color: "#ea580c" },
+  { value: "wrong_number", label: "Wrong Number", desc: "Invalid contact", icon: <WrongIcon />, color: "#71717a" },
 ];
 
-const STATUS_COLORS: Record<string, string> = {
-  Pending: "#1976d2",
-  Called: "#2e7d32",
-  "Not Reachable": "#d32f2f",
-  Callback: "#ed6c02",
-  "Wrong Number": "#9e9e9e",
+const STATUS_CHIP: Record<string, { bg: string; fg: string }> = {
+  Pending: { bg: "#eff6ff", fg: "#2563eb" },
+  Called: { bg: "#f0fdf4", fg: "#16a34a" },
+  "Not Reachable": { bg: "#fef2f2", fg: "#dc2626" },
+  Callback: { bg: "#fff7ed", fg: "#ea580c" },
+  "Wrong Number": { bg: "#f4f4f5", fg: "#71717a" },
 };
+
+const PRIORITY_DOT: Record<string, string> = { High: "#dc2626", Medium: "#eab308", Low: "#16a34a" };
+
+// ── Live Timer Hook ────────────────────────────────────
+function useCountdownTo10AM() {
+  const [timeLeft, setTimeLeft] = useState("");
+  const [progress, setProgress] = useState(0);
+  const [isPast, setIsPast] = useState(false);
+
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      const target = new Date(now);
+      target.setHours(10, 0, 0, 0);
+      const midnight = new Date(now);
+      midnight.setHours(0, 0, 0, 0);
+
+      if (now >= target) {
+        setIsPast(true);
+        setTimeLeft("00:00:00");
+        setProgress(100);
+        return;
+      }
+
+      setIsPast(false);
+      const diff = target.getTime() - now.getTime();
+      const totalWindow = target.getTime() - midnight.getTime(); // 10 hours
+      const elapsed = now.getTime() - midnight.getTime();
+      setProgress(Math.min(100, (elapsed / totalWindow) * 100));
+
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setTimeLeft(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`);
+    };
+
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  return { timeLeft, progress, isPast };
+}
 
 // ── Main Component ─────────────────────────────────────
 export default function CallingList() {
   const theme = useTheme();
-  const { user, role } = useAuth();
-  const isAdmin = role === "admin" || role === "developer" || role === "Admin" || role === "Developer";
+  const isDark = theme.palette.mode === "dark";
+  const { role } = useAuth();
+  const isAdmin = role === "admin" || role === "developer";
+  const { timeLeft, progress, isPast } = useCountdownTo10AM();
 
-  // Tab: 0 = To Call, 1 = Called
   const [tab, setTab] = useState(0);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, total_pages: 1 });
   const [summary, setSummary] = useState<Summary>({ total: 0, pending: 0, called: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ msg: string; severity: "success" | "error" | "info" } | null>(null);
+  const [toast, setToast] = useState<{ msg: string; sev: "success" | "error" | "info" } | null>(null);
 
-  // Call dialog
-  const [callDialogOpen, setCallDialogOpen] = useState(false);
-  const [activeAssignment, setActiveAssignment] = useState<Assignment | null>(null);
-  const [selectedOutcome, setSelectedOutcome] = useState<string>("");
-  const [callNotes, setCallNotes] = useState("");
+  // Dialog
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [activeItem, setActiveItem] = useState<Assignment | null>(null);
+  const [outcome, setOutcome] = useState("");
+  const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // Admin
   const [distributing, setDistributing] = useState(false);
-  const [distributionStatus, setDistributionStatus] = useState<any>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [distStatus, setDistStatus] = useState<any>(null);
   const [telecallers, setTelecallers] = useState<Telecaller[]>([]);
-  const [adminTab, setAdminTab] = useState(false);
-  const [adminAssignments, setAdminAssignments] = useState<any>(null);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [adminData, setAdminData] = useState<any>(null);
 
-  // Bulk assign
+  // Bulk
   const [bulkEmail, setBulkEmail] = useState("");
   const [bulkPriority, setBulkPriority] = useState("Medium");
   const [bulkCount, setBulkCount] = useState(10);
   const [bulkLoading, setBulkLoading] = useState(false);
 
-  // ── Load Assignments ───────────────────────────────────
-  const loadAssignments = useCallback(async (page = 1) => {
+  // ── Data ────────────────────────────────────────────────
+  const load = useCallback(async (page = 1) => {
     try {
       setLoading(true);
       setError(null);
@@ -143,298 +176,339 @@ export default function CallingList() {
       setPagination(res.pagination || { page: 1, limit: 20, total: 0, total_pages: 1 });
       setSummary(res.summary || { total: 0, pending: 0, called: 0 });
     } catch (e: any) {
-      setError(e?.message || "Failed to load assignments");
+      setError(e?.message || "Failed to load");
     } finally {
       setLoading(false);
     }
   }, [tab]);
 
-  useEffect(() => {
-    loadAssignments(1);
-  }, [loadAssignments]);
+  useEffect(() => { load(1); }, [load]);
 
-  // ── Load Admin Data ────────────────────────────────────
   useEffect(() => {
     if (isAdmin) {
-      automationAPI.getDistributionStatus()
-        .then(setDistributionStatus)
-        .catch(() => { });
-      automationAPI.getTelecallers()
-        .then(res => setTelecallers(res.telecallers || []))
-        .catch(() => { });
+      automationAPI.getDistributionStatus().then(setDistStatus).catch(() => { });
+      automationAPI.getTelecallers().then(r => setTelecallers(r.telecallers || [])).catch(() => { });
     }
   }, [isAdmin]);
 
-  const loadAdminAssignments = async () => {
+  const loadAdmin = async () => {
     try {
       const res = await automationAPI.getAdminAssignments({ page: 1, limit: 200 });
-      setAdminAssignments(res);
-    } catch (e: any) {
-      setToast({ msg: "Failed to load admin data", severity: "error" });
-    }
+      setAdminData(res);
+    } catch { }
   };
 
-  // ── Call Flow ──────────────────────────────────────────
-  const handleCallClick = (assignment: Assignment) => {
-    // Open phone dialer
-    if (assignment.mobile) {
-      window.open(`tel:${assignment.mobile}`, "_self");
-    }
-    // Open dialog after a short delay
-    setTimeout(() => {
-      setActiveAssignment(assignment);
-      setSelectedOutcome("");
-      setCallNotes("");
-      setCallDialogOpen(true);
-    }, 500);
+  // ── Handlers ────────────────────────────────────────────
+  const handleCall = (a: Assignment) => {
+    if (a.mobile) window.open(`tel:${a.mobile}`, "_self");
+    setTimeout(() => { setActiveItem(a); setOutcome(""); setNotes(""); setDialogOpen(true); }, 400);
   };
 
-  const handleSubmitCallStatus = async () => {
-    if (!activeAssignment || !selectedOutcome) return;
+  const submitOutcome = async () => {
+    if (!activeItem || !outcome) return;
     try {
       setSubmitting(true);
-      await automationAPI.updateCallStatus(activeAssignment.assignment_id, selectedOutcome, callNotes);
-      setToast({ msg: "Call status recorded successfully", severity: "success" });
-      setCallDialogOpen(false);
-      loadAssignments(pagination.page);
+      await automationAPI.updateCallStatus(activeItem.assignment_id, outcome, notes);
+      setToast({ msg: "Call logged successfully", sev: "success" });
+      setDialogOpen(false);
+      load(pagination.page);
     } catch (e: any) {
-      setToast({ msg: e?.response?.data?.detail || "Failed to update status", severity: "error" });
-    } finally {
-      setSubmitting(false);
-    }
+      setToast({ msg: e?.response?.data?.detail || "Failed", sev: "error" });
+    } finally { setSubmitting(false); }
   };
 
-  // ── Distribution ─────────────────────────────────────
   const handleDistribute = async () => {
-    if (!window.confirm("Distribute calls to all telecallers now?")) return;
+    if (!window.confirm("Distribute today's calls to all telecallers?")) return;
     try {
       setDistributing(true);
       const res = await automationAPI.adminDistribute();
-      if (res.status === "skipped") {
-        setToast({ msg: "Already distributed for today", severity: "info" });
-      } else {
-        setToast({ msg: `Distributed ${res.total_calls} calls to ${res.telecaller_count} telecallers`, severity: "success" });
-      }
-      loadAssignments(1);
-      automationAPI.getDistributionStatus().then(setDistributionStatus).catch(() => { });
-    } catch (e: any) {
-      setToast({ msg: e?.response?.data?.detail || "Distribution failed", severity: "error" });
-    } finally {
-      setDistributing(false);
-    }
+      setToast({ msg: res.status === "skipped" ? "Already distributed" : `${res.total_calls} calls distributed`, sev: res.status === "skipped" ? "info" : "success" });
+      load(1);
+      automationAPI.getDistributionStatus().then(setDistStatus);
+    } catch (e: any) { setToast({ msg: e?.response?.data?.detail || "Failed", sev: "error" }); }
+    finally { setDistributing(false); }
   };
 
-  // ── Reassign ───────────────────────────────────────────
-  const handleReassign = async (assignmentId: number, newEmail: string) => {
+  const handleRefresh = async () => {
+    if (!window.confirm("Re-distribute all uncalled assignments? Pending calls will be reassigned.")) return;
     try {
-      await automationAPI.adminReassign(assignmentId, newEmail);
-      setToast({ msg: "Reassigned successfully", severity: "success" });
-      if (adminAssignments) loadAdminAssignments();
-    } catch (e: any) {
-      setToast({ msg: e?.response?.data?.detail || "Reassign failed", severity: "error" });
-    }
+      setRefreshing(true);
+      const res = await automationAPI.refreshDistribution();
+      setToast({ msg: res.message || "Refreshed", sev: "success" });
+      load(1);
+      if (showAdmin) loadAdmin();
+    } catch (e: any) { setToast({ msg: e?.response?.data?.detail || "Refresh failed", sev: "error" }); }
+    finally { setRefreshing(false); }
   };
 
-  const calledList = tab === 1
-    ? assignments.filter(a => a.status !== "Pending")
-    : assignments;
+  const handleReassign = async (id: number, email: string) => {
+    try {
+      await automationAPI.adminReassign(id, email);
+      setToast({ msg: "Reassigned", sev: "success" });
+      if (adminData) loadAdmin();
+    } catch (e: any) { setToast({ msg: e?.response?.data?.detail || "Failed", sev: "error" }); }
+  };
 
-  // ── Render ─────────────────────────────────────────────
+  const handleBulk = async () => {
+    try {
+      setBulkLoading(true);
+      const res = await automationAPI.bulkReassign(bulkEmail, bulkPriority, bulkCount);
+      setToast({ msg: res.message, sev: "success" });
+      loadAdmin();
+    } catch (e: any) { setToast({ msg: e?.response?.data?.detail || "Failed", sev: "error" }); }
+    finally { setBulkLoading(false); }
+  };
+
+  // ── Styles ──────────────────────────────────────────────
+  const surface = isDark ? "#1e1e2e" : "#ffffff";
+  const surfaceMuted = isDark ? "#262637" : "#f8fafc";
+  const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+
   return (
-    <Box>
-      {/* Header */}
-      <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", md: "center" }} spacing={2} sx={{ mb: 3 }}>
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}>
-            <PhoneIcon color="primary" /> My Calling List
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1.5}>
-          {isAdmin && (
-            <>
-              <Button
-                variant={adminTab ? "contained" : "outlined"}
-                color="secondary"
-                startIcon={<AdminIcon />}
-                onClick={() => { setAdminTab(!adminTab); if (!adminTab) loadAdminAssignments(); }}
-                size="small"
-              >
-                Admin Panel
-              </Button>
-              <Button
-                variant="outlined"
-                color="primary"
-                startIcon={distributing ? <CircularProgress size={16} /> : <DistributeIcon />}
-                onClick={handleDistribute}
-                disabled={distributing || distributionStatus?.distributed}
-                size="small"
-              >
-                {distributionStatus?.distributed ? "Distributed" : "Distribute Calls"}
-              </Button>
-            </>
-          )}
-          <Button variant="contained" startIcon={<RefreshIcon />} onClick={() => loadAssignments(1)} disabled={loading} size="small">
-            Refresh
-          </Button>
+    <Box sx={{ maxWidth: 1100, mx: "auto" }}>
+      {/* ── Header ── */}
+      <Box sx={{ mb: 3 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: -0.5 }}>
+              Calling List
+            </Typography>
+            <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.25 }}>
+              {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "short", year: "numeric" })}
+            </Typography>
+          </Box>
+          <Stack direction="row" spacing={1}>
+            {isAdmin && (
+              <>
+                <Button
+                  variant={showAdmin ? "contained" : "outlined"}
+                  size="small"
+                  color="secondary"
+                  startIcon={<AdminIcon />}
+                  onClick={() => { setShowAdmin(!showAdmin); if (!showAdmin) loadAdmin(); }}
+                  sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600, fontSize: 13 }}
+                >
+                  Admin
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={refreshing ? <CircularProgress size={14} /> : <AutorenewIcon />}
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600, fontSize: 13 }}
+                >
+                  Refresh List
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={distributing ? <CircularProgress size={14} color="inherit" /> : <DistributeIcon />}
+                  onClick={handleDistribute}
+                  disabled={distributing || distStatus?.distributed}
+                  sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600, fontSize: 13 }}
+                >
+                  {distStatus?.distributed ? "Distributed" : "Distribute"}
+                </Button>
+              </>
+            )}
+            <IconButton size="small" onClick={() => load(1)} disabled={loading} sx={{ border: `1px solid ${border}`, borderRadius: 2 }}>
+              <RefreshIcon fontSize="small" />
+            </IconButton>
+          </Stack>
         </Stack>
-      </Stack>
 
-      {/* Stats Cards */}
-      <Stack direction="row" spacing={2} sx={{ mb: 3, flexWrap: "wrap" }}>
-        {[
-          { label: "Total", value: summary.total, color: "#1976d2", icon: <AssignmentIcon /> },
-          { label: "Pending", value: summary.pending, color: "#d32f2f", icon: <PhoneIcon /> },
-          { label: "Completed", value: summary.called, color: "#2e7d32", icon: <CheckIcon /> },
-        ].map(s => (
+        {/* ── Timer Bar ── */}
+        {isAdmin && !isPast && (
+          <Paper
+            sx={{
+              p: 1.5,
+              px: 2.5,
+              borderRadius: 2.5,
+              border: `1px solid ${border}`,
+              bgcolor: surfaceMuted,
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+              mt: 1.5,
+            }}
+          >
+            <ScheduleIcon sx={{ color: "#2563eb", fontSize: 20 }} />
+            <Box sx={{ flex: 1 }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                  Auto-distribution at 10:00 AM
+                </Typography>
+                <Typography variant="caption" sx={{ fontFamily: "monospace", fontWeight: 700, color: "#2563eb", fontSize: 13 }}>
+                  {timeLeft}
+                </Typography>
+              </Stack>
+              <LinearProgress
+                variant="determinate"
+                value={progress}
+                sx={{
+                  height: 4,
+                  borderRadius: 2,
+                  bgcolor: alpha("#2563eb", 0.1),
+                  "& .MuiLinearProgress-bar": { bgcolor: "#2563eb", borderRadius: 2 },
+                }}
+              />
+            </Box>
+          </Paper>
+        )}
+      </Box>
+
+      {/* ── Stats ── */}
+      <Stack direction="row" spacing={2} sx={{ mb: 2.5 }}>
+        {([
+          { label: "Total", value: summary.total, color: "#2563eb", icon: <AssignmentIcon sx={{ fontSize: 18 }} /> },
+          { label: "Pending", value: summary.pending, color: "#ea580c", icon: <PhoneIcon sx={{ fontSize: 18 }} /> },
+          { label: "Completed", value: summary.called, color: "#16a34a", icon: <CheckIcon sx={{ fontSize: 18 }} /> },
+        ] as const).map(s => (
           <Paper
             key={s.label}
             sx={{
+              flex: 1,
               p: 2,
-              borderRadius: 2,
-              border: `1px solid ${alpha(s.color, 0.3)}`,
-              bgcolor: alpha(s.color, 0.05),
-              minWidth: 140,
+              borderRadius: 2.5,
+              border: `1px solid ${border}`,
+              bgcolor: surface,
               display: "flex",
               alignItems: "center",
               gap: 1.5,
             }}
           >
-            <Box sx={{ width: 36, height: 36, borderRadius: 1.5, bgcolor: s.color, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Box sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: alpha(s.color, 0.1), color: s.color, display: "flex", alignItems: "center", justifyContent: "center" }}>
               {s.icon}
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: s.color, fontWeight: 600 }}>{s.label}</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>{s.value}</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500, lineHeight: 1 }}>{s.label}</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.2 }}>{s.value}</Typography>
             </Box>
           </Paper>
         ))}
-
-        {/* Timer for admin */}
-        {isAdmin && distributionStatus && !distributionStatus.distributed && !distributionStatus.past_deadline && (
-          <Paper sx={{ p: 2, borderRadius: 2, border: `1px solid ${alpha("#ed6c02", 0.3)}`, bgcolor: alpha("#ed6c02", 0.05), minWidth: 180, display: "flex", alignItems: "center", gap: 1.5 }}>
-            <Box sx={{ width: 36, height: 36, borderRadius: 1.5, bgcolor: "#ed6c02", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <TimerIcon />
-            </Box>
-            <Box>
-              <Typography variant="caption" sx={{ color: "#ed6c02", fontWeight: 600 }}>Auto-distribute in</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>{distributionStatus.minutes_until_deadline} min</Typography>
-            </Box>
-          </Paper>
-        )}
       </Stack>
 
-      {/* Tabs */}
-      <Paper sx={{ borderRadius: 2, mb: 3 }}>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: "divider" }}>
-          <Tab label={`📞 To Call (${summary.pending})`} />
-          <Tab label={`✅ Called (${summary.called})`} />
+      {/* ── Tabs + List ── */}
+      <Paper sx={{ borderRadius: 3, border: `1px solid ${border}`, bgcolor: surface, overflow: "hidden" }}>
+        <Tabs
+          value={tab}
+          onChange={(_, v) => setTab(v)}
+          sx={{
+            px: 2,
+            pt: 1,
+            "& .MuiTab-root": { textTransform: "none", fontWeight: 600, fontSize: 14, minHeight: 42 },
+            "& .MuiTabs-indicator": { height: 3, borderRadius: 2 },
+          }}
+        >
+          <Tab label={`To Call  ·  ${summary.pending}`} />
+          <Tab label={`Called  ·  ${summary.called}`} />
         </Tabs>
 
-        {/* Content */}
         <Box sx={{ p: 2 }}>
           {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-              <CircularProgress />
-            </Box>
+            <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress size={28} /></Box>
           ) : error ? (
-            <Alert severity="error">{error}</Alert>
-          ) : calledList.length === 0 ? (
-            <Alert severity="info" sx={{ borderRadius: 2 }}>
-              {tab === 0
-                ? "No pending calls. Either all calls are complete or distribution hasn't happened yet."
-                : "No completed calls yet. Start calling from the 'To Call' tab!"}
-            </Alert>
+            <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>
+          ) : assignments.length === 0 ? (
+            <Box sx={{ textAlign: "center", py: 8 }}>
+              <Typography variant="h6" sx={{ color: "text.disabled", fontWeight: 600 }}>
+                {tab === 0 ? "No pending calls" : "No completed calls yet"}
+              </Typography>
+              <Typography variant="body2" sx={{ color: "text.disabled", mt: 0.5 }}>
+                {tab === 0 ? "Distribution may not have happened yet, or all calls are complete." : "Start calling from the To Call tab."}
+              </Typography>
+            </Box>
           ) : (
             <>
-              <Stack spacing={1.5}>
-                {calledList.map((item) => {
-                  const statusColor = STATUS_COLORS[item.status] || "#1976d2";
+              <Stack spacing={1}>
+                {assignments.map(item => {
+                  const chip = STATUS_CHIP[item.status] || STATUS_CHIP.Pending;
+                  const dotColor = PRIORITY_DOT[item.priority] || "#eab308";
                   return (
-                    <Paper
+                    <Box
                       key={item.assignment_id}
-                      variant="outlined"
                       sx={{
                         p: 2,
                         borderRadius: 2,
-                        borderColor: alpha(statusColor, 0.3),
-                        transition: "all 0.2s",
-                        "&:hover": { borderColor: statusColor, bgcolor: alpha(statusColor, 0.02) },
+                        border: `1px solid ${border}`,
+                        bgcolor: surfaceMuted,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
+                        transition: "border-color 0.15s, box-shadow 0.15s",
+                        "&:hover": { borderColor: alpha("#2563eb", 0.3), boxShadow: `0 0 0 1px ${alpha("#2563eb", 0.08)}` },
                       }}
                     >
-                      <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-                            <PersonIcon sx={{ fontSize: 18, color: statusColor }} />
-                            <Typography variant="subtitle1" sx={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              {item.name || "Unknown"}
-                            </Typography>
-                            <Chip size="small" label={item.priority} sx={{ bgcolor: alpha(statusColor, 0.1), color: statusColor, height: 22 }} />
-                          </Stack>
-                          <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap" }}>
-                            {item.mobile && (
-                              <Stack direction="row" alignItems="center" spacing={0.5}>
-                                <PhoneIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-                                <Typography variant="body2" color="text.secondary">{item.mobile}</Typography>
-                              </Stack>
-                            )}
-                            {item.village && (
-                              <Stack direction="row" alignItems="center" spacing={0.5}>
-                                <PlaceIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-                                <Typography variant="body2" color="text.secondary">{item.village}</Typography>
-                              </Stack>
-                            )}
-                            {item.reason && (
-                              <Typography variant="body2" color="text.secondary">• {item.reason}</Typography>
-                            )}
-                          </Stack>
-                          {item.status !== "Pending" && item.notes && (
-                            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block", fontStyle: "italic" }}>
-                              Notes: {item.notes}
-                            </Typography>
-                          )}
-                        </Box>
+                      {/* Priority dot */}
+                      <Tooltip title={`${item.priority} Priority`}>
+                        <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: dotColor, flexShrink: 0 }} />
+                      </Tooltip>
 
-                        <Stack alignItems="flex-end" spacing={0.5}>
-                          {item.status !== "Pending" && (
-                            <Chip size="small" label={item.status} sx={{ bgcolor: alpha(statusColor, 0.15), color: statusColor, fontWeight: 600 }} />
+                      {/* Info */}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {item.name || "Unknown"}
+                        </Typography>
+                        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 0.25 }}>
+                          {item.mobile && (
+                            <Typography variant="caption" sx={{ color: "text.secondary", display: "flex", alignItems: "center", gap: 0.3 }}>
+                              <PhoneIcon sx={{ fontSize: 12 }} /> {item.mobile}
+                            </Typography>
                           )}
-                          {item.status === "Pending" && (
-                            <Tooltip title={item.mobile ? `Call ${item.mobile}` : "No phone number"}>
-                              <span>
-                                <IconButton
-                                  color="success"
-                                  disabled={!item.mobile}
-                                  onClick={() => handleCallClick(item)}
-                                  sx={{
-                                    bgcolor: alpha("#2e7d32", 0.1),
-                                    "&:hover": { bgcolor: alpha("#2e7d32", 0.2) },
-                                    width: 44,
-                                    height: 44,
-                                  }}
-                                >
-                                  <PhoneIcon />
-                                </IconButton>
-                              </span>
-                            </Tooltip>
+                          {item.village && (
+                            <Typography variant="caption" sx={{ color: "text.secondary", display: "flex", alignItems: "center", gap: 0.3 }}>
+                              <PlaceIcon sx={{ fontSize: 12 }} /> {item.village}
+                            </Typography>
                           )}
                         </Stack>
-                      </Stack>
-                    </Paper>
+                        {item.status !== "Pending" && item.notes && (
+                          <Typography variant="caption" sx={{ color: "text.disabled", fontStyle: "italic", mt: 0.5, display: "block" }}>
+                            {item.notes}
+                          </Typography>
+                        )}
+                      </Box>
+
+                      {/* Status / Action */}
+                      {item.status !== "Pending" ? (
+                        <Chip size="small" label={item.status} sx={{ bgcolor: chip.bg, color: chip.fg, fontWeight: 600, fontSize: 11, height: 24 }} />
+                      ) : (
+                        <Tooltip title={item.mobile ? `Call ${item.mobile}` : "No number"}>
+                          <span>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              disabled={!item.mobile}
+                              onClick={() => handleCall(item)}
+                              startIcon={<PhoneIcon sx={{ fontSize: 16 }} />}
+                              sx={{
+                                borderRadius: 2,
+                                textTransform: "none",
+                                fontWeight: 700,
+                                fontSize: 12,
+                                px: 2,
+                                boxShadow: "none",
+                                bgcolor: "#16a34a",
+                                "&:hover": { bgcolor: "#15803d", boxShadow: "none" },
+                              }}
+                            >
+                              Call
+                            </Button>
+                          </span>
+                        </Tooltip>
+                      )}
+                    </Box>
                   );
                 })}
               </Stack>
-
-              {/* Pagination */}
               <TablePagination
                 component="div"
                 count={pagination.total}
                 page={pagination.page - 1}
                 rowsPerPage={pagination.limit}
-                onPageChange={(_, p) => loadAssignments(p + 1)}
+                onPageChange={(_, p) => load(p + 1)}
                 rowsPerPageOptions={[20]}
+                sx={{ borderTop: `1px solid ${border}`, mt: 1 }}
               />
             </>
           )}
@@ -442,23 +516,28 @@ export default function CallingList() {
       </Paper>
 
       {/* ── Admin Panel ── */}
-      {isAdmin && adminTab && (
-        <Paper sx={{ p: 3, borderRadius: 3, mb: 3, border: `2px solid ${alpha(theme.palette.secondary.main, 0.3)}` }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
-            <AdminIcon color="secondary" /> Admin — Assignment Overview
+      {isAdmin && showAdmin && (
+        <Paper sx={{ mt: 3, p: 3, borderRadius: 3, border: `1px solid ${border}`, bgcolor: surface }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+            <AdminIcon sx={{ color: "#7c3aed" }} /> Admin Controls
           </Typography>
 
-          {adminAssignments?.telecaller_summary && (
+          {/* Telecaller summary cards */}
+          {adminData?.telecaller_summary && (
             <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Telecaller Distribution</Typography>
-              <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap" }}>
-                {Object.entries(adminAssignments.telecaller_summary as Record<string, any>).map(([email, data]: [string, any]) => (
-                  <Paper key={email} variant="outlined" sx={{ p: 1.5, borderRadius: 2, minWidth: 200 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{email}</Typography>
-                    <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
-                      <Chip size="small" label={`Total: ${data.total}`} />
-                      <Chip size="small" label={`Pending: ${data.pending}`} color="warning" />
-                      <Chip size="small" label={`Done: ${data.called}`} color="success" />
+              <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", mb: 1, display: "block" }}>
+                TELECALLER DISTRIBUTION
+              </Typography>
+              <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap", gap: 1.5 }}>
+                {Object.entries(adminData.telecaller_summary as Record<string, any>).map(([email, d]: [string, any]) => (
+                  <Paper key={email} sx={{ p: 1.5, borderRadius: 2, border: `1px solid ${border}`, bgcolor: surfaceMuted, minWidth: 180 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5, overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {email.split("@")[0]}
+                    </Typography>
+                    <Stack direction="row" spacing={0.5}>
+                      <Chip size="small" label={d.total} sx={{ height: 20, fontSize: 11 }} />
+                      <Chip size="small" label={`${d.pending} pending`} sx={{ height: 20, fontSize: 11, bgcolor: "#fff7ed", color: "#ea580c" }} />
+                      <Chip size="small" label={`${d.called} done`} sx={{ height: 20, fontSize: 11, bgcolor: "#f0fdf4", color: "#16a34a" }} />
                     </Stack>
                   </Paper>
                 ))}
@@ -466,193 +545,161 @@ export default function CallingList() {
             </Box>
           )}
 
-          {/* Bulk Assign Section */}
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>Bulk Assign by Priority</Typography>
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="flex-end" sx={{ mb: 3 }}>
-            <FormControl size="small" sx={{ minWidth: 180 }}>
-              <InputLabel>Telecaller</InputLabel>
-              <Select label="Telecaller" value={bulkEmail} onChange={(e) => setBulkEmail(e.target.value as string)}>
-                {telecallers.map(t => (
-                  <MenuItem key={t.email} value={t.email}>{t.name || t.email}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Priority</InputLabel>
-              <Select label="Priority" value={bulkPriority} onChange={(e) => setBulkPriority(e.target.value as string)}>
-                <MenuItem value="High">🔴 High</MenuItem>
-                <MenuItem value="Medium">🟡 Medium</MenuItem>
-                <MenuItem value="Low">🟢 Low</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField
-              size="small"
-              type="number"
-              label="Count"
-              value={bulkCount}
-              onChange={(e) => setBulkCount(Math.max(1, parseInt(e.target.value) || 1))}
-              sx={{ width: 90 }}
-              inputProps={{ min: 1 }}
-            />
-            <Button
-              variant="contained"
-              size="small"
-              disabled={!bulkEmail || bulkLoading}
-              startIcon={bulkLoading ? <CircularProgress size={16} /> : <DistributeIcon />}
-              onClick={async () => {
-                try {
-                  setBulkLoading(true);
-                  const res = await automationAPI.bulkReassign(bulkEmail, bulkPriority, bulkCount);
-                  setToast({ msg: res.message, severity: "success" });
-                  loadAdminAssignments();
-                } catch (e: any) {
-                  setToast({ msg: e?.response?.data?.detail || "Bulk assign failed", severity: "error" });
-                } finally {
-                  setBulkLoading(false);
-                }
-              }}
-            >
-              Assign {bulkCount} Calls
-            </Button>
-          </Stack>
+          {/* Bulk assign */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", mb: 1, display: "block" }}>
+              BULK ASSIGN BY PRIORITY
+            </Typography>
+            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexWrap: "wrap" }}>
+              <FormControl size="small" sx={{ minWidth: 160 }}>
+                <InputLabel>Telecaller</InputLabel>
+                <Select label="Telecaller" value={bulkEmail} onChange={e => setBulkEmail(e.target.value as string)} sx={{ borderRadius: 2, fontSize: 13 }}>
+                  {telecallers.map(t => <MenuItem key={t.email} value={t.email}>{t.name || t.email}</MenuItem>)}
+                </Select>
+              </FormControl>
+              <FormControl size="small" sx={{ minWidth: 110 }}>
+                <InputLabel>Priority</InputLabel>
+                <Select label="Priority" value={bulkPriority} onChange={e => setBulkPriority(e.target.value as string)} sx={{ borderRadius: 2, fontSize: 13 }}>
+                  <MenuItem value="High">🔴 High</MenuItem>
+                  <MenuItem value="Medium">🟡 Medium</MenuItem>
+                  <MenuItem value="Low">🟢 Low</MenuItem>
+                </Select>
+              </FormControl>
+              <TextField size="small" type="number" label="Count" value={bulkCount} onChange={e => setBulkCount(Math.max(1, parseInt(e.target.value) || 1))} sx={{ width: 80, "& .MuiOutlinedInput-root": { borderRadius: 2 } }} inputProps={{ min: 1 }} />
+              <Button
+                variant="contained"
+                size="small"
+                disabled={!bulkEmail || bulkLoading}
+                startIcon={bulkLoading ? <CircularProgress size={14} color="inherit" /> : <DistributeIcon />}
+                onClick={handleBulk}
+                sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600, fontSize: 13 }}
+              >
+                Assign
+              </Button>
+            </Stack>
+          </Box>
 
-          <Divider sx={{ my: 2 }} />
-
-          {adminAssignments?.assignments && adminAssignments.assignments.length > 0 && (() => {
-            const pendingList = adminAssignments.assignments.filter((a: any) => a.status === "Pending");
-            const adminPageSize = 15;
-            const adminTotalPages = Math.ceil(pendingList.length / adminPageSize);
-            return (
+          {/* Individual reassign */}
+          {adminData?.assignments && (() => {
+            const pending = adminData.assignments.filter((a: any) => a.status === "Pending");
+            const pageSize = 12;
+            const pg = adminData._pg || 0;
+            return pending.length > 0 ? (
               <Box>
-                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                  Reassign Calls ({pendingList.length} pending)
+                <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", mb: 1, display: "block" }}>
+                  REASSIGN INDIVIDUAL CALLS ({pending.length})
                 </Typography>
-                <Stack spacing={1}>
-                  {pendingList
-                    .slice(
-                      (adminAssignments._adminPage || 0) * adminPageSize,
-                      ((adminAssignments._adminPage || 0) + 1) * adminPageSize
-                    )
-                    .map((a: any) => (
-                      <Stack key={a.assignment_id} direction="row" alignItems="center" spacing={2} sx={{ p: 1, borderRadius: 1, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
-                        <Typography variant="body2" sx={{ flex: 1, fontWeight: 500 }}>
-                          {a.name || "Unknown"} — {a.village || ""}
-                        </Typography>
-                        <Chip size="small" label={a.user_email} variant="outlined" />
-                        <ReassignIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                        <FormControl size="small" sx={{ minWidth: 160 }}>
-                          <InputLabel>Reassign to</InputLabel>
-                          <Select
-                            label="Reassign to"
-                            value=""
-                            onChange={(e) => handleReassign(a.assignment_id, e.target.value as string)}
-                          >
-                            {telecallers.filter(t => t.email !== a.user_email).map(t => (
-                              <MenuItem key={t.email} value={t.email}>{t.name || t.email}</MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Stack>
-                    ))}
+                <Stack spacing={0.75}>
+                  {pending.slice(pg * pageSize, (pg + 1) * pageSize).map((a: any) => (
+                    <Stack
+                      key={a.assignment_id}
+                      direction="row"
+                      alignItems="center"
+                      spacing={1.5}
+                      sx={{ p: 1, px: 1.5, borderRadius: 2, border: `1px solid ${border}`, bgcolor: surfaceMuted }}
+                    >
+                      <Typography variant="body2" sx={{ flex: 1, fontWeight: 600, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {a.name || "—"} <Typography component="span" variant="caption" sx={{ color: "text.secondary" }}>· {a.village || ""}</Typography>
+                      </Typography>
+                      <Chip size="small" label={a.user_email.split("@")[0]} variant="outlined" sx={{ height: 22, fontSize: 11 }} />
+                      <FormControl size="small" sx={{ minWidth: 140 }}>
+                        <InputLabel sx={{ fontSize: 12 }}>Move to</InputLabel>
+                        <Select
+                          label="Move to"
+                          value=""
+                          onChange={e => handleReassign(a.assignment_id, e.target.value as string)}
+                          sx={{ borderRadius: 2, fontSize: 12 }}
+                        >
+                          {telecallers.filter(t => t.email !== a.user_email).map(t => (
+                            <MenuItem key={t.email} value={t.email} sx={{ fontSize: 13 }}>{t.name || t.email}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Stack>
+                  ))}
                 </Stack>
-                {pendingList.length > adminPageSize && (
+                {pending.length > pageSize && (
                   <TablePagination
                     component="div"
-                    count={pendingList.length}
-                    page={adminAssignments._adminPage || 0}
-                    rowsPerPage={adminPageSize}
-                    onPageChange={(_, p) => setAdminAssignments({ ...adminAssignments, _adminPage: p })}
-                    rowsPerPageOptions={[adminPageSize]}
+                    count={pending.length}
+                    page={pg}
+                    rowsPerPage={pageSize}
+                    onPageChange={(_, p) => setAdminData({ ...adminData, _pg: p })}
+                    rowsPerPageOptions={[pageSize]}
+                    sx={{ mt: 0.5 }}
                   />
                 )}
               </Box>
-            );
+            ) : null;
           })()}
         </Paper>
       )}
 
       {/* ── Post-Call Dialog ── */}
-      <Dialog
-        open={callDialogOpen}
-        onClose={() => !submitting && setCallDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 3 } }}
-      >
-        <DialogTitle sx={{ fontWeight: 700 }}>
-          How did the call go?
-          {activeAssignment && (
-            <Typography variant="body2" color="text.secondary">
-              {activeAssignment.name} • {activeAssignment.mobile}
+      <Dialog open={dialogOpen} onClose={() => !submitting && setDialogOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3, p: 0.5 } }}>
+        <DialogTitle sx={{ fontWeight: 800, fontSize: 18, pb: 0 }}>
+          Log Call Outcome
+          {activeItem && (
+            <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: 400 }}>
+              {activeItem.name} · {activeItem.mobile}
             </Typography>
           )}
         </DialogTitle>
-        <DialogContent>
-          <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
-            Select call outcome
-          </Typography>
-          <Stack spacing={1} sx={{ mb: 3 }}>
+        <DialogContent sx={{ pt: 2 }}>
+          <Stack spacing={1} sx={{ mb: 2.5 }}>
             {CALL_OUTCOMES.map(o => (
-              <Paper
+              <Box
                 key={o.value}
-                variant="outlined"
-                onClick={() => setSelectedOutcome(o.value)}
+                onClick={() => setOutcome(o.value)}
                 sx={{
                   p: 1.5,
                   borderRadius: 2,
                   cursor: "pointer",
-                  borderColor: selectedOutcome === o.value ? o.color : alpha("#000", 0.12),
-                  borderWidth: selectedOutcome === o.value ? 2 : 1,
-                  bgcolor: selectedOutcome === o.value ? alpha(o.color, 0.08) : "transparent",
-                  "&:hover": { borderColor: o.color, bgcolor: alpha(o.color, 0.04) },
-                  transition: "all 0.15s",
+                  border: `2px solid ${outcome === o.value ? o.color : border}`,
+                  bgcolor: outcome === o.value ? alpha(o.color, 0.06) : "transparent",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.5,
+                  transition: "all 0.12s",
+                  "&:hover": { borderColor: alpha(o.color, 0.5), bgcolor: alpha(o.color, 0.03) },
                 }}
               >
-                <Typography variant="body1" sx={{ fontWeight: selectedOutcome === o.value ? 700 : 400 }}>
-                  {o.label}
-                </Typography>
-              </Paper>
+                <Box sx={{ color: o.color }}>{o.icon}</Box>
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: outcome === o.value ? 700 : 500 }}>{o.label}</Typography>
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>{o.desc}</Typography>
+                </Box>
+              </Box>
             ))}
           </Stack>
-
           <TextField
-            label="Notes (optional)"
+            label="Notes"
             multiline
-            rows={3}
+            rows={2}
             fullWidth
-            value={callNotes}
-            onChange={(e) => setCallNotes(e.target.value)}
-            placeholder="Any additional details about the call..."
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            placeholder="Optional details..."
             sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
           />
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setCallDialogOpen(false)} disabled={submitting}>
-            Cancel
-          </Button>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => setDialogOpen(false)} disabled={submitting} sx={{ borderRadius: 2, textTransform: "none" }}>Cancel</Button>
           <Button
             variant="contained"
-            onClick={handleSubmitCallStatus}
-            disabled={!selectedOutcome || submitting}
-            startIcon={submitting ? <CircularProgress size={16} /> : <CheckIcon />}
-            sx={{ borderRadius: 2 }}
+            onClick={submitOutcome}
+            disabled={!outcome || submitting}
+            startIcon={submitting ? <CircularProgress size={14} color="inherit" /> : <CheckIcon />}
+            sx={{ borderRadius: 2, textTransform: "none", fontWeight: 700, boxShadow: "none" }}
           >
-            {submitting ? "Saving..." : "Submit"}
+            {submitting ? "Saving…" : "Submit"}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Toast */}
-      <Snackbar
-        open={!!toast}
-        autoHideDuration={5000}
-        onClose={() => setToast(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert severity={toast?.severity || "info"} onClose={() => setToast(null)} sx={{ borderRadius: 2 }}>
-          {toast?.msg}
-        </Alert>
+      <Snackbar open={!!toast} autoHideDuration={4000} onClose={() => setToast(null)} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
+        <Alert severity={toast?.sev || "info"} onClose={() => setToast(null)} sx={{ borderRadius: 2, fontWeight: 500 }}>{toast?.msg}</Alert>
       </Snackbar>
     </Box>
   );

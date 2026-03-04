@@ -388,6 +388,10 @@ export const automationAPI = {
     });
     return response.data;
   },
+  refreshDistribution: async () => {
+    const response = await apiClient.post("/api/automation/admin/refresh-distribution");
+    return response.data;
+  },
 };
 // File/Import API
 

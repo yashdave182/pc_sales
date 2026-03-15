@@ -8,11 +8,7 @@ from typing import List, Optional
 
 from activity_logger import get_activity_logger
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
-<<<<<<< HEAD
-from supabase_db import SupabaseClient, get_db
-=======
 from supabase_db import SupabaseClient, get_db, get_supabase, get_supabase_admin
->>>>>>> origin/main
 from models import UserCreate
 from rbac_utils import verify_admin_role, verify_permission
 
@@ -612,20 +608,12 @@ def create_user(
     Only accessible by admin users.
     """
     try:
-<<<<<<< HEAD
         # Use the official supabase-py client (has .auth.admin) — NOT our custom REST client
         from supabase_db import get_supabase_admin
         supabase_admin = get_supabase_admin()
 
         # Create user in Supabase Auth using the Admin API
         result = supabase_admin.auth.admin.create_user({
-=======
-        # Use official Supabase Admin client (with service role key) for auth operations
-        supabase = get_supabase_admin()
-        
-        # Create user with metadata
-        result = supabase.auth.admin.create_user({
->>>>>>> origin/main
             "email": user.email,
             "password": user.password,
             "email_confirm": True,

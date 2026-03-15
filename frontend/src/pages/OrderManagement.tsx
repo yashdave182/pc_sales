@@ -116,17 +116,34 @@ export default function OrderManagement() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [salesResponse, customersResponse] = await Promise.all([
+
+      // Load each independently — a 403 on one shouldn't break the whole page
+      const [salesResult, customersResult] = await Promise.allSettled([
         salesAPI.getAll(),
         customerAPI.getAll(),
       ]);
 
+      let salesData: any[] = [];
+      let customersData: Customer[] = [];
+
+      if (salesResult.status === "fulfilled") {
+        salesData = salesResult.value.data || salesResult.value || [];
+      } else {
+        console.error("Error fetching sales:", salesResult.reason?.response?.data?.detail || salesResult.reason?.message);
+      }
+
+      if (customersResult.status === "fulfilled") {
+        customersData = customersResult.value.data || [];
+      } else {
+        console.error("Error fetching customers:", customersResult.reason?.response?.data?.detail || customersResult.reason?.message);
+      }
+
       // Map customer data to sales
       const customersMap = new Map<number, Customer>(
-        customersResponse.data?.map((c: Customer) => [c.customer_id, c]) || [],
+        customersData.map((c: Customer) => [c.customer_id, c]),
       );
 
-      const ordersData = (salesResponse.data || salesResponse || []).map(
+      const ordersData = salesData.map(
         (sale: any) => {
           const customer =
             customersMap.get(sale.customer_id) || ({} as Customer);
@@ -141,7 +158,7 @@ export default function OrderManagement() {
       );
 
       setOrders(ordersData);
-      setCustomers(customersResponse.data || []);
+      setCustomers(customersData);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {

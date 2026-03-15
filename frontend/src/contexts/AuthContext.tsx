@@ -114,7 +114,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           localStorage.setItem("user_email", s.user.email);
         } else {
           localStorage.removeItem("user_email");
-          localStorage.removeItem("admin_email");
         }
 
         // Skip permission load on SIGNED_IN — signIn() already handles it
@@ -132,11 +131,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const hasPermission = useCallback(
     (permission: string): boolean => {
       if (!user) return false;
-      // Admin and developer always pass (fail-safe if DB isn't set up yet)
-      if (role === "admin" || role === "developer") return true;
       return permissions.has(permission);
     },
-    [user, role, permissions]
+    [user, permissions]
   );
 
   // ── refreshPermissions: force re-fetch ──────────────────────────────────────
@@ -154,12 +151,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     if (data.user?.email) {
       localStorage.setItem("user_email", data.user.email);
-      if (
-        normalizeRole(data.user.user_metadata?.role) === "admin" ||
-        normalizeRole(data.user.user_metadata?.role) === "developer"
-      ) {
-        localStorage.setItem("admin_email", data.user.email);
-      }
     }
 
     // Load permissions NOW so the caller can navigate immediately after.
@@ -178,7 +169,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setPermissions(new Set());
     setPermissionsLoaded(false);
     localStorage.removeItem("user_email");
-    localStorage.removeItem("admin_email");
   };
 
   return (

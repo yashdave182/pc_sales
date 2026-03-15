@@ -99,18 +99,32 @@ export default function Sales() {
     try {
       if (!background) setLoading(true);
       setError(null);
-      console.log("Loading sales data...");
-      const [salesData, customersData, productsData] = await Promise.all([
+
+      // Load each independently — a 403 on products shouldn't block the sales list
+      const [salesResult, customersResult, productsResult] = await Promise.allSettled([
         salesAPI.getAll({ limit: 1000 }),
         customerAPI.getAll({ limit: 1000 }),
         productAPI.getAll(),
       ]);
-      console.log("Sales loaded:", salesData);
-      console.log("Customers loaded:", customersData);
-      console.log("Products loaded:", productsData);
-      setSales(salesData);
-      setCustomers(customersData.data || []);
-      setProducts(productsData);
+
+      if (salesResult.status === "fulfilled") {
+        setSales(salesResult.value);
+      } else {
+        console.error("Error loading sales:", salesResult.reason);
+        setError(salesResult.reason?.response?.data?.detail || salesResult.reason?.message || t("messages.error"));
+      }
+
+      if (customersResult.status === "fulfilled") {
+        setCustomers(customersResult.value.data || []);
+      } else {
+        console.warn("Could not load customers:", customersResult.reason?.message);
+      }
+
+      if (productsResult.status === "fulfilled") {
+        setProducts(productsResult.value);
+      } else {
+        console.warn("Could not load products (user may lack view_products permission):", productsResult.reason?.message);
+      }
     } catch (err: any) {
       console.error("Error loading sales data:", err);
       const errorMessage =

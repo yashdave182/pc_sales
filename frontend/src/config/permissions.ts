@@ -65,6 +65,9 @@ export const PERMISSIONS = {
     // Data Import
     IMPORT_DATA: "import_data",
 
+    // Algorithm
+    RUN_ALGORITHM: "run_algorithm",
+
     // Admin
     VIEW_ACTIVITY_LOGS: "view_activity_logs",
     MANAGE_ACTIVITY_LOGS: "manage_activity_logs",

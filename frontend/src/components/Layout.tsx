@@ -142,7 +142,7 @@ const navigationItems: NavItem[] = [
     labelKey: "nav.algorithm",
     icon: <ScienceIcon />,
     path: "/algorithm",
-    permission: PERMISSIONS.VIEW_ALL_ANALYSIS,
+    permission: PERMISSIONS.RUN_ALGORITHM,
   },
   {
     id: "import",

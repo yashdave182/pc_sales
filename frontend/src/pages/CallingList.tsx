@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
+import { PERMISSIONS } from "../config/permissions";
 import {
   Box,
   Typography,
@@ -132,8 +133,8 @@ function useCountdownTo10AM() {
 export default function CallingList() {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  const { role, hasPermission } = useAuth();
-  const isAdmin = role === "admin" || role === "developer";
+  const { hasPermission } = useAuth();
+  const canDistribute = hasPermission(PERMISSIONS.RUN_CALL_DISTRIBUTION);
   const { timeLeft, progress, isPast } = useCountdownTo10AM();
 
   const [tab, setTab] = useState(0);
@@ -185,11 +186,11 @@ export default function CallingList() {
   useEffect(() => { load(1); }, [load]);
 
   useEffect(() => {
-    if (isAdmin) {
+    if (canDistribute) {
       automationAPI.getDistributionStatus().then(setDistStatus).catch(() => { });
       automationAPI.getTelecallers().then(r => setTelecallers(r.telecallers || [])).catch(() => { });
     }
-  }, [isAdmin]);
+  }, [canDistribute]);
 
   const loadAdmin = async () => {
     try {
@@ -283,7 +284,7 @@ export default function CallingList() {
             </Typography>
           </Box>
           <Stack direction="row" spacing={1}>
-            {isAdmin && (
+            {canDistribute && (
               <>
                 <Button
                   variant={showAdmin ? "contained" : "outlined"}
@@ -324,7 +325,7 @@ export default function CallingList() {
         </Stack>
 
         {/* ── Timer Bar ── */}
-        {isAdmin && !isPast && (
+        {canDistribute && !isPast && (
           <Paper
             sx={{
               p: 1.5,
@@ -521,7 +522,7 @@ export default function CallingList() {
       </Paper>
 
       {/* ── Admin Panel ── */}
-      {isAdmin && showAdmin && (
+      {canDistribute && showAdmin && (
         <Paper sx={{ mt: 3, p: 3, borderRadius: 3, border: `1px solid ${border}`, bgcolor: surface }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
             <AdminIcon sx={{ color: "#7c3aed" }} /> Admin Controls

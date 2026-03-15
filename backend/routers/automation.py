@@ -114,7 +114,7 @@ def distribute_calls(db: SupabaseClient, admin_email: str = "system") -> dict:
         # Alert admin
         try:
             db.table("notifications").insert({
-                "user_email": admin_email if admin_email != "system" else "admin@gmail.com",
+                "user_email": admin_email if admin_email != "system" else "system@internal",
                 "title": "⚠️ No Telecallers Available",
                 "message": "Auto-distribution failed: No active telecallers found. Please add telecallers to app_users.",
                 "notification_type": "warning",

@@ -10,7 +10,8 @@ from datetime import datetime
 
 import pandas as pd
 import numpy as np
-from fastapi import APIRouter, File, UploadFile, HTTPException, Query
+from fastapi import APIRouter, File, UploadFile, HTTPException, Query, Depends
+from rbac_utils import verify_permission
 
 router = APIRouter()
 
@@ -298,7 +299,7 @@ def load_and_process(file_bytes: bytes):
 # ENDPOINTS
 # ─────────────────────────────────────────────────────────
 
-@router.post("/run")
+@router.post("/run", dependencies=[Depends(verify_permission("run_algorithm"))])
 async def run_algorithm(
     file: UploadFile = File(None),
     use_sample: bool = Query(False),

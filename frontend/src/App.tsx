@@ -216,9 +216,20 @@ function App() {
                   }
                 />
                 <Route
+                  path="/role-management"
+                  element={
+                    <ProtectedRoute requiredPermission={PERMISSIONS.MANAGE_ROLES}>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <RoleManagement />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/algorithm"
                   element={
-                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_ALL_ANALYSIS}>
+                    <ProtectedRoute requiredPermission={PERMISSIONS.RUN_ALGORITHM}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Algorithm />
                         <QuickActions />

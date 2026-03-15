@@ -1,4 +1,5 @@
 from .admin import router as admin
+from .algorithm import router as algorithm
 from .analytics import router as analytics
 from .automation import router as automation
 from .customers import router as customers

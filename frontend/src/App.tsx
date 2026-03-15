@@ -25,6 +25,7 @@ import DataImport from "./pages/DataImport";
 import CallingList from "./pages/CallingList";
 import OrderManagement from "./pages/OrderManagement";
 import Admin from "./pages/Admin";
+import Algorithm from "./pages/Algorithm";
 import UserManagement from "./pages/UserManagement";
 import ProductPricing from "./pages/ProductPricing";
 import Notifications from "./pages/Notifications";
@@ -215,11 +216,12 @@ function App() {
                   }
                 />
                 <Route
-                  path="/role-management"
+                  path="/algorithm"
                   element={
-                    <ProtectedRoute requiredPermission={PERMISSIONS.MANAGE_ROLES}>
+                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_ALL_ANALYSIS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
-                        <RoleManagement />
+                        <Algorithm />
+                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }

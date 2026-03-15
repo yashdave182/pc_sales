@@ -9,6 +9,7 @@
     "orders": "Order Management",
     "reports": "Reports",
     "callingList": "Calling List",
+    "algorithm": "Algorithm",
     "import": "Data Import"
   },
   "common": {

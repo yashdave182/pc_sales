@@ -442,7 +442,7 @@ const RoleManagement: React.FC = () => {
                                     <CircularProgress />
                                 </Box>
                             ) : (
-                                <Box sx={{ p: 2, maxHeight: "70vh", overflowY: "auto" }}>
+                                <Box sx={{ p: 2 }}>
                                     {Object.entries(groupedPermissions).map(([module, perms]) => (
                                         <Box key={module} sx={{ mb: 3 }}>
                                             <Box
@@ -511,6 +511,9 @@ const RoleManagement: React.FC = () => {
                                                     </Grid>
                                                 ))}
                                             </Grid>
+
+
+
                                         </Box>
                                     ))}
                                 </Box>

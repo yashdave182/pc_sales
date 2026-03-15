@@ -68,6 +68,7 @@ export const PERMISSIONS = {
     // Admin
     VIEW_ACTIVITY_LOGS: "view_activity_logs",
     MANAGE_ACTIVITY_LOGS: "manage_activity_logs",
+    VIEW_USERS: "view_users",
     MANAGE_USERS: "manage_users",
     MANAGE_ROLES: "manage_roles",
     MANAGE_NOTIFICATIONS: "manage_notifications",

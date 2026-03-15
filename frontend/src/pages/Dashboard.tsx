@@ -284,8 +284,8 @@ export default function Dashboard() {
             {/* ── Quick Action Cards ──────────────────────────────────────────────── */}
             {/* All 4 always rendered; greyed out + click-blocked if no permission   */}
             <Grid container spacing={2} sx={{ mb: 4 }}>
-                <Grid item xs={6} sm={6} md={3}>
-                    <PermissionGate permission={PERMISSIONS.VIEW_CUSTOMERS} block permissionLabel="view customers">
+                <PermissionGate permission={PERMISSIONS.VIEW_CUSTOMERS}>
+                    <Grid item xs={6} sm={6} md={3}>
                         <Card sx={{ background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", color: "white", cursor: "pointer", transition: "all 0.3s ease", "&:hover": { transform: "translateY(-4px)", boxShadow: 6 } }}
                             onClick={() => navigate("/customers")}>
                             <CardContent>
@@ -294,11 +294,11 @@ export default function Dashboard() {
                                 <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>{t("dashboard.quickActions.addCustomer.subtitle")}</Typography>
                             </CardContent>
                         </Card>
-                    </PermissionGate>
-                </Grid>
+                    </Grid>
+                </PermissionGate>
 
-                <Grid item xs={6} sm={6} md={3}>
-                    <PermissionGate permission={PERMISSIONS.VIEW_SALES} block permissionLabel="view sales">
+                <PermissionGate permission={PERMISSIONS.VIEW_SALES}>
+                    <Grid item xs={6} sm={6} md={3}>
                         <Card sx={{ background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", color: "white", cursor: "pointer", transition: "all 0.3s ease", "&:hover": { transform: "translateY(-4px)", boxShadow: 6 } }}
                             onClick={() => navigate("/sales")}>
                             <CardContent>
@@ -307,11 +307,11 @@ export default function Dashboard() {
                                 <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>{t("dashboard.quickActions.newSale.subtitle")}</Typography>
                             </CardContent>
                         </Card>
-                    </PermissionGate>
-                </Grid>
+                    </Grid>
+                </PermissionGate>
 
-                <Grid item xs={6} sm={6} md={3}>
-                    <PermissionGate permission={PERMISSIONS.VIEW_DEMOS} block permissionLabel="view demos">
+                <PermissionGate permission={PERMISSIONS.VIEW_DEMOS}>
+                    <Grid item xs={6} sm={6} md={3}>
                         <Card sx={{ background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)", color: "white", cursor: "pointer", transition: "all 0.3s ease", "&:hover": { transform: "translateY(-4px)", boxShadow: 6 } }}
                             onClick={() => navigate("/demos")}>
                             <CardContent>
@@ -320,11 +320,11 @@ export default function Dashboard() {
                                 <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>{t("dashboard.quickActions.scheduleDemo.subtitle")}</Typography>
                             </CardContent>
                         </Card>
-                    </PermissionGate>
-                </Grid>
+                    </Grid>
+                </PermissionGate>
 
-                <Grid item xs={6} sm={6} md={3}>
-                    <PermissionGate permission={PERMISSIONS.VIEW_PAYMENTS} block permissionLabel="view payments">
+                <PermissionGate permission={PERMISSIONS.VIEW_PAYMENTS}>
+                    <Grid item xs={6} sm={6} md={3}>
                         <Card sx={{ background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", color: "white", cursor: "pointer", transition: "all 0.3s ease", "&:hover": { transform: "translateY(-4px)", boxShadow: 6 } }}
                             onClick={() => navigate("/payments")}>
                             <CardContent>
@@ -333,57 +333,59 @@ export default function Dashboard() {
                                 <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>{t("dashboard.quickActions.recordPayment.subtitle")}</Typography>
                             </CardContent>
                         </Card>
-                    </PermissionGate>
-                </Grid>
+                    </Grid>
+                </PermissionGate>
             </Grid>
+
 
             {/* ── Metric Cards ─────────────────────────────────────────────────────── */}
             {/* Always rendered; greyed out if no view_dashboard permission           */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
-                <Grid item xs={12} sm={6} md={3}>
-                    <PermissionGate permission={PERMISSIONS.VIEW_DASHBOARD} block permissionLabel="view dashboard">
+                <PermissionGate permission={PERMISSIONS.VIEW_DASHBOARD}>
+                    <Grid item xs={12} sm={6} md={3}>
                         {metrics ? (
                             <MetricCard title={t("dashboard.totalSales")} value={`₹${metrics.total_sales.toLocaleString()}`}
                                 subtitle={`${metrics.total_transactions} ${t("dashboard.transactions")}`}
                                 icon={<AttachMoney sx={{ fontSize: 32 }} />} color="#1976d2" trend={12.5} />
                         ) : <MetricCardSkeleton />}
-                    </PermissionGate>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <PermissionGate permission={PERMISSIONS.VIEW_DASHBOARD} block permissionLabel="view dashboard">
+                    </Grid>
+                </PermissionGate>
+                <PermissionGate permission={PERMISSIONS.VIEW_DASHBOARD}>
+                    <Grid item xs={12} sm={6} md={3}>
                         {metrics ? (
                             <MetricCard title={t("dashboard.pendingPayments")} value={`₹${metrics.pending_amount.toLocaleString()}`}
                                 subtitle={t("dashboard.outstandingAmount")}
                                 icon={<Receipt sx={{ fontSize: 32 }} />} color="#ed6c02" />
                         ) : <MetricCardSkeleton />}
-                    </PermissionGate>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <PermissionGate permission={PERMISSIONS.VIEW_DASHBOARD} block permissionLabel="view dashboard">
+                    </Grid>
+                </PermissionGate>
+                <PermissionGate permission={PERMISSIONS.VIEW_DASHBOARD}>
+                    <Grid item xs={12} sm={6} md={3}>
                         {metrics ? (
                             <MetricCard title={t("dashboard.totalCustomers")} value={metrics.total_customers}
                                 subtitle={t("dashboard.activeCustomers")}
                                 icon={<People sx={{ fontSize: 32 }} />} color="#2e7d32" trend={8.3} />
                         ) : <MetricCardSkeleton />}
-                    </PermissionGate>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <PermissionGate permission={PERMISSIONS.VIEW_DASHBOARD} block permissionLabel="view dashboard">
+                    </Grid>
+                </PermissionGate>
+                <PermissionGate permission={PERMISSIONS.VIEW_DASHBOARD}>
+                    <Grid item xs={12} sm={6} md={3}>
                         {metrics ? (
                             <MetricCard title={t("dashboard.demoConversion")} value={`${metrics?.demo_conversion_rate ?? 0}%`}
                                 subtitle={t("dashboard.conversionRate")}
                                 icon={<Timeline sx={{ fontSize: 32 }} />} color="#9c27b0" trend={5.2} />
                         ) : <MetricCardSkeleton />}
-                    </PermissionGate>
-                </Grid>
+                    </Grid>
+                </PermissionGate>
             </Grid>
+
 
             {/* ── Charts Row ───────────────────────────────────────────────────────── */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
 
                 {/* Sales Trend Chart — greyed out if no view_reports */}
-                <Grid item xs={12} lg={8}>
-                    <PermissionGate permission={PERMISSIONS.VIEW_REPORTS} block permissionLabel="view reports">
+                <PermissionGate permission={PERMISSIONS.VIEW_REPORTS}>
+                    <Grid item xs={12} lg={8}>
                         <Card>
                             <CardContent>
                                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 2 }}>
@@ -426,12 +428,12 @@ export default function Dashboard() {
                                 )}
                             </CardContent>
                         </Card>
-                    </PermissionGate>
-                </Grid>
+                    </Grid>
+                </PermissionGate>
 
                 {/* Collected Payments — greyed out if no view_payments */}
-                <Grid item xs={12} lg={4}>
-                    <PermissionGate permission={PERMISSIONS.VIEW_PAYMENTS} block permissionLabel="view payments">
+                <PermissionGate permission={PERMISSIONS.VIEW_PAYMENTS}>
+                    <Grid item xs={12} lg={4}>
                         <Card sx={{ height: "100%", background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", color: "white", display: "flex", flexDirection: "column", justifyContent: "center", position: "relative", overflow: "hidden" }}>
                             <Box sx={{ position: "absolute", right: -20, top: -20, opacity: 0.1, transform: "rotate(15deg)" }}>
                                 <Payment sx={{ fontSize: 180 }} />
@@ -454,8 +456,8 @@ export default function Dashboard() {
                                 )}
                             </CardContent>
                         </Card>
-                    </PermissionGate>
-                </Grid>
+                    </Grid>
+                </PermissionGate>
             </Grid>
 
             {/* ── Recent Activity ──────────────────────────────────────────────────── */}
@@ -571,6 +573,6 @@ export default function Dashboard() {
                     </Card>
                 </Grid>
             </Grid>
-        </Box>
+        </Box >
     );
 }

@@ -105,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, s) => {
+      (event, s) => {
         setSession(s);
         setUser(s?.user ?? null);
         setRole(normalizeRole(s?.user?.user_metadata?.role));
@@ -117,7 +117,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           localStorage.removeItem("admin_email");
         }
 
-        loadPermissions(s?.user ?? null);
+        // Skip permission load on SIGNED_IN — signIn() already handles it
+        // to avoid resetting permissionsLoaded mid-navigation.
+        if (event !== "SIGNED_IN") {
+          loadPermissions(s?.user ?? null);
+        }
       }
     );
 
@@ -156,6 +160,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       ) {
         localStorage.setItem("admin_email", data.user.email);
       }
+    }
+
+    // Load permissions NOW so the caller can navigate immediately after.
+    // This avoids a race where navigate fires before permissionsLoaded is true.
+    if (data.user) {
+      setUser(data.user);
+      setSession(data.session);
+      setRole(normalizeRole(data.user.user_metadata?.role));
+      await loadPermissions(data.user);
     }
   };
 

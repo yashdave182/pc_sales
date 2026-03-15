@@ -314,6 +314,38 @@ def get_all_users(
             )
 
 
+
+@router.get("/app-users", dependencies=[Depends(verify_permission("view_users"))])
+def get_app_users(
+    admin_email: Optional[str] = Header(None, alias="x-user-email"),
+    db: SupabaseClient = Depends(get_db),
+):
+    """
+    Get all users from the app_users table with their roles.
+    Requires 'view_users' permission.
+    """
+    try:
+        response = db.table("app_users").select("*").order("created_at", desc=True).execute()
+
+        users = []
+        for u in (response.data or []):
+            users.append({
+                "id": u.get("id"),
+                "email": u.get("email", ""),
+                "name": u.get("name", ""),
+                "role": u.get("role", ""),
+                "is_active": u.get("is_active", True),
+                "created_at": u.get("created_at", ""),
+            })
+
+        return {"users": users}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching users: {str(e)}"
+        )
+
+
 @router.delete("/activity-logs/{log_id}", dependencies=[Depends(verify_permission("manage_activity_logs"))])
 def delete_activity_log(
     log_id: int,

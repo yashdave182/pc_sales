@@ -25,6 +25,7 @@ import DataImport from "./pages/DataImport";
 import CallingList from "./pages/CallingList";
 import OrderManagement from "./pages/OrderManagement";
 import Admin from "./pages/Admin";
+import UserManagement from "./pages/UserManagement";
 import ProductPricing from "./pages/ProductPricing";
 import Notifications from "./pages/Notifications";
 import RoleManagement from "./pages/RoleManagement";
@@ -191,7 +192,19 @@ function App() {
                   }
                 />
                 <Route
+                  path="/user-management"
+                  element={
+                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_USERS}>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <UserManagement />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/product-pricing"
+
                   element={
                     <ProtectedRoute requiredPermission={PERMISSIONS.MANAGE_PRICING}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>

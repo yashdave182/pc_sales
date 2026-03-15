@@ -33,6 +33,7 @@ import {
 import { ListSkeleton } from "../components/Skeletons";
 import { automationAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
+import { PERMISSIONS } from "../config/permissions";
 
 type CallingListItem = {
   customer_id?: number;
@@ -250,7 +251,7 @@ function CallItemCard({ item }: { item: CallingListItem }) {
 }
 
 export default function CallingList() {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AssignmentsResponse | null>(null);
@@ -317,7 +318,7 @@ export default function CallingList() {
           <WarningIcon color="warning" /> My Calling List (Today)
         </Typography>
         <Stack direction="row" spacing={1.5}>
-          {user?.email === "admin@gmail.com" && (
+          {hasPermission(PERMISSIONS.RUN_CALL_DISTRIBUTION) && (
             <Button
               variant="outlined"
               color="secondary"

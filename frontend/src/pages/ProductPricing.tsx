@@ -37,6 +37,7 @@ import {
     Delete as DeleteIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../contexts/AuthContext";
+import { PERMISSIONS } from "../config/permissions";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -97,7 +98,7 @@ interface PriceState {
 }
 
 export default function ProductPricing() {
-    const { user } = useAuth();
+    const { user, hasPermission } = useAuth();
     const navigate = useNavigate();
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
@@ -127,19 +128,19 @@ export default function ProductPricing() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [productToDelete, setProductToDelete] = useState<number | null>(null);
 
-    // Check if user is admin
+    // Check if user has pricing permissions
     useEffect(() => {
-        if (user && user.email !== "admin@gmail.com") {
-            setError("Access denied. Admin privileges required.");
+        if (user && !hasPermission(PERMISSIONS.MANAGE_PRICING)) {
+            setError("Access denied. You need pricing management privileges.");
             setTimeout(() => {
                 navigate("/dashboard");
             }, 2000);
         }
-    }, [user, navigate]);
+    }, [user, navigate, hasPermission]);
 
     // Load all products
     const loadProducts = async () => {
-        if (!user || user.email !== "admin@gmail.com") return;
+        if (!user || !hasPermission(PERMISSIONS.MANAGE_PRICING)) return;
 
         try {
             setLoading(true);
@@ -161,7 +162,7 @@ export default function ProductPricing() {
     };
 
     useEffect(() => {
-        if (user?.email === "admin@gmail.com") {
+        if (user && hasPermission(PERMISSIONS.MANAGE_PRICING)) {
             loadProducts();
         }
     }, [user]);
@@ -410,7 +411,7 @@ export default function ProductPricing() {
         }
     };
 
-    if (!user || user.email !== "admin@gmail.com") {
+    if (!user || !hasPermission(PERMISSIONS.MANAGE_PRICING)) {
         return (
             <Box
                 sx={{
@@ -421,7 +422,7 @@ export default function ProductPricing() {
                 }}
             >
                 <Alert severity="error">
-                    Access denied. This page is only accessible to admin@gmail.com
+                    Access denied. You need pricing management privileges.
                 </Alert>
             </Box>
         );

@@ -4,7 +4,6 @@ import {
   Card,
   CardContent,
   Typography,
-  CircularProgress,
   Alert,
   Chip,
   TextField,
@@ -21,17 +20,15 @@ import {
   TablePagination,
   InputAdornment,
   Avatar,
-  Button,
-  Select,
-  FormControl,
-  InputLabel,
 } from "@mui/material";
 import {
   Refresh as RefreshIcon,
   Search as SearchIcon,
+  History as HistoryIcon,
 } from "@mui/icons-material";
 import { TableSkeleton } from "../components/Skeletons";
 import { useAuth } from "../contexts/AuthContext";
+import { PERMISSIONS } from "../config/permissions";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -65,8 +62,8 @@ const actionTypeColors: Record<
   VIEW: "default",
 };
 
-export default function Admin() {
-  const { user } = useAuth();
+export default function AdminLogs() {
+  const { user, hasPermission } = useAuth();
   const navigate = useNavigate();
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,44 +75,19 @@ export default function Admin() {
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [total, setTotal] = useState(0);
 
-  // User Management State
-  const [newUserEmail, setNewUserEmail] = useState("");
-  const [newUserPassword, setNewUserPassword] = useState("");
-  const [newUserRole, setNewUserRole] = useState("");
-  const [creatingUser, setCreatingUser] = useState(false);
-  const [creationSuccess, setCreationSuccess] = useState<string | null>(null);
-
-  // Roles fetched from DB — includes custom roles
-  const [roles, setRoles] = useState<{ role_key: string; display_name: string }[]>([]);
-
-  // Fetch all roles from DB on mount
+  // Check if user has permission
   useEffect(() => {
-    const fetchRoles = async () => {
-      try {
-        const response = await axios.get(`${API_BASE_URL}/api/rbac/roles`, {
-          headers: { "x-user-email": user?.email || "" },
-        });
-        setRoles(response.data || []);
-      } catch (err) {
-        console.error("Failed to fetch roles:", err);
-      }
-    };
-    if (user?.email) fetchRoles();
-  }, [user?.email]);
-
-  // Check if user is admin
-  useEffect(() => {
-    if (user && user.email !== "admin@gmail.com") {
-      setError("Access denied. Admin privileges required.");
+    if (user && !hasPermission(PERMISSIONS.VIEW_ACTIVITY_LOGS)) {
+      setError("Access denied. You need activity log permissions.");
       setTimeout(() => {
         navigate("/dashboard");
       }, 2000);
     }
-  }, [user, navigate]);
+  }, [user, navigate, hasPermission]);
 
   // Load activity logs
   const loadActivities = async () => {
-    if (!user || user.email !== "admin@gmail.com") return;
+    if (!user || !hasPermission(PERMISSIONS.VIEW_ACTIVITY_LOGS)) return;
 
     try {
       setLoading(true);
@@ -149,50 +121,8 @@ export default function Admin() {
     }
   };
 
-  const handleCreateUser = async () => {
-    if (!newUserEmail || !newUserPassword || !newUserRole) {
-      setError("Please fill in all fields");
-      return;
-    }
-
-    try {
-      setCreatingUser(true);
-      setError(null);
-      setCreationSuccess(null);
-
-      await axios.post(
-        `${API_BASE_URL}/api/admin/users`,
-        {
-          email: newUserEmail,
-          password: newUserPassword,
-          role: newUserRole,
-        },
-        {
-          headers: {
-            "x-user-email": user?.email || "",
-          },
-        }
-      );
-
-      setCreationSuccess(`User ${newUserEmail} created successfully with role ${newUserRole}`);
-      setNewUserEmail("");
-      setNewUserPassword("");
-      setNewUserRole("");
-      loadActivities(); // Refresh logs to show the CREATE_USER action
-    } catch (err: any) {
-      console.error("Error creating user:", err);
-      setError(err.response?.data?.detail || "Failed to create user");
-    } finally {
-      setCreatingUser(false);
-    }
-  };
-
-
-
-
-
   useEffect(() => {
-    if (user?.email === "admin@gmail.com") {
+    if (user && hasPermission(PERMISSIONS.VIEW_ACTIVITY_LOGS)) {
       loadActivities();
     }
   }, [user, page, rowsPerPage, filterUserEmail, filterActionType]);
@@ -209,10 +139,6 @@ export default function Admin() {
   };
 
   const formatDate = (dateString: string) => {
-    // Parse the UTC timestamp and convert to IST
-    const date = new Date(dateString);
-
-    // Add 'Z' if not present to ensure UTC parsing
     const utcDate = dateString.endsWith("Z")
       ? new Date(dateString)
       : new Date(dateString + "Z");
@@ -247,7 +173,7 @@ export default function Admin() {
     new Set(activities.map((a) => a.action_type).filter(Boolean)),
   );
 
-  if (!user || user.email !== "admin@gmail.com") {
+  if (!user || !hasPermission(PERMISSIONS.VIEW_ACTIVITY_LOGS)) {
     return (
       <Box
         sx={{
@@ -258,7 +184,7 @@ export default function Admin() {
         }}
       >
         <Alert severity="error">
-          Access denied. This page is only accessible to admin@gmail.com
+          Access denied. You need activity log permissions to view this page.
         </Alert>
       </Box>
     );
@@ -268,93 +194,11 @@ export default function Admin() {
     <Box>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-          Admin
-        </Typography>
-      </Box>
-
-      {/* User Management Card */}
-      <Card sx={{ mb: 4 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom fontWeight="bold">
-            User Management
-          </Typography>
-          <Typography variant="body2" color="textSecondary" paragraph>
-            Create new users and assign their roles. Updates act immediately.
-          </Typography>
-
-          {creationSuccess && (
-            <Alert severity="success" sx={{ mb: 3 }} onClose={() => setCreationSuccess(null)}>
-              {creationSuccess}
-            </Alert>
-          )}
-
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-              {error}
-            </Alert>
-          )}
-
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Email Address"
-                value={newUserEmail}
-                onChange={(e) => setNewUserEmail(e.target.value)}
-                size="small"
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <TextField
-                fullWidth
-                label="Password"
-                type="password"
-                value={newUserPassword}
-                onChange={(e) => setNewUserPassword(e.target.value)}
-                size="small"
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Role</InputLabel>
-                <Select
-                  value={newUserRole}
-                  label="Role"
-                  onChange={(e) => setNewUserRole(e.target.value)}
-                >
-                  {roles.length === 0 ? (
-                    <MenuItem disabled>Loading roles...</MenuItem>
-                  ) : (
-                    roles.map((role) => (
-                      <MenuItem key={role.role_key} value={role.role_key}>
-                        {role.display_name}
-                      </MenuItem>
-                    ))
-                  )}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={2}>
-              <Button
-                fullWidth
-                variant="contained"
-                onClick={handleCreateUser}
-                disabled={creatingUser}
-              >
-                {creatingUser ? <CircularProgress size={24} color="inherit" /> : "Create User"}
-              </Button>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
-
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-          Admin Activity Logs
+        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
+          <HistoryIcon color="primary" /> Activity Logs
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Monitor all user activities and actions in the system
+          Track all user actions across the system
         </Typography>
       </Box>
 
@@ -364,15 +208,39 @@ export default function Admin() {
         </Alert>
       )}
 
-      {/* Filters and Search */}
-      <Card sx={{ mb: 3 }}>
+      {/* Activity Logs */}
+      <Card>
         <CardContent>
-          <Grid container spacing={2} alignItems="center">
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Recent Activity ({total} total)
+            </Typography>
+            <Tooltip title="Refresh">
+              <IconButton
+                onClick={loadActivities}
+                color="primary"
+                disabled={loading}
+              >
+                <RefreshIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+
+          {/* Filters */}
+          <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
+                label="Search"
+                variant="outlined"
                 size="small"
-                placeholder="Search activities..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
@@ -384,13 +252,13 @@ export default function Admin() {
                 }}
               />
             </Grid>
-
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
-                select
-                size="small"
                 label="Filter by User"
+                variant="outlined"
+                size="small"
+                select
                 value={filterUserEmail}
                 onChange={(e) => setFilterUserEmail(e.target.value)}
               >
@@ -402,13 +270,13 @@ export default function Admin() {
                 ))}
               </TextField>
             </Grid>
-
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
-                select
+                label="Filter by Action Type"
+                variant="outlined"
                 size="small"
-                label="Filter by Action"
+                select
                 value={filterActionType}
                 onChange={(e) => setFilterActionType(e.target.value)}
               >
@@ -420,26 +288,7 @@ export default function Admin() {
                 ))}
               </TextField>
             </Grid>
-
-            <Grid item xs={12} md={2}>
-              <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
-                <Tooltip title="Refresh">
-                  <IconButton onClick={loadActivities} color="primary">
-                    <RefreshIcon />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-            </Grid>
           </Grid>
-        </CardContent>
-      </Card>
-
-      {/* Activity Logs Table */}
-      <Card>
-        <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-            All Activities ({total})
-          </Typography>
 
           {loading ? (
             <TableSkeleton rows={10} columns={5} />
@@ -463,23 +312,19 @@ export default function Admin() {
                   <TableBody>
                     {filteredActivities.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                        <TableCell
+                          colSpan={5}
+                          align="center"
+                          sx={{ py: 4 }}
+                        >
                           <Typography color="text.secondary">
-                            No activity logs found
+                            No activities found
                           </Typography>
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredActivities.map((activity) => (
-                        <TableRow
-                          key={activity.id}
-                          hover
-                          sx={{
-                            "&:hover": {
-                              bgcolor: "action.hover",
-                            },
-                          }}
-                        >
+                        <TableRow key={activity.id} hover>
                           <TableCell>
                             <Box
                               sx={{
@@ -490,81 +335,53 @@ export default function Admin() {
                             >
                               <Avatar
                                 sx={{
-                                  width: 32,
-                                  height: 32,
+                                  width: 28,
+                                  height: 28,
                                   bgcolor: "primary.main",
-                                  fontSize: "0.875rem",
+                                  fontSize: "0.75rem",
                                 }}
                               >
-                                {activity.user_email.charAt(0).toUpperCase()}
+                                {activity.user_email?.charAt(0).toUpperCase()}
                               </Avatar>
-                              <Box>
-                                <Typography
-                                  variant="body2"
-                                  sx={{ fontWeight: 500 }}
-                                >
-                                  {activity.user_email}
-                                </Typography>
-                                {activity.user_name && (
-                                  <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                  >
-                                    {activity.user_name}
-                                  </Typography>
-                                )}
-                              </Box>
+                              <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 500 }}
+                              >
+                                {activity.user_email}
+                              </Typography>
                             </Box>
                           </TableCell>
-
                           <TableCell>
                             <Chip
-                              label={activity.action_type}
                               size="small"
+                              label={activity.action_type}
                               color={
                                 actionTypeColors[activity.action_type] ||
                                 "default"
                               }
+                              variant="outlined"
                             />
                           </TableCell>
-
                           <TableCell>
                             <Typography variant="body2">
                               {activity.action_description}
                             </Typography>
                           </TableCell>
-
                           <TableCell>
-                            {activity.entity_type && (
-                              <Box>
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    px: 1,
-                                    py: 0.5,
-                                    bgcolor: "background.default",
-                                    borderRadius: 1,
-                                    display: "inline-block",
-                                  }}
-                                >
-                                  {activity.entity_type}
-                                </Typography>
-                                {activity.entity_name && (
-                                  <Typography
-                                    variant="caption"
-                                    display="block"
-                                    color="text.secondary"
-                                    sx={{ mt: 0.5 }}
-                                  >
-                                    {activity.entity_name}
-                                  </Typography>
-                                )}
-                              </Box>
-                            )}
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                            >
+                              {activity.entity_name ||
+                                activity.entity_type ||
+                                "-"}
+                            </Typography>
                           </TableCell>
-
                           <TableCell>
-                            <Typography variant="body2">
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                            >
                               {formatDate(activity.created_at)}
                             </Typography>
                           </TableCell>
@@ -574,7 +391,6 @@ export default function Admin() {
                   </TableBody>
                 </Table>
               </TableContainer>
-
               <TablePagination
                 rowsPerPageOptions={[10, 25, 50, 100]}
                 component="div"

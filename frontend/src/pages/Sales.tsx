@@ -1139,7 +1139,7 @@ export default function Sales() {
                     `${API_BASE_URL}/api/sales/${createdSaleId}/invoice-pdf`,
                     {
                       headers: {
-                        "x-user-email": "admin@gmail.com",
+                        "x-user-email": localStorage.getItem("user_email") || "",
                       },
                     }
                   );

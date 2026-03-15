@@ -45,6 +45,7 @@ import {
   AdminPanelSettings as AdminIcon,
   AttachMoney as MoneyIcon,
   Shield as ShieldIcon,
+  ManageAccounts as ManageAccountsIcon,
 } from "@mui/icons-material";
 
 import { useTranslation } from "../hooks/useTranslation";
@@ -357,7 +358,7 @@ export default function Layout({
         })}
 
         {/* Admin Navigation - Only for users with admin permissions */}
-        {(hasPermission(PERMISSIONS.VIEW_ACTIVITY_LOGS) || hasPermission(PERMISSIONS.MANAGE_PRICING) || hasPermission(PERMISSIONS.MANAGE_ROLES)) && (
+        {(hasPermission(PERMISSIONS.VIEW_ACTIVITY_LOGS) || hasPermission(PERMISSIONS.VIEW_USERS) || hasPermission(PERMISSIONS.MANAGE_PRICING) || hasPermission(PERMISSIONS.MANAGE_ROLES)) && (
           <>
             <Divider sx={{ my: 1 }} />
             {hasPermission(PERMISSIONS.VIEW_ACTIVITY_LOGS) && (
@@ -386,8 +387,40 @@ export default function Layout({
                     <AdminIcon />
                   </ListItemIcon>
                   <ListItemText
-                    primary={t("nav.admin", "Admin")}
+                    primary={t("nav.activityLogs", "Activity Logs")}
                     primaryTypographyProps={{ fontWeight: isActive("/admin") ? 600 : 500, fontSize: "0.95rem" }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            )}
+            {hasPermission(PERMISSIONS.VIEW_USERS) && (
+              <ListItem disablePadding sx={{ mb: 0.5 }}>
+                <ListItemButton
+                  onClick={() => handleNavigation("/user-management")}
+                  sx={{
+                    borderRadius: 2,
+                    mx: 1,
+                    backgroundColor: isActive("/user-management")
+                      ? theme.palette.mode === "dark"
+                        ? "rgba(244, 67, 54, 0.16)"
+                        : "rgba(211, 47, 47, 0.08)"
+                      : "transparent",
+                    color: isActive("/user-management") ? "error.main" : "inherit",
+                    "&:hover": {
+                      backgroundColor:
+                        theme.palette.mode === "dark"
+                          ? "rgba(244, 67, 54, 0.08)"
+                          : "rgba(211, 47, 47, 0.04)",
+                    },
+                    transition: "all 0.2s",
+                  }}
+                >
+                  <ListItemIcon sx={{ color: isActive("/user-management") ? "error.main" : "inherit", minWidth: 40 }}>
+                    <ManageAccountsIcon />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={t("nav.userManagement", "User Management")}
+                    primaryTypographyProps={{ fontWeight: isActive("/user-management") ? 600 : 500, fontSize: "0.95rem" }}
                   />
                 </ListItemButton>
               </ListItem>
@@ -401,20 +434,20 @@ export default function Layout({
                     mx: 1,
                     backgroundColor: isActive("/product-pricing")
                       ? theme.palette.mode === "dark"
-                        ? "rgba(76, 175, 80, 0.16)"
-                        : "rgba(56, 142, 60, 0.08)"
+                        ? "rgba(244, 67, 54, 0.16)"
+                        : "rgba(211, 47, 47, 0.08)"
                       : "transparent",
-                    color: isActive("/product-pricing") ? "success.main" : "inherit",
+                    color: isActive("/product-pricing") ? "error.main" : "inherit",
                     "&:hover": {
                       backgroundColor:
                         theme.palette.mode === "dark"
-                          ? "rgba(76, 175, 80, 0.08)"
-                          : "rgba(56, 142, 60, 0.04)",
+                          ? "rgba(244, 67, 54, 0.08)"
+                          : "rgba(211, 47, 47, 0.04)",
                     },
                     transition: "all 0.2s",
                   }}
                 >
-                  <ListItemIcon sx={{ color: isActive("/product-pricing") ? "success.main" : "inherit", minWidth: 40 }}>
+                  <ListItemIcon sx={{ color: isActive("/product-pricing") ? "error.main" : "inherit", minWidth: 40 }}>
                     <MoneyIcon />
                   </ListItemIcon>
                   <ListItemText
@@ -433,20 +466,20 @@ export default function Layout({
                     mx: 1,
                     backgroundColor: isActive(roleManagementNavItem.path)
                       ? theme.palette.mode === "dark"
-                        ? "rgba(99, 102, 241, 0.16)"
-                        : "rgba(99, 102, 241, 0.08)"
+                        ? "rgba(244, 67, 54, 0.16)"
+                        : "rgba(211, 47, 47, 0.08)"
                       : "transparent",
-                    color: isActive(roleManagementNavItem.path) ? "#6366f1" : "inherit",
+                    color: isActive(roleManagementNavItem.path) ? "error.main" : "inherit",
                     "&:hover": {
                       backgroundColor:
                         theme.palette.mode === "dark"
-                          ? "rgba(99, 102, 241, 0.08)"
-                          : "rgba(99, 102, 241, 0.04)",
+                          ? "rgba(244, 67, 54, 0.08)"
+                          : "rgba(211, 47, 47, 0.04)",
                     },
                     transition: "all 0.2s",
                   }}
                 >
-                  <ListItemIcon sx={{ color: isActive(roleManagementNavItem.path) ? "#6366f1" : "inherit", minWidth: 40 }}>
+                  <ListItemIcon sx={{ color: isActive(roleManagementNavItem.path) ? "error.main" : "inherit", minWidth: 40 }}>
                     <ShieldIcon />
                   </ListItemIcon>
                   <ListItemText

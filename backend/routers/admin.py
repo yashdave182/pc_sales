@@ -18,6 +18,47 @@ router = APIRouter()
 # ADMIN_EMAIL = "admin@gmail.com"
 
 
+@router.get("/my-logs")
+def get_my_activity_logs(
+    date: Optional[str] = None,
+    limit: int = 100,
+    user_email: Optional[str] = Header(None, alias="x-user-email"),
+    db: SupabaseClient = Depends(get_db),
+):
+    """
+    Get activity logs for the requesting user.
+    Defaults to today's logs. Any authenticated user can call this.
+    """
+    try:
+        if not user_email:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+
+        target_date = date or datetime.now().strftime("%Y-%m-%d")
+        start = f"{target_date}T00:00:00"
+        end = f"{target_date}T23:59:59"
+
+        query = (
+            db.table("activity_logs")
+            .select("*")
+            .eq("user_email", user_email)
+            .gte("created_at", start)
+            .lte("created_at", end)
+            .order("created_at", desc=True)
+            .limit(limit)
+        )
+        response = query.execute()
+
+        return {
+            "logs": response.data or [],
+            "date": target_date,
+            "total": len(response.data or [])
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching activity logs: {str(e)}")
+
+
 @router.get("/health")
 def health():
     """Health check endpoint"""

@@ -594,6 +594,15 @@ export const rbacAPI = {
     apiClient.delete(`/api/rbac/roles/${roleId}`).then((r) => r.data),
 };
 
+// Activity API
+export const activityAPI = {
+  getMyLogs: async (date?: string) => {
+    const params = date ? { date } : {};
+    const response = await apiClient.get("/api/admin/my-logs", { params });
+    return response.data;
+  },
+};
+
 // Export the axios instance for direct use if needed
 export default apiClient;
 

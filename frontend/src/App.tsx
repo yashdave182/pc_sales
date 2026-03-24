@@ -30,6 +30,7 @@ import UserManagement from "./pages/UserManagement";
 import ProductPricing from "./pages/ProductPricing";
 import Notifications from "./pages/Notifications";
 import RoleManagement from "./pages/RoleManagement";
+import Activity from "./pages/Activity";
 import { createAppTheme } from "./theme/theme";
 import { PERMISSIONS } from "./config/permissions";
 
@@ -165,6 +166,17 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_CALLING_LIST}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <CallingList />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/activity"
+                  element={
+                    <ProtectedRoute>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <Activity />
                         <QuickActions />
                       </Layout>
                     </ProtectedRoute>

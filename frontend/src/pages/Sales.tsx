@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
@@ -97,9 +97,11 @@ export default function Sales() {
   }, []);
 
   // Check router state from CallingList "Take Order" navigation
+  const takeOrderHandled = useRef(false);
   useEffect(() => {
     const state = location.state as any;
-    if (state?.openNewSale && customers.length > 0 && !openDialog) {
+    if (state?.openNewSale && customers.length > 0 && !openDialog && !takeOrderHandled.current) {
+      takeOrderHandled.current = true;
       handleOpenDialog();
       if (state.customerId) {
         setFormData(prev => ({ ...prev, customer_id: state.customerId }));

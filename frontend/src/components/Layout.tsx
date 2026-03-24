@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
@@ -21,6 +21,8 @@ import {
   Menu,
   MenuItem,
   ListItemAvatar,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 
 import {
@@ -38,6 +40,7 @@ import {
   Brightness4,
   Brightness7,
   Notifications,
+  Timeline as TimelineIcon,
   Settings,
   AccountCircle,
   Language as LanguageIcon,
@@ -53,7 +56,7 @@ import { useLanguageStore } from "../store/languageStore";
 import type { Language } from "../i18n/i18n";
 import { languages } from "../i18n/i18n";
 import { useAuth } from "../contexts/AuthContext";
-import { notificationsAPI } from "../services/api";
+import { notificationsAPI, activityAPI } from "../services/api";
 import { PERMISSIONS } from "../config/permissions";
 
 const drawerWidth = 260;
@@ -143,6 +146,13 @@ const navigationItems: NavItem[] = [
     icon: <CloudUploadIcon />,
     path: "/import",
     permission: PERMISSIONS.IMPORT_DATA,
+  },
+  {
+    id: "activity",
+    labelKey: "nav.activity",
+    icon: <TimelineIcon />,
+    path: "/activity",
+    // No permission needed - visible to all authenticated users
   },
 ];
 
@@ -258,6 +268,41 @@ export default function Layout({
       fetchUnreadCount();
     }
   }, [location.pathname]);
+
+  // Real-time Activity Toast Polling
+  const [activityToast, setActivityToast] = useState<{ msg: string; severity: "success" | "info" } | null>(null);
+  const lastActivityId = useRef<number | null>(null);
+
+  const fetchRecentActivity = async () => {
+    if (!user?.email) return;
+    try {
+      // Only fetch 1 to make it light
+      const res = await activityAPI.getMyLogs(new Date().toISOString().split("T")[0]);
+      if (res.logs && res.logs.length > 0) {
+        const latest = res.logs[0];
+        // Only show toast if we already initialized (lastActivityId.current !== null)
+        // and it's a new ID
+        if (lastActivityId.current !== null && latest.id !== lastActivityId.current) {
+          const isDeleted = latest.action_type === "DELETE";
+          setActivityToast({
+            msg: latest.action_description || `${latest.action_type} ${latest.entity_type}`,
+            severity: isDeleted ? "info" : "success"
+          });
+        }
+        lastActivityId.current = latest.id;
+      }
+    } catch (error) {
+       // silently fail
+    }
+  };
+
+  useEffect(() => {
+    fetchRecentActivity();
+    const interval = setInterval(fetchRecentActivity, 10000); // Check every 10 seconds
+    return () => clearInterval(interval);
+  }, [user?.email]);
+
+  const handleCloseToast = () => setActivityToast(null);
 
   const handleNotificationsClick = () => {
     navigate("/notifications");
@@ -698,6 +743,18 @@ export default function Layout({
         <Toolbar /> {/* Spacer for AppBar */}
         <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>{children}</Box>
       </Box>
+
+      {/* Floating Activity Toast */}
+      <Snackbar
+        open={!!activityToast}
+        autoHideDuration={4000}
+        onClose={handleCloseToast}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert onClose={handleCloseToast} severity={activityToast?.severity || "success"} sx={{ width: "100%", boxShadow: 3 }}>
+          {activityToast?.msg}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

@@ -215,24 +215,26 @@ export default function CallingList() {
   };
 
   // ── Handlers ────────────────────────────────────────────
-  const handleCall = (a: Assignment) => {
+  const openDialogFor = (a: Assignment) => {
+    setActiveItem(a); 
+    setOutcome(""); 
+    setNotes(""); 
+    setCallbackDate(""); 
+    setDialogOpen(true);
+    
+    // Fetch customer summary
+    setCustomerSummary(null);
+    setSummaryLoading(true);
+    customerAPI.getSummary(a.customer_id)
+      .then(setCustomerSummary)
+      .catch(() => console.error("Summary load fail"))
+      .finally(() => setSummaryLoading(false));
+  };
+
+  const handleCallButton = (e: React.MouseEvent, a: Assignment) => {
+    e.stopPropagation();
     if (a.mobile) window.open(`tel:${a.mobile}`, "_self");
-    setTimeout(() => { 
-      setActiveItem(a); 
-      setOutcome(""); 
-      setNotes(""); 
-      setCallbackDate(""); 
-      setDialogOpen(true);
-      
-      // Fetch customer summary
-      setCustomerSummary(null);
-      setSummaryLoading(true);
-      customerAPI.getSummary(a.customer_id)
-        .then(setCustomerSummary)
-        .catch(() => console.error("Summary load fail"))
-        .finally(() => setSummaryLoading(false));
-        
-    }, 400);
+    setTimeout(() => { openDialogFor(a); }, 400);
   };
 
   const submitOutcome = async () => {
@@ -483,9 +485,11 @@ export default function CallingList() {
                   return (
                     <Box
                       key={item.assignment_id}
+                      onClick={() => openDialogFor(item)}
                       sx={{
                         p: 2,
                         borderRadius: 2,
+                        cursor: "pointer",
                         border: `1px solid ${border}`,
                         bgcolor: surfaceMuted,
                         display: "flex",
@@ -534,7 +538,7 @@ export default function CallingList() {
                               variant="contained"
                               size="small"
                               disabled={!item.mobile}
-                              onClick={() => handleCall(item)}
+                              onClick={(e) => handleCallButton(e, item)}
                               startIcon={<PhoneIcon sx={{ fontSize: 16 }} />}
                               sx={{
                                 borderRadius: 2,

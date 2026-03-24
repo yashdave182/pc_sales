@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException, Header, Body
 from pydantic import BaseModel
 from supabase_db import SupabaseClient, get_db
 from rbac_utils import verify_permission
+from activity_logger import get_activity_logger
 
 router = APIRouter()
 logger = logging.getLogger("automation")
@@ -370,6 +371,28 @@ def update_call_status(
                 "status": "Pending",
                 "notes": body.notes or "",
             }).execute()
+
+        # 6. Log the activity for the floating toast
+        try:
+            logger_service = get_activity_logger(db)
+            customer_name_str = "Customer"
+            try:
+                c_res = db.table("customers").select("name").eq("customer_id", assignment["customer_id"]).execute()
+                if c_res.data:
+                    customer_name_str = c_res.data[0].get("name", "Customer")
+            except:
+                pass
+            
+            logger_service.log_activity(
+                user_email=user_email,
+                action_type="CALL",
+                action_description=f"Logged call ({new_status}) for {customer_name_str}",
+                entity_type="customer",
+                entity_id=assignment["customer_id"],
+                entity_name=customer_name_str,
+            )
+        except Exception as e:
+            logger.error(f"Failed to log activity: {e}")
 
         return {"message": "Call status updated", "status": new_status}
 

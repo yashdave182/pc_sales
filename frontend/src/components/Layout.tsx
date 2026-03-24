@@ -149,7 +149,7 @@ const navigationItems: NavItem[] = [
   },
   {
     id: "activity",
-    labelKey: "nav.activity",
+    labelKey: "Activity",
     icon: <TimelineIcon />,
     path: "/activity",
     // No permission needed - visible to all authenticated users
@@ -292,7 +292,7 @@ export default function Layout({
         lastActivityId.current = latest.id;
       }
     } catch (error) {
-       // silently fail
+      // silently fail
     }
   };
 

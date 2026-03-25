@@ -553,15 +553,15 @@ export default function OrderManagement() {
                   transform: "rotate(15deg)",
                 }}
               >
-                <ShippingIcon sx={{ fontSize: 100, color: "warning.main" }} />
+                                <ShippingIcon sx={{ fontSize: { xs: 50, md: 100 }, color: "warning.main" }} />
               </Box>
-              <Typography color="textSecondary" variant="subtitle2" gutterBottom>
+              <Typography color="textSecondary" variant="subtitle2" gutterBottom sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
                 Pending
                 <Chip
                   label={`Return: ${stats.returned}`}
                   size="small"
                   color="warning"
-                  sx={{ ml: 1, height: 20, fontSize: "0.75rem", fontWeight: "bold" }}
+                  sx={{ ml: 0.5, height: 18, fontSize: "0.6rem", fontWeight: "bold" }}
                 />
               </Typography>
               <Typography variant="h4" fontWeight="bold" color="warning.main">
@@ -590,7 +590,7 @@ export default function OrderManagement() {
                   transform: "rotate(15deg)",
                 }}
               >
-                <ShippingIcon sx={{ fontSize: 100, color: "info.main" }} />
+                <ShippingIcon sx={{ fontSize: { xs: 50, md: 100 }, color: "info.main" }} />
               </Box>
               <Typography color="textSecondary" variant="subtitle2" gutterBottom>
                 Prepared
@@ -622,7 +622,7 @@ export default function OrderManagement() {
                   transform: "rotate(15deg)",
                 }}
               >
-                <ShippingIcon sx={{ fontSize: 100, color: "primary.main" }} />
+                <ShippingIcon sx={{ fontSize: { xs: 50, md: 100 }, color: "primary.main" }} />
               </Box>
               <Typography color="textSecondary" variant="subtitle2" gutterBottom>
                 Dispatched
@@ -653,15 +653,15 @@ export default function OrderManagement() {
                   transform: "rotate(15deg)",
                 }}
               >
-                <CheckCircleIcon sx={{ fontSize: 100, color: "success.main" }} />
+                <CheckCircleIcon sx={{ fontSize: { xs: 50, md: 100 }, color: "success.main" }} />
               </Box>
-              <Typography color="textSecondary" variant="subtitle2" gutterBottom>
+              <Typography color="textSecondary" variant="subtitle2" gutterBottom sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
                 Delivered
                 <Chip
                   label={`Cancel: ${stats.cancelled}`}
                   size="small"
                   color="error"
-                  sx={{ ml: 1, height: 20, fontSize: "0.75rem", fontWeight: "bold" }}
+                  sx={{ ml: 0.5, height: 18, fontSize: "0.6rem", fontWeight: "bold" }}
                 />
               </Typography>
               <Typography variant="h4" fontWeight="bold" color="success.main">

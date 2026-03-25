@@ -88,7 +88,7 @@ function MetricCard({ title, value, subtitle, icon, color, trend }: MetricCardPr
                         <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, mb: 1 }}>
                             {title}
                         </Typography>
-                        <Typography variant="h4" sx={{ fontWeight: 700, color, mb: 0.5 }}>
+                        <Typography variant="h4" sx={{ fontWeight: 700, color, mb: 0.5, fontSize: { xs: '1.1rem', sm: '1.5rem', md: '2.125rem' }, wordBreak: 'break-word' }}>
                             {value}
                         </Typography>
                         {subtitle && <Typography variant="caption" color="text.secondary">{subtitle}</Typography>}
@@ -101,7 +101,7 @@ function MetricCard({ title, value, subtitle, icon, color, trend }: MetricCardPr
                             </Box>
                         )}
                     </Box>
-                    <Box sx={{ width: 60, height: 60, borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center", background: `linear-gradient(135deg, ${color} 0%, ${color}CC 100%)`, color: "white" }}>
+                    <Box sx={{ width: { xs: 40, sm: 60 }, height: { xs: 40, sm: 60 }, borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center", background: `linear-gradient(135deg, ${color} 0%, ${color}CC 100%)`, color: "white", flexShrink: 0 }}>
                         {icon}
                     </Box>
                 </Box>
@@ -289,7 +289,7 @@ export default function Dashboard() {
                         <Card sx={{ background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", color: "white", cursor: "pointer", transition: "all 0.3s ease", "&:hover": { transform: "translateY(-4px)", boxShadow: 6 } }}
                             onClick={() => navigate("/customers")}>
                             <CardContent>
-                                <PersonAdd sx={{ fontSize: 40, mb: 1, opacity: 0.9 }} />
+                                <PersonAdd sx={{ fontSize: { xs: 28, sm: 40 }, mb: 1, opacity: 0.9 }} />
                                 <Typography variant="h6" sx={{ fontWeight: 600 }}>{t("dashboard.quickActions.addCustomer.title")}</Typography>
                                 <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>{t("dashboard.quickActions.addCustomer.subtitle")}</Typography>
                             </CardContent>
@@ -302,7 +302,7 @@ export default function Dashboard() {
                         <Card sx={{ background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", color: "white", cursor: "pointer", transition: "all 0.3s ease", "&:hover": { transform: "translateY(-4px)", boxShadow: 6 } }}
                             onClick={() => navigate("/sales")}>
                             <CardContent>
-                                <ShoppingCart sx={{ fontSize: 40, mb: 1, opacity: 0.9 }} />
+                                <ShoppingCart sx={{ fontSize: { xs: 28, sm: 40 }, mb: 1, opacity: 0.9 }} />
                                 <Typography variant="h6" sx={{ fontWeight: 600 }}>{t("dashboard.quickActions.newSale.title")}</Typography>
                                 <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>{t("dashboard.quickActions.newSale.subtitle")}</Typography>
                             </CardContent>
@@ -315,7 +315,7 @@ export default function Dashboard() {
                         <Card sx={{ background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)", color: "white", cursor: "pointer", transition: "all 0.3s ease", "&:hover": { transform: "translateY(-4px)", boxShadow: 6 } }}
                             onClick={() => navigate("/demos")}>
                             <CardContent>
-                                <Science sx={{ fontSize: 40, mb: 1, opacity: 0.9 }} />
+                                <Science sx={{ fontSize: { xs: 28, sm: 40 }, mb: 1, opacity: 0.9 }} />
                                 <Typography variant="h6" sx={{ fontWeight: 600 }}>{t("dashboard.quickActions.scheduleDemo.title")}</Typography>
                                 <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>{t("dashboard.quickActions.scheduleDemo.subtitle")}</Typography>
                             </CardContent>
@@ -328,7 +328,7 @@ export default function Dashboard() {
                         <Card sx={{ background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", color: "white", cursor: "pointer", transition: "all 0.3s ease", "&:hover": { transform: "translateY(-4px)", boxShadow: 6 } }}
                             onClick={() => navigate("/payments")}>
                             <CardContent>
-                                <Payment sx={{ fontSize: 40, mb: 1, opacity: 0.9 }} />
+                                <Payment sx={{ fontSize: { xs: 28, sm: 40 }, mb: 1, opacity: 0.9 }} />
                                 <Typography variant="h6" sx={{ fontWeight: 600 }}>{t("dashboard.quickActions.recordPayment.title")}</Typography>
                                 <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>{t("dashboard.quickActions.recordPayment.subtitle")}</Typography>
                             </CardContent>

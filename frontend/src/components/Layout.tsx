@@ -51,6 +51,7 @@ import {
   AttachMoney as MoneyIcon,
   Shield as ShieldIcon,
   ManageAccounts as ManageAccountsIcon,
+  History as HistoryIcon,
 } from "@mui/icons-material";
 
 import { useTranslation } from "../hooks/useTranslation";
@@ -408,7 +409,39 @@ export default function Layout({
         {(hasPermission(PERMISSIONS.VIEW_ACTIVITY_LOGS) || hasPermission(PERMISSIONS.RUN_CALL_DISTRIBUTION) || hasPermission(PERMISSIONS.VIEW_USERS) || hasPermission(PERMISSIONS.MANAGE_PRICING) || hasPermission(PERMISSIONS.MANAGE_ROLES)) && (
           <>
             <Divider sx={{ my: 1 }} />
-            {(hasPermission(PERMISSIONS.VIEW_ACTIVITY_LOGS) || hasPermission(PERMISSIONS.RUN_CALL_DISTRIBUTION)) && (
+            {hasPermission(PERMISSIONS.RUN_CALL_DISTRIBUTION) && (
+              <ListItem disablePadding sx={{ mb: 0.5 }}>
+                <ListItemButton
+                  onClick={() => handleNavigation("/call-distribution")}
+                  sx={{
+                    borderRadius: 2,
+                    mx: 1,
+                    backgroundColor: isActive("/call-distribution")
+                      ? theme.palette.mode === "dark"
+                        ? "rgba(244, 67, 54, 0.16)"
+                        : "rgba(211, 47, 47, 0.08)"
+                      : "transparent",
+                    color: isActive("/call-distribution") ? "error.main" : "inherit",
+                    "&:hover": {
+                      backgroundColor:
+                        theme.palette.mode === "dark"
+                          ? "rgba(244, 67, 54, 0.08)"
+                          : "rgba(211, 47, 47, 0.04)",
+                    },
+                    transition: "all 0.2s",
+                  }}
+                >
+                  <ListItemIcon sx={{ color: isActive("/call-distribution") ? "error.main" : "inherit", minWidth: 40 }}>
+                    <AdminIcon />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={t("nav.callDistribution", "Call Distribution")}
+                    primaryTypographyProps={{ fontWeight: isActive("/call-distribution") ? 600 : 500, fontSize: "0.95rem" }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            )}
+            {hasPermission(PERMISSIONS.VIEW_ACTIVITY_LOGS) && (
               <ListItem disablePadding sx={{ mb: 0.5 }}>
                 <ListItemButton
                   onClick={() => handleNavigation("/admin")}
@@ -431,10 +464,10 @@ export default function Layout({
                   }}
                 >
                   <ListItemIcon sx={{ color: isActive("/admin") ? "error.main" : "inherit", minWidth: 40 }}>
-                    <AdminIcon />
+                    <HistoryIcon />
                   </ListItemIcon>
                   <ListItemText
-                    primary={t("nav.adminMenu", "Admin Panel")}
+                    primary={t("nav.activityLogs", "Activity Logs")}
                     primaryTypographyProps={{ fontWeight: isActive("/admin") ? 600 : 500, fontSize: "0.95rem" }}
                   />
                 </ListItemButton>

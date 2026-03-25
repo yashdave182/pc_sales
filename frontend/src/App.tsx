@@ -25,6 +25,7 @@ import DataImport from "./pages/DataImport";
 import CallingList from "./pages/CallingList";
 import OrderManagement from "./pages/OrderManagement";
 import Admin from "./pages/Admin";
+import CallDistribution from "./pages/CallDistribution";
 import Algorithm from "./pages/Algorithm";
 import UserManagement from "./pages/UserManagement";
 import ProductPricing from "./pages/ProductPricing";
@@ -196,9 +197,20 @@ function App() {
                 <Route
                   path="/admin"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_ACTIVITY_LOGS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Admin />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/call-distribution"
+                  element={
+                    <ProtectedRoute requiredPermission={PERMISSIONS.RUN_CALL_DISTRIBUTION}>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <CallDistribution />
                         <QuickActions />
                       </Layout>
                     </ProtectedRoute>

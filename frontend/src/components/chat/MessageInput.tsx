@@ -25,6 +25,7 @@ interface MessageInputProps {
   disabled?: boolean;
   users: AppUser[];
   currentUserEmail: string;
+  allowMentions?: boolean;
 }
 
 export default function MessageInput({
@@ -32,6 +33,7 @@ export default function MessageInput({
   disabled,
   users,
   currentUserEmail,
+  allowMentions = true,
 }: MessageInputProps) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -43,29 +45,33 @@ export default function MessageInput({
   // Filtered user list for @mention dropdown
   const mentionSuggestions = mentionQuery !== null
     ? users
-        .filter(
-          (u) =>
-            u.email !== currentUserEmail &&
-            (u.name?.toLowerCase().includes(mentionQuery.toLowerCase()) ||
-             u.email.toLowerCase().includes(mentionQuery.toLowerCase()))
-        )
-        .slice(0, 6)
+      .filter(
+        (u) =>
+          u.email !== currentUserEmail &&
+          (u.name?.toLowerCase().includes(mentionQuery.toLowerCase()) ||
+            u.email.toLowerCase().includes(mentionQuery.toLowerCase()))
+      )
+      .slice(0, 6)
     : [];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setText(val);
 
-    // Detect @ trigger
-    const cursor = e.target.selectionStart || 0;
-    const beforeCursor = val.slice(0, cursor);
-    const atMatch = beforeCursor.match(/@(\w*)$/);
-    if (atMatch) {
-      setMentionQuery(atMatch[1]);
-      setMentionStart(cursor - atMatch[0].length);
+    // Detect @ trigger only if allowed
+    if (allowMentions) {
+      const cursor = e.target.selectionStart || 0;
+      const beforeCursor = val.slice(0, cursor);
+      const atMatch = beforeCursor.match(/@(\w*)$/);
+      if (atMatch) {
+        setMentionQuery(atMatch[1]);
+        setMentionStart(cursor - atMatch[0].length);
+      } else {
+        setMentionQuery(null);
+        setMentionStart(-1);
+      }
     } else {
       setMentionQuery(null);
-      setMentionStart(-1);
     }
   };
 
@@ -188,7 +194,7 @@ export default function MessageInput({
           fullWidth
           multiline
           maxRows={4}
-          placeholder="Type a message… (@ to mention)"
+          placeholder={allowMentions ? "Type a message… (@ to mention)" : "Type a message…"}
           value={text}
           onChange={handleChange}
           onKeyDown={handleKeyDown}

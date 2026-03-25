@@ -66,6 +66,7 @@ export default function ChatPanel({ currentUserEmail }: ChatPanelProps) {
             disabled={sendingMsg}
             users={users}
             currentUserEmail={currentUserEmail}
+            allowMentions={activeConv.type === "group"}
           />
         )}
       </Box>

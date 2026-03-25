@@ -53,7 +53,7 @@ import { useTranslation } from "../hooks/useTranslation";
 import { useLanguageStore } from "../store/languageStore";
 import type { Language } from "../i18n/i18n";
 import { languages } from "../i18n/i18n";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth, supabase } from "../contexts/AuthContext";
 import { notificationsAPI } from "../services/api";
 import { PERMISSIONS } from "../config/permissions";
 import { useChat } from "../hooks/useChat";
@@ -265,7 +265,31 @@ export default function Layout({
   useEffect(() => {
     fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 30000); // Every 30 seconds
-    return () => clearInterval(interval);
+
+    // Add realtime listener so the bell icon instantly pops up when mentioned
+    if (!user?.email) return () => clearInterval(interval);
+
+    const channel = supabase
+      .channel(`notifications-${user.email}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_email=eq.${user.email}`,
+        },
+        () => {
+          // Instantly refresh the count when a new notification arrives
+          fetchUnreadCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, [user?.email]);
 
   // Refresh unread count when navigating away from notifications page

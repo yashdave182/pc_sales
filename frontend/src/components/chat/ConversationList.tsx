@@ -25,16 +25,6 @@ interface ConversationListProps {
   loading: boolean;
 }
 
-function timeAgo(iso: string | undefined): string {
-  if (!iso) return "";
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  return `${Math.floor(hrs / 24)}d`;
-}
 
 export default function ConversationList({
   conversations,
@@ -162,6 +152,7 @@ function ConvItem({
   onSelect: (id: number) => void;
 }) {
   const isGroup = conv.type === "group";
+  const hasUnread = conv.unread_count > 0;
   const title = isGroup
     ? conv.name || "Team Chat"
     : conv.partner?.name || conv.partner?.email?.split("@")[0] || "Unknown";
@@ -173,14 +164,10 @@ function ConvItem({
         onClick={() => onSelect(conv.conversation_id)}
         sx={{
           px: 2,
-          py: 1,
+          py: 1.25,
           borderRadius: 0,
-          "&.Mui-selected": {
-            bgcolor: "action.selected",
-          },
-          "&.Mui-selected:hover": {
-            bgcolor: "action.selected",
-          },
+          "&.Mui-selected": { bgcolor: "action.selected" },
+          "&.Mui-selected:hover": { bgcolor: "action.selected" },
         }}
       >
         <ListItemAvatar sx={{ minWidth: 44 }}>
@@ -203,30 +190,38 @@ function ConvItem({
         </ListItemAvatar>
         <ListItemText
           primary={
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-              <Typography
-                variant="body2"
-                fontWeight={conv.unread_count > 0 ? 700 : 500}
-                noWrap
-                sx={{ maxWidth: 140 }}
-              >
-                {title}
-              </Typography>
-              <Typography variant="caption" color="text.disabled" sx={{ ml: 0.5, flexShrink: 0 }}>
-                {timeAgo(conv.last_message_at)}
-              </Typography>
-            </Box>
+            <Typography
+              variant="body2"
+              fontWeight={hasUnread ? 700 : 500}
+              noWrap
+              sx={{ color: hasUnread ? "text.primary" : "text.secondary" }}
+            >
+              {title}
+            </Typography>
           }
           secondary={
-            <Typography
-              variant="caption"
-              color={conv.unread_count > 0 ? "text.primary" : "text.secondary"}
-              fontWeight={conv.unread_count > 0 ? 600 : 400}
-              noWrap
-              component="span"
-            >
-              {conv.last_message || "No messages yet"}
-            </Typography>
+            hasUnread ? (
+              <Typography
+                variant="caption"
+                component="span"
+                sx={{
+                  color: "error.main",
+                  fontWeight: 600,
+                  fontSize: "0.7rem",
+                }}
+              >
+                {conv.unread_count} new message{conv.unread_count > 1 ? "s" : ""}
+              </Typography>
+            ) : (
+              <Typography
+                variant="caption"
+                component="span"
+                color="text.disabled"
+                fontSize="0.7rem"
+              >
+                {isGroup ? "Team Chat" : "Direct Message"}
+              </Typography>
+            )
           }
         />
       </ListItemButton>

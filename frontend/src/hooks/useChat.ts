@@ -14,7 +14,6 @@ export interface Conversation {
   type: "group" | "direct";
   name: string | null;
   partner?: AppUser;
-  last_message?: string;
   last_message_at?: string;
   unread_count: number;
 }
@@ -124,7 +123,8 @@ export function useChat(currentUserEmail: string | null | undefined) {
       const unreadResults = await Promise.all(
         convIds.map(async (id: number) => {
           const receipt = receipts?.find((r: any) => r.conversation_id === id);
-          const since = receipt?.last_read_at || "1970-01-01";
+          // If no read receipt exists yet, default to start of time so all messages count as unread until user opens chat
+          const since = receipt?.last_read_at || "1970-01-01T00:00:00.000Z";
           const { count } = await supabase
             .from("chat_messages")
             .select("*", { count: "exact", head: true })
@@ -160,7 +160,6 @@ export function useChat(currentUserEmail: string | null | undefined) {
           type: c.type,
           name: c.type === "group" ? c.name : null,
           partner,
-          last_message: lastMsg?.content || undefined,
           last_message_at: lastMsg?.created_at || c.created_at,
           unread_count: unread?.count ?? 0,
         };
@@ -190,6 +189,7 @@ export function useChat(currentUserEmail: string | null | undefined) {
 
   // ── Load message history ────────────────────────────────────────────────────
   const loadMessages = useCallback(async (convId: number) => {
+    setMessages([]); // clear immediately so old bubbles don't flash during switch
     setLoadingMsgs(true);
     try {
       const { data, error } = await supabase
@@ -238,14 +238,13 @@ export function useChat(currentUserEmail: string | null | undefined) {
               return [...prev, { ...newMsg, sender_name: getUserNameRef.current(newMsg.sender_email) }];
             });
           }
-          // Always update sidebar (last msg + unread)
+          // Always update sidebar (unread count)
           setConversations((prev) =>
             prev.map((c) => {
               if (c.conversation_id !== convId) return c;
               const isOwn = newMsg.sender_email === currentUserEmailRef.current;
               return {
                 ...c,
-                last_message: newMsg.content,
                 last_message_at: newMsg.created_at,
                 unread_count:
                   activeConvIdRef.current === convId || isOwn ? 0 : c.unread_count + 1,
@@ -293,12 +292,34 @@ export function useChat(currentUserEmail: string | null | undefined) {
               if (c.conversation_id !== convId) return c;
               return {
                 ...c,
-                last_message: newMsg.content,
                 last_message_at: newMsg.created_at,
                 unread_count: isActive || isOwn ? c.unread_count : c.unread_count + 1,
               };
             });
           });
+        }
+      )
+      // ── Read receipts: clear badge when user reads a conversation ───────────
+      // This fires when ChatPanel's switchConversation writes a read receipt,
+      // so the Layout's separate hook instance also clears its unread count.
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "chat_read_receipts",
+          filter: `user_email=eq.${currentUserEmail}`,
+        },
+        (payload) => {
+          const receipt = (payload.new || payload.old) as any;
+          if (!receipt?.conversation_id || !receipt?.last_read_at) return;
+          const convId = receipt.conversation_id;
+          // Clear unread for the conversation that was just read
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.conversation_id === convId ? { ...c, unread_count: 0 } : c
+            )
+          );
         }
       )
       .subscribe();
@@ -308,7 +329,7 @@ export function useChat(currentUserEmail: string | null | undefined) {
       supabase.removeChannel(globalChannel);
       globalChannelRef.current = null;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserEmail]);
 
   // ── SINGLE OWNER of messages + subscription ─────────────────────────────────
@@ -358,7 +379,7 @@ export function useChat(currentUserEmail: string | null | undefined) {
         });
         if (error) console.error("[useChat] sendMessage error:", error);
 
-        if (mentions.length > 0) {
+        if (mentions.length > 0 && !error) {
           const senderName = getUserNameRef.current(currentUserEmailRef.current);
           const notifInserts = mentions
             .filter((m) => m !== currentUserEmailRef.current)
@@ -371,7 +392,8 @@ export function useChat(currentUserEmail: string | null | undefined) {
               action_url: "/chat",
             }));
           if (notifInserts.length > 0) {
-            await supabase.from("notifications").insert(notifInserts);
+            const { error: notifErr } = await supabase.from("notifications").insert(notifInserts);
+            if (notifErr) console.error("[useChat] mention notification error:", notifErr);
           }
         }
       } finally {

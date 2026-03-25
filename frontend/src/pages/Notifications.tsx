@@ -395,6 +395,7 @@ export default function Notifications() {
                       </Box>
                     </ListItemIcon>
                     <ListItemText
+                      disableTypography
                       primary={
                         <Box
                           sx={{

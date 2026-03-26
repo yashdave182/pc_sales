@@ -155,7 +155,10 @@ export default function AdminLogs() {
   }, [user, page, rowsPerPage, filterUserEmail, filterActionType]);
 
   const formatDate = (dateString: string) => {
-    const utcDate = dateString.endsWith("Z") ? new Date(dateString) : new Date(dateString + "Z");
+    if (!dateString) return "-";
+    const isAware = dateString.endsWith("Z") || dateString.match(/[+-]\d{2}:\d{2}$/);
+    const utcDate = isAware ? new Date(dateString) : new Date(dateString + "Z");
+    if (isNaN(utcDate.getTime())) return "-";
     return utcDate.toLocaleString("en-IN", {
       timeZone: "Asia/Kolkata",
       year: "numeric", month: "short", day: "numeric",

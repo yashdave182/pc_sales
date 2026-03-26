@@ -49,9 +49,16 @@ const ENTITY_ICON: Record<string, React.ReactElement> = {
   customer: <PersonIcon sx={{ fontSize: 14 }} />,
 };
 
+function parseDate(dateStr: string): Date {
+  if (!dateStr) return new Date();
+  const isAware = dateStr.endsWith("Z") || dateStr.match(/[+-]\d{2}:\d{2}$/);
+  return isAware ? new Date(dateStr) : new Date(dateStr + "Z");
+}
+
 function formatTime(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+  const d = parseDate(dateStr);
+  if (isNaN(d.getTime())) return "-";
+  return d.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true });
 }
 
 export default function Activity() {
@@ -85,7 +92,10 @@ export default function Activity() {
   // Group logs by hour
   const grouped: Record<string, any[]> = {};
   logs.forEach(log => {
-    const h = new Date(log.created_at).getHours();
+    const d = parseDate(log.created_at);
+    if (isNaN(d.getTime())) return;
+    const hourStr = d.toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "Asia/Kolkata" });
+    const h = parseInt(hourStr, 10);
     const label = h < 12 ? `${h === 0 ? 12 : h} AM` : `${h === 12 ? 12 : h - 12} PM`;
     if (!grouped[label]) grouped[label] = [];
     grouped[label].push(log);

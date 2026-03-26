@@ -31,6 +31,7 @@ import UserManagement from "./pages/UserManagement";
 import ProductPricing from "./pages/ProductPricing";
 import Notifications from "./pages/Notifications";
 import RoleManagement from "./pages/RoleManagement";
+import Chat from "./pages/Chat";
 import Activity from "./pages/Activity";
 import { createAppTheme } from "./theme/theme";
 import { PERMISSIONS } from "./config/permissions";
@@ -268,6 +269,16 @@ function App() {
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Notifications />
                         <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/chat"
+                  element={
+                    <ProtectedRoute>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <Chat />
                       </Layout>
                     </ProtectedRoute>
                   }

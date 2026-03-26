@@ -60,8 +60,6 @@ import { useLanguageStore } from "../store/languageStore";
 import type { Language } from "../i18n/i18n";
 import { languages } from "../i18n/i18n";
 import { useAuth, supabase } from "../contexts/AuthContext";
-import { notificationsAPI } from "../services/api";
-import { useAuth } from "../contexts/AuthContext";
 import { notificationsAPI, activityAPI } from "../services/api";
 import { PERMISSIONS } from "../config/permissions";
 import { useChat } from "../hooks/useChat";
@@ -159,6 +157,8 @@ const navigationItems: NavItem[] = [
     labelKey: "nav.chat",
     icon: <ChatIcon />,
     path: "/chat",
+  },
+  {
     id: "activity",
     labelKey: "Activity",
     icon: <TimelineIcon />,

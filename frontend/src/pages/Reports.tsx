@@ -30,6 +30,7 @@ import {
 } from "@mui/icons-material";
 import { useAuth } from "../contexts/AuthContext";
 import { reportsAPI } from "../services/api";
+import { useTranslation } from "../hooks/useTranslation";
 import {
   LineChart,
   Line,
@@ -65,6 +66,7 @@ const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 export default function Reports() {
   const { user } = useAuth();
   const theme = useTheme();
+  const { t } = useTranslation();
   const [interval, setInterval] = useState("daily");
   const [dateRange, setDateRange] = useState({
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
@@ -175,10 +177,10 @@ export default function Reports() {
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-          Advanced Reports & Analytics
+          {t("reports.advancedTitle", "Advanced Reports & Analytics")}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Analyze sales trends, payment patterns, and generate comprehensive PDF reports
+          {t("reports.advancedSubtitle", "Analyze sales trends, payment patterns, and generate comprehensive PDF reports")}
         </Typography>
       </Box>
 
@@ -202,7 +204,7 @@ export default function Reports() {
               <TextField
                 fullWidth
                 type="date"
-                label="From"
+                label={t("reports.from", "From")}
                 value={dateRange.start}
                 onChange={(e) =>
                   setDateRange({ ...dateRange, start: e.target.value })
@@ -214,7 +216,7 @@ export default function Reports() {
               <TextField
                 fullWidth
                 type="date"
-                label="To"
+                label={t("reports.to", "To")}
                 value={dateRange.end}
                 onChange={(e) =>
                   setDateRange({ ...dateRange, end: e.target.value })
@@ -226,13 +228,13 @@ export default function Reports() {
               <TextField
                 fullWidth
                 select
-                label="Interval"
+                label={t("reports.interval", "Interval")}
                 value={interval}
                 onChange={(e) => setInterval(e.target.value)}
               >
-                <MenuItem value="daily">Daily</MenuItem>
-                <MenuItem value="weekly">Weekly</MenuItem>
-                <MenuItem value="monthly">Monthly</MenuItem>
+                <MenuItem value="daily">{t("reports.daily", "Daily")}</MenuItem>
+                <MenuItem value="weekly">{t("reports.weekly", "Weekly")}</MenuItem>
+                <MenuItem value="monthly">{t("reports.monthly", "Monthly")}</MenuItem>
               </TextField>
             </Grid>
             <Grid item xs={12} sm={3}>
@@ -243,7 +245,7 @@ export default function Reports() {
                 onClick={generatePDF}
                 disabled={pdfLoading}
               >
-                {pdfLoading ? "Sales Report" : "Sales Report"}
+                {t("reports.salesReport", "Sales Report")}
               </Button>
             </Grid>
           </Grid>
@@ -251,7 +253,7 @@ export default function Reports() {
           {/* Additional Reports */}
           <Divider sx={{ my: 2 }} />
           <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
-            Additional Reports
+            {t("reports.additionalReports", "Additional Reports")}
           </Typography>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={3}>
@@ -274,7 +276,7 @@ export default function Reports() {
                 }}
                 disabled={pdfLoading}
               >
-                Customers PDF
+                {t("reports.customersPdf", "Customers PDF")}
               </Button>
             </Grid>
             <Grid item xs={12} sm={3}>
@@ -297,7 +299,7 @@ export default function Reports() {
                 }}
                 disabled={pdfLoading}
               >
-                Invoices PDF
+                {t("reports.invoicesPdf", "Invoices PDF")}
               </Button>
             </Grid>
             <Grid item xs={12} sm={3}>
@@ -320,7 +322,7 @@ export default function Reports() {
                 }}
                 disabled={pdfLoading}
               >
-                Payments PDF
+                {t("reports.paymentsPdf", "Payments PDF")}
               </Button>
             </Grid>
             <Grid item xs={12} sm={3}>
@@ -343,7 +345,7 @@ export default function Reports() {
                 }}
                 disabled={pdfLoading}
               >
-                Calling List PDF
+                {t("reports.callingListPdf", "Calling List PDF")}
               </Button>
             </Grid>
           </Grid>
@@ -358,32 +360,32 @@ export default function Reports() {
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                 <TrendingUpIcon sx={{ mr: 1, color: "primary.main" }} />
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Sales Trends Summary
+                  {t("reports.salesTrendsSummary", "Sales Trends Summary")}
                 </Typography>
               </Box>
               {salesSummary && (
                 <Grid container spacing={2}>
                   <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">
-                      Total Sales
+                      {t("dashboard.totalSales", "Total Sales")}
                     </Typography>
                     <Typography variant="h6">{salesSummary.total_sales}</Typography>
                   </Grid>
                   <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">
-                      Total Revenue
+                      {t("reports.totalRevenue", "Total Revenue")}
                     </Typography>
                     <Typography variant="h6">₹{salesSummary.total_revenue?.toFixed(2)}</Typography>
                   </Grid>
                   <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">
-                      Total Liters
+                      {t("reports.totalLiters", "Total Liters")}
                     </Typography>
                     <Typography variant="h6">{salesSummary.total_liters?.toFixed(2)} L</Typography>
                   </Grid>
                   <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">
-                      Avg Sales/Period
+                      {t("reports.avgSalesPerPeriod", "Avg Sales/Period")}
                     </Typography>
                     <Typography variant="h6">{salesSummary.avg_sales_per_period}</Typography>
                   </Grid>
@@ -399,32 +401,32 @@ export default function Reports() {
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                 <PaymentIcon sx={{ mr: 1, color: "success.main" }} />
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Payment Trends Summary
+                  {t("reports.paymentTrendsSummary", "Payment Trends Summary")}
                 </Typography>
               </Box>
               {paymentSummary && (
                 <Grid container spacing={2}>
                   <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">
-                      Total Payments
+                      {t("dashboard.totalPayments", "Total Payments")}
                     </Typography>
                     <Typography variant="h6">{paymentSummary.total_payments}</Typography>
                   </Grid>
                   <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">
-                      Total Amount
+                      {t("reports.totalAmount", "Total Amount")}
                     </Typography>
                     <Typography variant="h6">₹{paymentSummary.total_amount?.toFixed(2)}</Typography>
                   </Grid>
                   <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">
-                      Periods
+                      {t("reports.periods", "Periods")}
                     </Typography>
                     <Typography variant="h6">{paymentSummary.periods_count}</Typography>
                   </Grid>
                   <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">
-                      Avg Amount/Period
+                      {t("reports.avgAmountPerPeriod", "Avg Amount/Period")}
                     </Typography>
                     <Typography variant="h6">₹{paymentSummary.avg_amount_per_period}</Typography>
                   </Grid>
@@ -442,7 +444,7 @@ export default function Reports() {
           <Card sx={{ height: 400 }}>
             <CardContent sx={{ height: '100%' }}>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Sales Revenue Trend
+                {t("reports.salesRevenueTrend", "Sales Revenue Trend")}
               </Typography>
               {loading ? (
                 <ChartSkeleton height={300} />
@@ -474,7 +476,7 @@ export default function Reports() {
           <Card sx={{ height: 400 }}>
             <CardContent sx={{ height: '100%' }}>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Payment Methods
+                {t("reports.paymentMethods", "Payment Methods")}
               </Typography>
               {loading ? (
                 <ChartSkeleton height={300} />
@@ -501,7 +503,7 @@ export default function Reports() {
                 </ResponsiveContainer>
               ) : (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                  <Typography color="text.secondary">No payment method data</Typography>
+                  <Typography color="text.secondary">{t("reports.noPaymentData", "No payment method data")}</Typography>
                 </Box>
               )}
             </CardContent>
@@ -516,7 +518,7 @@ export default function Reports() {
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Detailed Sales Data
+                {t("reports.detailedSalesData", "Detailed Sales Data")}
               </Typography>
               {loading ? (
                 <TableSkeleton rows={5} columns={5} />
@@ -525,10 +527,10 @@ export default function Reports() {
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 600 }}>Period</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="right">Sales</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="right">Amount</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="right">Liters</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>{t("reports.period", "Period")}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="right">{t("nav.sales", "Sales")}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="right">{t("fields.amount", "Amount")}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="right">{t("reports.liters", "Liters")}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>

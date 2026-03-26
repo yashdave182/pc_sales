@@ -18,6 +18,7 @@ import {
 } from "@mui/icons-material";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "../hooks/useTranslation";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -28,6 +29,7 @@ export default function Login() {
 
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,17 +160,17 @@ export default function Login() {
                 fontWeight: 500,
               }}
             >
-              Sales Management System
+              {t("common.salesManagementSystem", "Sales Management System")}
             </Typography>
           </Box>
 
           {/* Welcome Message */}
           <Box sx={{ mb: 3, textAlign: "center" }}>
             <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
-              Welcome Back
+              {t("login.welcomeBack", "Welcome Back")}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Sign in to access your dashboard
+              {t("login.signInSubtitle", "Sign in to access your dashboard")}
             </Typography>
           </Box>
 
@@ -188,7 +190,7 @@ export default function Login() {
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
               <TextField
                 fullWidth
-                label="Email Address"
+                label={t("login.emailAddress", "Email Address")}
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -205,7 +207,7 @@ export default function Login() {
 
               <TextField
                 fullWidth
-                label="Password"
+                label={t("login.password", "Password")}
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -263,7 +265,7 @@ export default function Login() {
                   },
                 }}
               >
-                {isLoading ? "Signing In..." : "Sign In"}
+                {isLoading ? t("login.signingIn", "Signing In...") : t("login.signIn", "Sign In")}
               </Button>
             </Box>
           </form>
@@ -271,7 +273,7 @@ export default function Login() {
           {/* Footer Text */}
           <Box sx={{ mt: 4, textAlign: "center" }}>
             <Typography variant="caption" color="text.secondary">
-              © {new Date().getFullYear()} Parul Chemicals. All rights reserved.
+              © {new Date().getFullYear()} Parul Chemicals. {t("login.allRightsReserved", "All rights reserved.")}
             </Typography>
           </Box>
         </Paper>

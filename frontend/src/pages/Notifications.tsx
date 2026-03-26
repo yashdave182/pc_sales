@@ -287,19 +287,19 @@ export default function Notifications() {
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {unreadCount > 0
-                ? `${unreadCount} unread notification${unreadCount > 1 ? "s" : ""}`
-                : "All caught up!"}
+                ? `${unreadCount} ${t("notifications.unreadNotifications", "unread notification")}${unreadCount > 1 ? "s" : ""}`
+                : t("notifications.allCaughtUp", "All caught up!")}
             </Typography>
           </Box>
 
           <Box sx={{ display: "flex", gap: 1 }}>
-            <Tooltip title="Refresh">
+            <Tooltip title={t("common.refresh", "Refresh")}>
               <IconButton onClick={loadNotifications} color="primary">
                 <RefreshIcon />
               </IconButton>
             </Tooltip>
             {unreadCount > 0 && (
-              <Tooltip title="Mark all as read">
+              <Tooltip title={t("notifications.markAllRead", "Mark all as read")}>
                 <IconButton onClick={handleMarkAllAsRead} color="primary">
                   <DoneAllIcon />
                 </IconButton>
@@ -335,10 +335,10 @@ export default function Notifications() {
                 sx={{ fontSize: 80, color: "text.secondary", opacity: 0.3 }}
               />
               <Typography variant="h6" color="text.secondary">
-                No notifications
+                {t("notifications.noNotifications", "No notifications")}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                You're all caught up! Check back later for updates.
+                {t("notifications.allCaughtUpDesc", "You're all caught up! Check back later for updates.")}
               </Typography>
             </Box>
           ) : (
@@ -476,7 +476,7 @@ export default function Notifications() {
             }}
           >
             <CheckCircleIcon sx={{ mr: 1 }} fontSize="small" />
-            Mark as read
+            {t("notifications.markAsRead", "Mark as read")}
           </MenuItem>
         )}
         <MenuItem
@@ -487,7 +487,7 @@ export default function Notifications() {
           }}
         >
           <InfoIcon sx={{ mr: 1 }} fontSize="small" />
-          View details
+          {t("notifications.viewDetails", "View details")}
         </MenuItem>
         <Divider />
         <MenuItem
@@ -500,7 +500,7 @@ export default function Notifications() {
           sx={{ color: "error.main" }}
         >
           <DeleteIcon sx={{ mr: 1 }} fontSize="small" />
-          Delete
+          {t("common.delete", "Delete")}
         </MenuItem>
       </Menu>
 
@@ -549,7 +549,7 @@ export default function Notifications() {
             <Grid container spacing={2}>
               <Grid item xs={6}>
                 <Typography variant="caption" color="text.secondary">
-                  Type
+                  {t("notifications.type", "Type")}
                 </Typography>
                 <Typography variant="body2">
                   {selectedNotification?.notification_type}
@@ -557,16 +557,16 @@ export default function Notifications() {
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="caption" color="text.secondary">
-                  Status
+                  {t("common.status", "Status")}
                 </Typography>
                 <Typography variant="body2">
-                  {selectedNotification?.is_read ? "Read" : "Unread"}
+                  {selectedNotification?.is_read ? t("notifications.read", "Read") : t("notifications.unread", "Unread")}
                 </Typography>
               </Grid>
               {selectedNotification?.entity_type && (
                 <Grid item xs={6}>
                   <Typography variant="caption" color="text.secondary">
-                    Entity
+                    {t("admin.entity", "Entity")}
                   </Typography>
                   <Typography variant="body2">
                     {selectedNotification.entity_type}
@@ -577,7 +577,7 @@ export default function Notifications() {
               )}
               <Grid item xs={6}>
                 <Typography variant="caption" color="text.secondary">
-                  Created
+                  {t("notifications.created", "Created")}
                 </Typography>
                 <Typography variant="body2">
                   {selectedNotification?.created_at &&
@@ -594,7 +594,7 @@ export default function Notifications() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDetailsOpen(false)}>Close</Button>
+          <Button onClick={() => setDetailsOpen(false)}>{t("common.close", "Close")}</Button>
           {selectedNotification && !selectedNotification.is_read && (
             <Button
               variant="contained"
@@ -603,7 +603,7 @@ export default function Notifications() {
                 setDetailsOpen(false);
               }}
             >
-              Mark as Read
+              {t("notifications.markAsRead", "Mark as Read")}
             </Button>
           )}
         </DialogActions>

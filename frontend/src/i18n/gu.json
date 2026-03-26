@@ -45,7 +45,8 @@
     "noData": "કોઈ ડેટા ઉપલબ્ધ નથી",
     "version": "આવૃત્તિ",
     "copyright": "© 2025 વેચાણ વ્યવસ્થાપન",
-    "salesManagementSystem": "વેચાણ વ્યવસ્થાપન સિસ્ટમ"
+    "salesManagementSystem": "વેચાણ વ્યવસ્થાપન સિસ્ટમ",
+    "saving": "સાચવી રહ્યા છે..."
   },
   "layout": {
     "toggleTheme": "થીમ બદલો",
@@ -324,25 +325,6 @@
     "adharNo": "આધાર નંબર",
     "rate": "ભાવ"
   },
-  "pricing": {
-    "title": "ઉત્પાદન ભાવ વ્યવસ્થાપન",
-    "subtitle": "સિસ્ટમમાં બધા ઉત્પાદનોના ડિફોલ્ટ ભાવ અપડેટ કરો",
-    "productName": "ઉત્પાદનનું નામ",
-    "packingType": "પેકિંગ પ્રકાર",
-    "capacity": "ક્ષમતા (લિટર)",
-    "category": "કેટેગરી",
-    "standardRate": "પ્રમાણભૂત ભાવ",
-    "region": "પ્રદેશ",
-    "saveAll": "બધા ફેરફારો સાચવો",
-    "addProduct": "ઉત્પાદન ઉમેરો",
-    "editPrice": "ભાવ સંપાદિત કરો",
-    "confirmDeleteProduct": "શું તમે ખરેખર આ ઉત્પાદન કાઢી નાખવા ઈચ્છો છો?",
-    "noProducts": "કોઈ ઉત્પાદન મળ્યું નથી",
-    "sabhasad": "સભાસદ",
-    "mantri": "મંત્રી",
-    "distributor": "વિતરક",
-    "fieldOfficer": "ફિલ્ડ ઓફિસર"
-  },
   "activity": {
     "title": "મારી પ્રવૃત્તિ",
     "todayLog": "આજની પ્રવૃત્તિ લૉગ",
@@ -352,7 +334,8 @@
     "deletes": "કાઢી નાખ્યા",
     "noActivity": "કોઈ પ્રવૃત્તિ નોંધાઈ નથી",
     "startWorking": "કામ શરૂ કરો અને તમારી ક્રિયાઓ અહીં દેખાશે.",
-    "noActivityOnDay": "આ દિવસે કોઈ પ્રવૃત્તિ નોંધાઈ નથી."
+    "noActivityOnDay": "આ દિવસે કોઈ પ્રવૃત્તિ નોંધાઈ નથી.",
+    "activityFor": "પ્રવૃત્તિ માટે"
   },
   "admin": {
     "activityLogs": "ગતિવિધિ લૉગ",
@@ -366,7 +349,12 @@
     "description": "વર્ણન",
     "entity": "એન્ટિટી",
     "timestamp": "સમય",
-    "accessDenied": "પ્રવેશ નકારાયો. તમને ગતિવિધિ લૉગ જોવાની પરવાનગી જોઈએ."
+    "accessDenied": "પ્રવેશ નકારાયો. તમને ગતિવિધિ લૉગ જોવાની પરવાનગી જોઈએ.",
+    "trackActions": "સિસ્ટમમાં બધી વપરાશકર્તા ક્રિયાઓ ટ્રૅક કરો",
+    "recentActivity": "તાજેતરની પ્રવૃત્તિ",
+    "total": "કુલ",
+    "dateTime": "તારીખ અને સમય",
+    "noActivities": "કોઈ પ્રવૃત્તિ મળી નથી"
   },
   "callingList": {
     "title": "કૉલિંગ યાદી",
@@ -383,7 +371,16 @@
     "joinDate": "જોડાણ તારીખ",
     "totalSales": "કુલ વેચાણ",
     "totalPaid": "કુલ ચૂકવેલ",
-    "pendingAmount": "બાકી રકમ"
+    "pendingAmount": "બાકી રકમ",
+    "total": "કુલ",
+    "pending": "બાકી",
+    "completed": "પૂર્ણ",
+    "toCall": "કૉલ કરવા",
+    "called": "કૉલ કરેલ",
+    "noPendingCalls": "કોઈ બાકી કૉલ નથી",
+    "noCompletedCalls": "હજુ સુધી કોઈ કૉલ પૂર્ણ થયો નથી",
+    "distributionInfo": "વિતરણ હજુ થયું નથી, અથવા બધા કૉલ પૂર્ણ છે.",
+    "startCalling": "કૉલ કરવા ટેબમાંથી કૉલ શરૂ કરો."
   },
   "callDistribution": {
     "title": "કૉલ વિતરણ",
@@ -391,7 +388,22 @@
     "telecallerSummary": "ટેલિકૉલર સારાંશ",
     "bulkAssign": "જથ્થાબંધ સોંપણી",
     "reassign": "ફરીથી સોંપણી",
-    "refreshDistribution": "વિતરણ રીફ્રેશ કરો"
+    "refreshDistribution": "વિતરણ રીફ્રેશ કરો",
+    "distributionControls": "વિતરણ નિયંત્રણ",
+    "alreadyDistributed": "પહેલેથી વિતરિત",
+    "distributeNow": "હવે વિતરિત કરો",
+    "redistribute": "ફરીથી વિતરિત કરો",
+    "telecallerDistribution": "ટેલિકૉલર વિતરણ",
+    "totalCalls": "કુલ કૉલ",
+    "pending": "બાકી",
+    "done": "પૂર્ણ",
+    "telecaller": "ટેલિકૉલર",
+    "priority": "પ્રાથમિકતા",
+    "count": "સંખ્યા",
+    "assign": "સોંપણી",
+    "reassignCalls": "વ્યક્તિગત કૉલ ફરીથી સોંપો",
+    "assignedTo": "સોંપાયેલ",
+    "moveTo": "ખસેડો"
   },
   "orderManagement": {
     "title": "ઓર્ડર વ્યવસ્થાપન",
@@ -403,5 +415,62 @@
     "delivered": "ડિલિવર થયું",
     "inTransit": "રસ્તામાં",
     "processing": "પ્રક્રિયામાં"
+  },
+  "userMgmt": {
+    "title": "વપરાશકર્તા વ્યવસ્થાપન",
+    "subtitle": "બધા વપરાશકર્તાઓ અને તેમની ભૂમિકાઓ જુઓ. નવા વપરાશકર્તા એકાઉન્ટ બનાવો.",
+    "createNewUser": "નવો વપરાશકર્તા બનાવો",
+    "createUserDesc": "નવા વપરાશકર્તાઓ બનાવો અને તેમની ભૂમિકાઓ સોંપો. ફેરફારો તરત જ અમલમાં આવે છે.",
+    "emailAddress": "ઈમેઈલ સરનામું",
+    "password": "પાસવર્ડ",
+    "role": "ભૂમિકા",
+    "createUser": "વપરાશકર્તા બનાવો",
+    "allUsers": "બધા વપરાશકર્તાઓ",
+    "searchUsers": "વપરાશકર્તાઓ શોધો...",
+    "email": "ઈમેઈલ",
+    "status": "સ્થિતિ",
+    "noUsersFound": "કોઈ વપરાશકર્તા મળ્યો નથી",
+    "active": "સક્રિય",
+    "inactive": "નિષ્ક્રિય"
+  },
+  "roleMgmt": {
+    "title": "ભૂમિકા વ્યવસ્થાપન",
+    "subtitle": "ભૂમિકાઓ અને તેમની પરવાનગીઓનું સંચાલન કરો. ફેરફારો તરત જ બધા વપરાશકર્તાઓ માટે લાગુ થાય છે.",
+    "newRole": "નવી ભૂમિકા",
+    "roles": "ભૂમિકાઓ",
+    "selectRole": "સંપાદિત કરવા ભૂમિકા પસંદ કરો",
+    "selectRoleDesc": "પરવાનગીઓ જોવા અને બદલવા ડાબી બાજુ કોઈપણ ભૂમિકા ક્લિક કરો.",
+    "permissionsAssigned": "પરવાનગીઓ સોંપેલ",
+    "unsavedChanges": "અસુરક્ષિત ફેરફારો",
+    "systemRole": "સિસ્ટમ ભૂમિકા",
+    "saveChanges": "ફેરફારો સાચવો",
+    "createNewRole": "નવી ભૂમિકા બનાવો",
+    "roleName": "ભૂમિકાનું નામ",
+    "createRole": "ભૂમિકા બનાવો",
+    "creating": "બનાવી રહ્યા છે...",
+    "deleteRole": "ભૂમિકા કાઢી નાખો",
+    "deleting": "કાઢી રહ્યા છે..."
+  },
+  "pricing": {
+    "title": "ઉત્પાદન ભાવ વ્યવસ્થાપન",
+    "subtitle": "સિસ્ટમમાં બધા ઉત્પાદનોના ડિફોલ્ટ ભાવ અપડેટ કરો",
+    "productName": "ઉત્પાદનનું નામ",
+    "packingType": "પેકિંગ પ્રકાર",
+    "capacity": "ક્ષમતા (લિટર)",
+    "capacityLtr": "ક્ષમતા (લિટર)",
+    "category": "કેટેગરી",
+    "standardRate": "પ્રમાણભૂત ભાવ",
+    "region": "પ્રદેશ",
+    "saveAll": "બધા ફેરફારો સાચવો",
+    "saveAllChanges": "બધા ફેરફારો સાચવો",
+    "addProduct": "ઉત્પાદન ઉમેરો",
+    "allProducts": "બધા ઉત્પાદનો",
+    "editPrice": "ભાવ સંપાદિત કરો",
+    "confirmDeleteProduct": "શું તમે ખરેખર આ ઉત્પાદન કાઢી નાખવા ઈચ્છો છો?",
+    "noProducts": "કોઈ ઉત્પાદન મળ્યું નથી",
+    "sabhasad": "સભાસદ",
+    "mantri": "મંત્રી",
+    "distributor": "વિતરક",
+    "fieldOfficer": "ફિલ્ડ ઓફિસર"
   }
 }

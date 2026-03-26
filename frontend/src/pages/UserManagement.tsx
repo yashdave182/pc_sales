@@ -35,6 +35,7 @@ import { TableSkeleton } from "../components/Skeletons";
 import { useAuth } from "../contexts/AuthContext";
 import { PERMISSIONS } from "../config/permissions";
 import PermissionGate from "../components/PermissionGate";
+import { useTranslation } from "../hooks/useTranslation";
 import axios from "axios";
 
 const API_BASE_URL =
@@ -51,6 +52,7 @@ interface AppUser {
 
 export default function UserManagement() {
     const { user, hasPermission } = useAuth();
+    const { t } = useTranslation();
     const [users, setUsers] = useState<AppUser[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -154,10 +156,10 @@ export default function UserManagement() {
             {/* Header */}
             <Box sx={{ mb: 4 }}>
                 <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
-                    <PeopleIcon color="primary" /> User Management
+                    <PeopleIcon color="primary" /> {t("userMgmt.title", "User Management")}
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                    View all users and their roles. Create new user accounts.
+                    {t("userMgmt.subtitle", "View all users and their roles. Create new user accounts.")}
                 </Typography>
             </Box>
 
@@ -166,10 +168,10 @@ export default function UserManagement() {
                 <Card sx={{ mb: 4 }}>
                     <CardContent>
                         <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                            <PersonAddIcon color="primary" /> Create New User
+                            <PersonAddIcon color="primary" /> {t("userMgmt.createNewUser", "Create New User")}
                         </Typography>
                         <Typography variant="body2" color="textSecondary" paragraph>
-                            Create new users and assign their roles. Changes take effect immediately.
+                            {t("userMgmt.createUserDesc", "Create new users and assign their roles. Changes take effect immediately.")}
                         </Typography>
 
                         {creationSuccess && (
@@ -182,7 +184,7 @@ export default function UserManagement() {
                             <Grid item xs={12} md={4}>
                                 <TextField
                                     fullWidth
-                                    label="Email Address"
+                                    label={t("userMgmt.emailAddress", "Email Address")}
                                     value={newUserEmail}
                                     onChange={(e) => setNewUserEmail(e.target.value)}
                                     size="small"
@@ -191,7 +193,7 @@ export default function UserManagement() {
                             <Grid item xs={12} md={3}>
                                 <TextField
                                     fullWidth
-                                    label="Password"
+                                    label={t("userMgmt.password", "Password")}
                                     type="password"
                                     value={newUserPassword}
                                     onChange={(e) => setNewUserPassword(e.target.value)}
@@ -200,7 +202,7 @@ export default function UserManagement() {
                             </Grid>
                             <Grid item xs={12} md={3}>
                                 <FormControl fullWidth size="small">
-                                    <InputLabel>Role</InputLabel>
+                                    <InputLabel>{t("userMgmt.role", "Role")}</InputLabel>
                                     <Select
                                         value={newUserRole}
                                         label="Role"
@@ -225,7 +227,7 @@ export default function UserManagement() {
                                     onClick={handleCreateUser}
                                     disabled={creatingUser}
                                 >
-                                    {creatingUser ? <CircularProgress size={24} color="inherit" /> : "Create User"}
+                                    {creatingUser ? <CircularProgress size={24} color="inherit" /> : t("userMgmt.createUser", "Create User")}
                                 </Button>
                             </Grid>
                         </Grid>
@@ -244,12 +246,12 @@ export default function UserManagement() {
                 <CardContent>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
                         <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                            All Users ({filteredUsers.length})
+                            {t("userMgmt.allUsers", "All Users")} ({filteredUsers.length})
                         </Typography>
                         <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
                             <TextField
                                 size="small"
-                                placeholder="Search users..."
+                                placeholder={t("userMgmt.searchUsers", "Search users...")}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 InputProps={{
@@ -276,10 +278,10 @@ export default function UserManagement() {
                             <Table>
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell sx={{ fontWeight: 600 }}>User</TableCell>
-                                        <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
-                                        <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
-                                        <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>{t("admin.user", "User")}</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>{t("userMgmt.email", "Email")}</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>{t("userMgmt.role", "Role")}</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>{t("userMgmt.status", "Status")}</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -287,7 +289,7 @@ export default function UserManagement() {
                                         <TableRow>
                                             <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
                                                 <Typography color="text.secondary">
-                                                    No users found
+                                                    {t("userMgmt.noUsersFound", "No users found")}
                                                 </Typography>
                                             </TableCell>
                                         </TableRow>
@@ -324,7 +326,7 @@ export default function UserManagement() {
                                                 </TableCell>
                                                 <TableCell>
                                                     <Chip
-                                                        label={u.is_active ? "Active" : "Inactive"}
+                                                        label={u.is_active ? t("userMgmt.active", "Active") : t("userMgmt.inactive", "Inactive")}
                                                         size="small"
                                                         color={u.is_active ? "success" : "default"}
                                                     />

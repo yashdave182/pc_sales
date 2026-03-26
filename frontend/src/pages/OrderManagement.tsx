@@ -184,13 +184,13 @@ export default function OrderManagement() {
 
   const getOrderStatusLabel = (status: string) => {
     const statusLabels: { [key: string]: string } = {
-      pending: "Pending",
-      prepared_for_shipment: "Prepared for Shipment",
-      dispatch: "Dispatched",
-      delivered: "Delivered",
-      verified: "Verified",
-      completed: "Verified",
-      cancelled: "Cancelled"
+      pending: t("orderManagement.pending", "Pending"),
+      prepared_for_shipment: t("orderManagement.prepared", "Prepared for Shipment"),
+      dispatch: t("orderManagement.dispatched", "Dispatched"),
+      delivered: t("orderManagement.delivered", "Delivered"),
+      verified: t("orderManagement.verified", "Verified"),
+      completed: t("orderManagement.verified", "Verified"),
+      cancelled: t("orderManagement.cancelled", "Cancelled")
     };
     return statusLabels[status] || status;
   };
@@ -219,22 +219,22 @@ export default function OrderManagement() {
     const currentStatus = order.order_status?.toLowerCase() || "pending";
     const steps = [
       {
-        label: "Pending",
+        label: t("orderManagement.pending", "Pending"),
         date: order.sale_date,
         completed: ["pending", "prepared_for_shipment", "dispatch", "delivered", "verified", "completed"].includes(currentStatus)
       },
       {
-        label: "Prepared for Shipment",
+        label: t("orderManagement.prepared", "Prepared for Shipment"),
         date: order.shipment_date,
         completed: ["prepared_for_shipment", "dispatch", "delivered", "verified", "completed"].includes(currentStatus),
       },
       {
-        label: "Dispatched",
+        label: t("orderManagement.dispatched", "Dispatched"),
         date: order.dispatch_date,
         completed: ["dispatch", "delivered", "verified", "completed"].includes(currentStatus),
       },
       {
-        label: "Delivered",
+        label: t("orderManagement.delivered", "Delivered"),
         date: order.delivery_date,
         completed: ["delivered", "verified", "completed"].includes(currentStatus),
       },
@@ -527,7 +527,7 @@ export default function OrderManagement() {
         gap={1}
       >
         <Typography variant="h4" fontWeight="bold">
-          Order Management
+          {t("orderManagement.title", "Order Management")}
         </Typography>
       </Box>
 
@@ -556,9 +556,9 @@ export default function OrderManagement() {
                                 <ShippingIcon sx={{ fontSize: { xs: 50, md: 100 }, color: "warning.main" }} />
               </Box>
               <Typography color="textSecondary" variant="subtitle2" gutterBottom sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
-                Pending
+                {t("orderManagement.pending", "Pending")}
                 <Chip
-                  label={`Return: ${stats.returned}`}
+                  label={`${t("orderManagement.return", "Return")}: ${stats.returned}`}
                   size="small"
                   color="warning"
                   sx={{ ml: 0.5, height: 18, fontSize: "0.6rem", fontWeight: "bold" }}
@@ -593,8 +593,7 @@ export default function OrderManagement() {
                 <ShippingIcon sx={{ fontSize: { xs: 50, md: 100 }, color: "info.main" }} />
               </Box>
               <Typography color="textSecondary" variant="subtitle2" gutterBottom>
-                Prepared
-
+                {t("orderManagement.prepared", "Prepared")}
               </Typography>
               <Typography variant="h4" fontWeight="bold" color="info.main">
                 {stats.prepared}
@@ -625,7 +624,7 @@ export default function OrderManagement() {
                 <ShippingIcon sx={{ fontSize: { xs: 50, md: 100 }, color: "primary.main" }} />
               </Box>
               <Typography color="textSecondary" variant="subtitle2" gutterBottom>
-                Dispatched
+                {t("orderManagement.dispatched", "Dispatched")}
               </Typography>
               <Typography variant="h4" fontWeight="bold" color="primary.main">
                 {stats.dispatched}
@@ -656,9 +655,9 @@ export default function OrderManagement() {
                 <CheckCircleIcon sx={{ fontSize: { xs: 50, md: 100 }, color: "success.main" }} />
               </Box>
               <Typography color="textSecondary" variant="subtitle2" gutterBottom sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
-                Delivered
+                {t("orderManagement.delivered", "Delivered")}
                 <Chip
-                  label={`Cancel: ${stats.cancelled}`}
+                  label={`${t("orderManagement.cancelled", "Cancel")}: ${stats.cancelled}`}
                   size="small"
                   color="error"
                   sx={{ ml: 0.5, height: 18, fontSize: "0.6rem", fontWeight: "bold" }}
@@ -678,7 +677,7 @@ export default function OrderManagement() {
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
-              placeholder="Search by invoice, customer name, or mobile..."
+              placeholder={t("orderManagement.searchPlaceholder", "Search by invoice, customer name, or mobile...")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
@@ -698,22 +697,22 @@ export default function OrderManagement() {
           <TableHead>
             <TableRow sx={{ bgcolor: "grey.100" }}>
               <TableCell>
-                <strong>Invoice No</strong>
+                <strong>{t("fields.invoice_no", "Invoice No")}</strong>
               </TableCell>
               <TableCell>
                 <strong>{t("customers.title", "Sabhasad")}</strong>
               </TableCell>
               <TableCell>
-                <strong>Order Date</strong>
+                <strong>{t("orderManagement.orderDate", "Order Date")}</strong>
               </TableCell>
               <TableCell align="right">
-                <strong>Amount</strong>
+                <strong>{t("fields.amount", "Amount")}</strong>
               </TableCell>
               <TableCell align="center">
-                <strong>Order Status</strong>
+                <strong>{t("orderManagement.orderStatus", "Order Status")}</strong>
               </TableCell>
               <TableCell align="center">
-                <strong>Actions</strong>
+                <strong>{t("common.actions", "Actions")}</strong>
               </TableCell>
             </TableRow>
           </TableHead>
@@ -721,7 +720,7 @@ export default function OrderManagement() {
             {filteredOrders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                  <Typography color="textSecondary">No orders found</Typography>
+                  <Typography color="textSecondary">{t("orderManagement.noOrders", "No orders found")}</Typography>
                 </TableCell>
               </TableRow>
             ) : (
@@ -771,7 +770,7 @@ export default function OrderManagement() {
                     />
                   </TableCell>
                   <TableCell align="center">
-                    <Tooltip title="View Details">
+                    <Tooltip title={t("orderManagement.viewDetails", "View Details")}>
                       <IconButton
                         size="small"
                         color="primary"
@@ -781,7 +780,7 @@ export default function OrderManagement() {
                         <VisibilityIcon />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Update Status">
+                    <Tooltip title={t("orderManagement.updateStatus", "Update Status")}>
                       <IconButton
                         size="small"
                         color="secondary"
@@ -791,7 +790,7 @@ export default function OrderManagement() {
                         <EditIcon />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="More Actions">
+                    <Tooltip title={t("orderManagement.moreActions", "More Actions")}>
                       <IconButton
                         size="small"
                         onClick={(e) => handleMenuOpen(e, order)}

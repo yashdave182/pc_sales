@@ -658,7 +658,7 @@ export default function Sales() {
               </IconButton>
 
               <TextField
-                placeholder="Search sales..."
+                placeholder={t("sales.searchPlaceholder", "Search sales...")}
                 size="small"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

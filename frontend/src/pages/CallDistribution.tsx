@@ -40,6 +40,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { PERMISSIONS } from "../config/permissions";
 import { automationAPI } from "../services/api";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "../hooks/useTranslation";
 
 // ── Types ──────────────────────────────────────────────────
 interface Telecaller {
@@ -78,6 +79,7 @@ export default function CallDistribution() {
   const isDark = theme.palette.mode === "dark";
   const { user, hasPermission, role } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   
   const isAdmin = role === "admin" || role === "developer";
   const canDistribute = isAdmin || hasPermission?.(PERMISSIONS.RUN_CALL_DISTRIBUTION);
@@ -203,10 +205,10 @@ export default function CallDistribution() {
       {/* Header */}
       <Box sx={{ mb: { xs: 2, md: 3 } }}>
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5, display: "flex", alignItems: "center", gap: 1 }}>
-          <PhoneIcon color="primary" /> Call Distribution
+          <PhoneIcon color="primary" /> {t("callDistribution.title", "Call Distribution")}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Manage and monitor today's telecaller assignments
+          {t("callDistribution.subtitle", "Manage and monitor today's telecaller assignments")}
         </Typography>
       </Box>
 
@@ -239,7 +241,7 @@ export default function CallDistribution() {
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }} justifyContent="space-between">
               <Box>
                 <Typography variant="h6" sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}>
-                  <DistributeIcon color="primary" /> Distribution Controls
+                  <DistributeIcon color="primary" /> {t("callDistribution.distributionControls", "Distribution Controls")}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                   {distStatus?.distributed
@@ -255,7 +257,7 @@ export default function CallDistribution() {
                   disabled={distributing || distStatus?.distributed}
                   sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600, px: 3 }}
                 >
-                  {distStatus?.distributed ? "Already Distributed" : "Distribute Now"}
+                  {distStatus?.distributed ? t("callDistribution.alreadyDistributed", "Already Distributed") : t("callDistribution.distributeNow", "Distribute Now")}
                 </Button>
                 <Button
                   variant="outlined"
@@ -264,7 +266,7 @@ export default function CallDistribution() {
                   disabled={refreshing}
                   sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
                 >
-                  Re-distribute
+                  {t("callDistribution.redistribute", "Re-distribute")}
                 </Button>
                 <IconButton onClick={loadData} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 2 }}>
                   <RefreshIcon fontSize="small" />
@@ -294,7 +296,7 @@ export default function CallDistribution() {
           {telecallerSummary.length > 0 && (
             <Box sx={{ mb: 3 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.secondary", mb: 1.5, textTransform: "uppercase", letterSpacing: 0.5, fontSize: "0.7rem" }}>
-                Telecaller Distribution
+                {t("callDistribution.telecallerDistribution", "Telecaller Distribution")}
               </Typography>
               <Grid container spacing={2}>
                 {telecallerSummary.map(([email, d]: [string, any]) => {
@@ -319,7 +321,7 @@ export default function CallDistribution() {
                                 {email.split("@")[0]}
                               </Typography>
                               <Typography variant="caption" color="text.secondary">
-                                {d.total} total calls
+                                {d.total} {t("callDistribution.totalCalls", "total calls")}
                               </Typography>
                             </Box>
                           </Stack>
@@ -341,12 +343,12 @@ export default function CallDistribution() {
                           <Stack direction="row" spacing={1} justifyContent="space-between">
                             <Chip
                               size="small"
-                              label={`${d.pending} pending`}
+                              label={`${d.pending} ${t("callDistribution.pending", "pending")}`}
                               sx={{ height: 22, fontSize: "0.7rem", fontWeight: 600, bgcolor: alpha("#ea580c", 0.1), color: "#ea580c" }}
                             />
                             <Chip
                               size="small"
-                              label={`${d.called} done`}
+                              label={`${d.called} ${t("callDistribution.done", "done")}`}
                               sx={{ height: 22, fontSize: "0.7rem", fontWeight: 600, bgcolor: alpha("#16a34a", 0.1), color: "#16a34a" }}
                             />
                             <Chip
@@ -380,7 +382,7 @@ export default function CallDistribution() {
             </Typography>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }}>
               <FormControl size="small" sx={{ minWidth: 180 }}>
-                <InputLabel>Telecaller</InputLabel>
+                <InputLabel>{t("callDistribution.telecaller", "Telecaller")}</InputLabel>
                 <Select label="Telecaller" value={bulkEmail} onChange={e => setBulkEmail(e.target.value as string)} sx={{ borderRadius: 2 }}>
                   {telecallers.map(t => (
                     <MenuItem key={t.email} value={t.email}>{t.name || t.email.split("@")[0]}</MenuItem>
@@ -388,7 +390,7 @@ export default function CallDistribution() {
                 </Select>
               </FormControl>
               <FormControl size="small" sx={{ minWidth: 130 }}>
-                <InputLabel>Priority</InputLabel>
+                <InputLabel>{t("callDistribution.priority", "Priority")}</InputLabel>
                 <Select label="Priority" value={bulkPriority} onChange={e => setBulkPriority(e.target.value as string)} sx={{ borderRadius: 2 }}>
                   <MenuItem value="High">🔴 High</MenuItem>
                   <MenuItem value="Medium">🟡 Medium</MenuItem>
@@ -398,7 +400,7 @@ export default function CallDistribution() {
               <TextField
                 size="small"
                 type="number"
-                label="Count"
+                label={t("callDistribution.count", "Count")}
                 value={bulkCount}
                 onChange={e => setBulkCount(Math.max(1, parseInt(e.target.value) || 1))}
                 sx={{ width: 100, "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
@@ -411,7 +413,7 @@ export default function CallDistribution() {
                 onClick={handleBulk}
                 sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600, px: 3 }}
               >
-                Assign
+                {t("callDistribution.assign", "Assign")}
               </Button>
             </Stack>
           </Paper>
@@ -427,16 +429,16 @@ export default function CallDistribution() {
               }}
             >
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.secondary", mb: 2, textTransform: "uppercase", letterSpacing: 0.5, fontSize: "0.7rem" }}>
-                Reassign Individual Calls ({pendingAssignments.length})
+                {t("callDistribution.reassignCalls", "Reassign Individual Calls")} ({pendingAssignments.length})
               </Typography>
               <TableContainer>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700, fontSize: "0.78rem" }}>Sabhasad</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: "0.78rem" }}>Village</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: "0.78rem" }}>Assigned To</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: "0.78rem" }}>Reassign</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: "0.78rem" }}>{t("customers.title", "Sabhasad")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: "0.78rem" }}>{t("fields.village", "Village")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: "0.78rem" }}>{t("callDistribution.assignedTo", "Assigned To")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: "0.78rem" }}>{t("callDistribution.reassign", "Reassign")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -464,7 +466,7 @@ export default function CallDistribution() {
                           </TableCell>
                           <TableCell>
                             <FormControl size="small" sx={{ minWidth: 140 }}>
-                              <InputLabel sx={{ fontSize: 12 }}>Move to</InputLabel>
+                              <InputLabel sx={{ fontSize: 12 }}>{t("callDistribution.moveTo", "Move to")}</InputLabel>
                               <Select
                                 label="Move to"
                                 value=""

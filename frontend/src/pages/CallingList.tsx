@@ -48,6 +48,7 @@ import {
 } from "@mui/icons-material";
 import { automationAPI, customerAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
+import { useTranslation } from "../hooks/useTranslation";
 
 // ── Types ──────────────────────────────────────────────
 interface Assignment {
@@ -98,6 +99,7 @@ export default function CallingList() {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isDark = theme.palette.mode === "dark";
   const { role, hasPermission } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [tab, setTab] = useState(0);
@@ -220,7 +222,7 @@ export default function CallingList() {
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: -0.5 }}>
-              Calling List
+              {t("callingList.title", "Calling List")}
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.25 }}>
               {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "short", year: "numeric" })}
@@ -237,9 +239,9 @@ export default function CallingList() {
       {/* ── Stats ── */}
       <Stack direction="row" spacing={2} sx={{ mb: 2.5 }}>
         {([
-          { label: "Total", value: summary.total, color: "#2563eb", icon: <AssignmentIcon sx={{ fontSize: 18 }} /> },
-          { label: "Pending", value: summary.pending, color: "#ea580c", icon: <PhoneIcon sx={{ fontSize: 18 }} /> },
-          { label: "Completed", value: summary.called, color: "#16a34a", icon: <CheckIcon sx={{ fontSize: 18 }} /> },
+          { label: t("callingList.total", "Total"), value: summary.total, color: "#2563eb", icon: <AssignmentIcon sx={{ fontSize: 18 }} /> },
+          { label: t("callingList.pending", "Pending"), value: summary.pending, color: "#ea580c", icon: <PhoneIcon sx={{ fontSize: 18 }} /> },
+          { label: t("callingList.completed", "Completed"), value: summary.called, color: "#16a34a", icon: <CheckIcon sx={{ fontSize: 18 }} /> },
         ] as const).map(s => (
           <Paper
             key={s.label}
@@ -277,8 +279,8 @@ export default function CallingList() {
             "& .MuiTabs-indicator": { height: 3, borderRadius: 2 },
           }}
         >
-          <Tab label={`To Call  ·  ${summary.pending}`} />
-          <Tab label={`Called  ·  ${summary.called}`} />
+          <Tab label={`${t("callingList.toCall", "To Call")}  ·  ${summary.pending}`} />
+          <Tab label={`${t("callingList.called", "Called")}  ·  ${summary.called}`} />
         </Tabs>
 
         <Box sx={{ p: 2 }}>
@@ -289,10 +291,10 @@ export default function CallingList() {
           ) : assignments.length === 0 ? (
             <Box sx={{ textAlign: "center", py: 8 }}>
               <Typography variant="h6" sx={{ color: "text.disabled", fontWeight: 600 }}>
-                {tab === 0 ? "No pending calls" : "No completed calls yet"}
+                {tab === 0 ? t("callingList.noPendingCalls", "No pending calls") : t("callingList.noCompletedCalls", "No completed calls yet")}
               </Typography>
               <Typography variant="body2" sx={{ color: "text.disabled", mt: 0.5 }}>
-                {tab === 0 ? "Distribution may not have happened yet, or all calls are complete." : "Start calling from the To Call tab."}
+                {tab === 0 ? t("callingList.distributionInfo", "Distribution may not have happened yet, or all calls are complete.") : t("callingList.startCalling", "Start calling from the To Call tab.")}
               </Typography>
             </Box>
           ) : (

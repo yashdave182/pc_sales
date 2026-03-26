@@ -32,6 +32,7 @@ import {
 } from "@mui/icons-material";
 import { rbacAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
+import { useTranslation } from "../hooks/useTranslation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Role {
@@ -70,6 +71,7 @@ const MODULE_COLORS: Record<string, string> = {
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 const RoleManagement: React.FC = () => {
     const { refreshPermissions } = useAuth();
+    const { t } = useTranslation();
 
     const [roles, setRoles] = useState<Role[]>([]);
     const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
@@ -222,11 +224,10 @@ const RoleManagement: React.FC = () => {
                 <ShieldIcon sx={{ fontSize: 36, color: "primary.main" }} />
                 <Box>
                     <Typography variant="h4" fontWeight={700}>
-                        Role Management
+                        {t("roleMgmt.title", "Role Management")}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                        Manage roles and their permissions. Changes apply immediately to all
-                        users with that role.
+                        {t("roleMgmt.subtitle", "Manage roles and their permissions. Changes apply immediately to all users with that role.")}
                     </Typography>
                 </Box>
                 <Box sx={{ ml: "auto", display: "flex", gap: 1 }}>
@@ -241,7 +242,7 @@ const RoleManagement: React.FC = () => {
                         onClick={() => setCreateOpen(true)}
                         sx={{ borderRadius: 2 }}
                     >
-                        New Role
+                        {t("roleMgmt.newRole", "New Role")}
                     </Button>
                 </Box>
             </Box>
@@ -276,7 +277,7 @@ const RoleManagement: React.FC = () => {
                         >
                             <Typography variant="subtitle1" fontWeight={600}>
                                 <GroupIcon sx={{ mr: 1, verticalAlign: "middle", fontSize: 18 }} />
-                                Roles ({roles.length})
+                                {t("roleMgmt.roles", "Roles")} ({roles.length})
                             </Typography>
                         </Box>
 
@@ -378,9 +379,9 @@ const RoleManagement: React.FC = () => {
                             }}
                         >
                             <EditIcon sx={{ fontSize: 56, mb: 2, opacity: 0.3 }} />
-                            <Typography variant="h6">Select a role to edit</Typography>
+                            <Typography variant="h6">{t("roleMgmt.selectRole", "Select a role to edit")}</Typography>
                             <Typography variant="body2">
-                                Click any role on the left to view and modify its permissions.
+                                {t("roleMgmt.selectRoleDesc", "Click any role on the left to view and modify its permissions.")}
                             </Typography>
                         </Paper>
                     ) : (
@@ -406,14 +407,14 @@ const RoleManagement: React.FC = () => {
                                         {selectedRole.display_name}
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary">
-                                        {pendingPermIds.size} permissions assigned
-                                        {isDirty && " · Unsaved changes"}
+                                        {pendingPermIds.size} {t("roleMgmt.permissionsAssigned", "permissions assigned")}
+                                        {isDirty && ` · ${t("roleMgmt.unsavedChanges", "Unsaved changes")}`}
                                     </Typography>
                                 </Box>
                                 {selectedRole.is_system && (
                                     <Chip
                                         icon={<LockIcon />}
-                                        label="System Role"
+                                        label={t("roleMgmt.systemRole", "System Role")}
                                         size="small"
                                         color="error"
                                         variant="outlined"
@@ -432,7 +433,7 @@ const RoleManagement: React.FC = () => {
                                     disabled={!isDirty || saving}
                                     sx={{ borderRadius: 2 }}
                                 >
-                                    {saving ? "Saving..." : "Save Changes"}
+                                    {saving ? t("common.saving", "Saving...") : t("roleMgmt.saveChanges", "Save Changes")}
                                 </Button>
                             </Box>
 
@@ -530,10 +531,10 @@ const RoleManagement: React.FC = () => {
                 maxWidth="xs"
                 fullWidth
             >
-                <DialogTitle>Create New Role</DialogTitle>
+                <DialogTitle>{t("roleMgmt.createNewRole", "Create New Role")}</DialogTitle>
                 <DialogContent sx={{ pt: 2 }}>
                     <TextField
-                        label="Role Name"
+                        label={t("roleMgmt.roleName", "Role Name")}
                         fullWidth
                         value={newRoleName}
                         onChange={(e) => setNewRoleName(e.target.value)}
@@ -542,7 +543,7 @@ const RoleManagement: React.FC = () => {
                         helperText={`Key: ${newRoleName.toLowerCase().replace(/ /g, "_") || "role_key"}`}
                     />
                     <TextField
-                        label="Description"
+                        label={t("admin.description", "Description")}
                         fullWidth
                         multiline
                         rows={2}
@@ -552,7 +553,7 @@ const RoleManagement: React.FC = () => {
                     />
                 </DialogContent>
                 <DialogActions sx={{ p: 2 }}>
-                    <Button onClick={() => setCreateOpen(false)}>Cancel</Button>
+                    <Button onClick={() => setCreateOpen(false)}>{t("common.cancel", "Cancel")}</Button>
                     <Button
                         variant="contained"
                         onClick={handleCreate}
@@ -561,7 +562,7 @@ const RoleManagement: React.FC = () => {
                             creating ? <CircularProgress size={16} color="inherit" /> : <AddIcon />
                         }
                     >
-                        {creating ? "Creating..." : "Create Role"}
+                        {creating ? t("roleMgmt.creating", "Creating...") : t("roleMgmt.createRole", "Create Role")}
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -573,7 +574,7 @@ const RoleManagement: React.FC = () => {
                 maxWidth="xs"
                 fullWidth
             >
-                <DialogTitle>Delete Role</DialogTitle>
+                <DialogTitle>{t("roleMgmt.deleteRole", "Delete Role")}</DialogTitle>
                 <DialogContent>
                     <Typography>
                         Are you sure you want to delete the role{" "}
@@ -581,7 +582,7 @@ const RoleManagement: React.FC = () => {
                     </Typography>
                 </DialogContent>
                 <DialogActions sx={{ p: 2 }}>
-                    <Button onClick={() => setDeleteRole(null)}>Cancel</Button>
+                    <Button onClick={() => setDeleteRole(null)}>{t("common.cancel", "Cancel")}</Button>
                     <Button
                         variant="contained"
                         color="error"
@@ -591,7 +592,7 @@ const RoleManagement: React.FC = () => {
                             deleting ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />
                         }
                     >
-                        {deleting ? "Deleting..." : "Delete"}
+                        {deleting ? t("roleMgmt.deleting", "Deleting...") : t("common.delete", "Delete")}
                     </Button>
                 </DialogActions>
             </Dialog>

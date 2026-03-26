@@ -38,7 +38,8 @@ import {
 } from "@mui/icons-material";
 import { useAuth } from "../contexts/AuthContext";
 import { PERMISSIONS } from "../config/permissions";
-import axios from "axios";
+import { useTranslation } from "../hooks/useTranslation";
+import axios from "axios";;
 import { useNavigate } from "react-router-dom";
 
 const API_BASE_URL =
@@ -100,6 +101,7 @@ interface PriceState {
 export default function ProductPricing() {
     const { user, hasPermission } = useAuth();
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -458,15 +460,15 @@ export default function ProductPricing() {
             <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <Box>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                        Product Pricing Management
+                    {t("pricing.title", "Product Pricing Management")}
                     </Typography>
                     <Typography variant="body1" color="text.secondary">
-                        Update default prices for all products in the system
+                        {t("pricing.subtitle", "Update default prices for all products in the system")}
                     </Typography>
                 </Box>
                 <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
                     <FormControl size="small" sx={{ minWidth: 150 }}>
-                        <InputLabel>Region</InputLabel>
+                        <InputLabel>{t("pricing.region", "Region")}</InputLabel>
                         <Select
                             value={selectedRegion}
                             label="Region"
@@ -481,7 +483,7 @@ export default function ProductPricing() {
                     </FormControl>
 
                     <FormControl size="small" sx={{ minWidth: 150, mr: 2 }}>
-                        <InputLabel>Category</InputLabel>
+                        <InputLabel>{t("pricing.category", "Category")}</InputLabel>
                         <Select
                             value={selectedCategory}
                             label="Category"
@@ -501,7 +503,7 @@ export default function ProductPricing() {
                         onClick={handleAddClick}
                         disabled={saving}
                     >
-                        Add Product
+                        {t("pricing.addProduct", "Add Product")}
                     </Button>
                     <Tooltip title="Refresh">
                         <IconButton onClick={loadProducts} color="primary" disabled={loading}>
@@ -516,7 +518,7 @@ export default function ProductPricing() {
                             disabled={saving}
                             color="success"
                         >
-                            Save All Changes
+                            {t("pricing.saveAllChanges", "Save All Changes")}
                         </Button>
                     )}
                 </Box>
@@ -538,7 +540,7 @@ export default function ProductPricing() {
             <Card>
                 <CardContent>
                     <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                        All Products ({products.length})
+                        {t("pricing.allProducts", "All Products")} ({products.length})
                     </Typography>
 
                     {loading ? (
@@ -548,16 +550,16 @@ export default function ProductPricing() {
                             <Table>
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell sx={{ fontWeight: 600 }}>Product Name</TableCell>
-                                        <TableCell sx={{ fontWeight: 600 }}>Packing Type</TableCell>
-                                        <TableCell sx={{ fontWeight: 600 }}>Capacity (Ltr)</TableCell>
-                                        <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>{t("pricing.productName", "Product Name")}</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>{t("pricing.packingType", "Packing Type")}</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>{t("pricing.capacityLtr", "Capacity (Ltr)")}</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>{t("pricing.category", "Category")}</TableCell>
 
                                         <TableCell sx={{ fontWeight: 600 }}>
                                             Rate ({selectedRegion === "Madhya Pradesh" ? "MP" : (selectedRegion === "Gujarat" ? "GJ" : "MH")} - {selectedCategory})
                                         </TableCell>
 
-                                        <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>{t("userMgmt.status", "Status")}</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
                                     </TableRow>
                                 </TableHead>

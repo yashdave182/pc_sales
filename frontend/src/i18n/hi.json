@@ -46,7 +46,8 @@
     "noData": "कोई डेटा उपलब्ध नहीं",
     "version": "संस्करण",
     "copyright": "© 2025 बिक्री प्रबंधन",
-    "salesManagementSystem": "बिक्री प्रबंधन प्रणाली"
+    "salesManagementSystem": "बिक्री प्रबंधन प्रणाली",
+    "saving": "सहेजा जा रहा है..."
   },
   "layout": {
     "toggleTheme": "थीम बदलें",
@@ -324,25 +325,6 @@
     "adharNo": "आधार नंबर",
     "rate": "दर"
   },
-  "pricing": {
-    "title": "उत्पाद मूल्य प्रबंधन",
-    "subtitle": "सिस्टम में सभी उत्पादों के डिफ़ॉल्ट मूल्य अपडेट करें",
-    "productName": "उत्पाद का नाम",
-    "packingType": "पैकिंग प्रकार",
-    "capacity": "क्षमता (लीटर)",
-    "category": "श्रेणी",
-    "standardRate": "मानक दर",
-    "region": "क्षेत्र",
-    "saveAll": "सभी परिवर्तन सहेजें",
-    "addProduct": "उत्पाद जोड़ें",
-    "editPrice": "मूल्य संपादित करें",
-    "confirmDeleteProduct": "क्या आप वाकई इस उत्पाद को हटाना चाहते हैं?",
-    "noProducts": "कोई उत्पाद नहीं मिला",
-    "sabhasad": "सभासद",
-    "mantri": "मंत्री",
-    "distributor": "वितरक",
-    "fieldOfficer": "फील्ड ऑफिसर"
-  },
   "activity": {
     "title": "मेरी गतिविधि",
     "todayLog": "आज की गतिविधि लॉग",
@@ -352,7 +334,8 @@
     "deletes": "हटाए",
     "noActivity": "कोई गतिविधि दर्ज नहीं",
     "startWorking": "काम शुरू करें और आपकी क्रियाएँ यहाँ दिखाई देंगी।",
-    "noActivityOnDay": "इस दिन कोई गतिविधि दर्ज नहीं हुई।"
+    "noActivityOnDay": "इस दिन कोई गतिविधि दर्ज नहीं हुई।",
+    "activityFor": "गतिविधि के लिए"
   },
   "admin": {
     "activityLogs": "गतिविधि लॉग",
@@ -366,7 +349,12 @@
     "description": "विवरण",
     "entity": "एंटिटी",
     "timestamp": "समय",
-    "accessDenied": "पहुँच अस्वीकृत। गतिविधि लॉग देखने के लिए अनुमति आवश्यक है।"
+    "accessDenied": "पहुँच अस्वीकृत। गतिविधि लॉग देखने के लिए अनुमति आवश्यक है।",
+    "trackActions": "सिस्टम में सभी उपयोगकर्ता क्रियाओं को ट्रैक करें",
+    "recentActivity": "हाल की गतिविधि",
+    "total": "कुल",
+    "dateTime": "तारीख और समय",
+    "noActivities": "कोई गतिविधि नहीं मिली"
   },
   "callingList": {
     "title": "कॉलिंग सूची",
@@ -383,7 +371,16 @@
     "joinDate": "जुड़ने की तारीख",
     "totalSales": "कुल बिक्री",
     "totalPaid": "कुल भुगतान",
-    "pendingAmount": "बकाया राशि"
+    "pendingAmount": "बकाया राशि",
+    "total": "कुल",
+    "pending": "लंबित",
+    "completed": "पूर्ण",
+    "toCall": "कॉल करने के लिए",
+    "called": "कॉल किए",
+    "noPendingCalls": "कोई लंबित कॉल नहीं",
+    "noCompletedCalls": "अभी तक कोई कॉल पूर्ण नहीं हुआ",
+    "distributionInfo": "वितरण अभी नहीं हुआ है, या सभी कॉल पूर्ण हैं।",
+    "startCalling": "कॉल करने के लिए टैब से कॉल शुरू करें।"
   },
   "callDistribution": {
     "title": "कॉल वितरण",
@@ -391,7 +388,22 @@
     "telecallerSummary": "टेलीकॉलर सारांश",
     "bulkAssign": "थोक असाइन करें",
     "reassign": "पुनः असाइन करें",
-    "refreshDistribution": "वितरण रीफ़्रेश करें"
+    "refreshDistribution": "वितरण रीफ़्रेश करें",
+    "distributionControls": "वितरण नियंत्रण",
+    "alreadyDistributed": "पहले से वितरित",
+    "distributeNow": "अभी वितरित करें",
+    "redistribute": "पुनः वितरित करें",
+    "telecallerDistribution": "टेलीकॉलर वितरण",
+    "totalCalls": "कुल कॉल",
+    "pending": "लंबित",
+    "done": "पूर्ण",
+    "telecaller": "टेलीकॉलर",
+    "priority": "प्राथमिकता",
+    "count": "संख्या",
+    "assign": "असाइन करें",
+    "reassignCalls": "व्यक्तिगत कॉल पुनः असाइन करें",
+    "assignedTo": "असाइन किया गया",
+    "moveTo": "स्थानांतरित करें"
   },
   "orderManagement": {
     "title": "ऑर्डर प्रबंधन",
@@ -403,5 +415,62 @@
     "delivered": "डिलीवर हुआ",
     "inTransit": "रास्ते में",
     "processing": "प्रक्रिया में"
+  },
+  "userMgmt": {
+    "title": "उपयोगकर्ता प्रबंधन",
+    "subtitle": "सभी उपयोगकर्ताओं और उनकी भूमिकाओं को देखें। नए उपयोगकर्ता खाते बनाएँ।",
+    "createNewUser": "नया उपयोगकर्ता बनाएँ",
+    "createUserDesc": "नए उपयोगकर्ता बनाएँ और उनकी भूमिकाएँ असाइन करें। परिवर्तन तुरंत लागू होते हैं।",
+    "emailAddress": "ईमेल पता",
+    "password": "पासवर्ड",
+    "role": "भूमिका",
+    "createUser": "उपयोगकर्ता बनाएँ",
+    "allUsers": "सभी उपयोगकर्ता",
+    "searchUsers": "उपयोगकर्ता खोजें...",
+    "email": "ईमेल",
+    "status": "स्थिति",
+    "noUsersFound": "कोई उपयोगकर्ता नहीं मिला",
+    "active": "सक्रिय",
+    "inactive": "निष्क्रिय"
+  },
+  "roleMgmt": {
+    "title": "भूमिका प्रबंधन",
+    "subtitle": "भूमिकाओं और उनकी अनुमतियों का प्रबंधन करें। परिवर्तन तुरंत सभी उपयोगकर्ताओं पर लागू होते हैं।",
+    "newRole": "नई भूमिका",
+    "roles": "भूमिकाएँ",
+    "selectRole": "संपादित करने के लिए भूमिका चुनें",
+    "selectRoleDesc": "अनुमतियाँ देखने और बदलने के लिए बाईं ओर किसी भी भूमिका पर क्लिक करें।",
+    "permissionsAssigned": "अनुमतियाँ असाइन की गईं",
+    "unsavedChanges": "सहेजे नहीं गए परिवर्तन",
+    "systemRole": "सिस्टम भूमिका",
+    "saveChanges": "परिवर्तन सहेजें",
+    "createNewRole": "नई भूमिका बनाएँ",
+    "roleName": "भूमिका का नाम",
+    "createRole": "भूमिका बनाएँ",
+    "creating": "बना रहे हैं...",
+    "deleteRole": "भूमिका हटाएँ",
+    "deleting": "हटा रहे हैं..."
+  },
+  "pricing": {
+    "title": "उत्पाद मूल्य प्रबंधन",
+    "subtitle": "सिस्टम में सभी उत्पादों के डिफ़ॉल्ट मूल्य अपडेट करें",
+    "productName": "उत्पाद का नाम",
+    "packingType": "पैकिंग प्रकार",
+    "capacity": "क्षमता (लीटर)",
+    "capacityLtr": "क्षमता (लीटर)",
+    "category": "श्रेणी",
+    "standardRate": "मानक दर",
+    "region": "क्षेत्र",
+    "saveAll": "सभी परिवर्तन सहेजें",
+    "saveAllChanges": "सभी परिवर्तन सहेजें",
+    "addProduct": "उत्पाद जोड़ें",
+    "allProducts": "सभी उत्पाद",
+    "editPrice": "मूल्य संपादित करें",
+    "confirmDeleteProduct": "क्या आप वाकई इस उत्पाद को हटाना चाहते हैं?",
+    "noProducts": "कोई उत्पाद नहीं मिला",
+    "sabhasad": "सभासद",
+    "mantri": "मंत्री",
+    "distributor": "वितरक",
+    "fieldOfficer": "फील्ड ऑफिसर"
   }
 }

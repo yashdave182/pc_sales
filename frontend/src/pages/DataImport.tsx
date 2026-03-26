@@ -59,7 +59,7 @@ export default function DataImport() {
   const importDialogs: ImportDialog[] = [
     {
       type: "customer",
-      title: "Customer Import",
+      title: t("import.customerImport", "Customer Import"),
       icon: <PeopleIcon sx={{ fontSize: 48, color: "primary.main" }} />,
       fields: [
         { name: "name", label: "Customer Name", required: false },
@@ -71,7 +71,7 @@ export default function DataImport() {
     },
     {
       type: "payment",
-      title: "Payment Import",
+      title: t("import.paymentImport", "Payment Import"),
       icon: <PaymentIcon sx={{ fontSize: 48, color: "success.main" }} />,
       fields: [
         { name: "sale_id", label: "Sale ID", required: false },
@@ -94,7 +94,7 @@ export default function DataImport() {
     },
     {
       type: "demos",
-      title: "Demos Import",
+      title: t("import.demosImport", "Demos Import"),
       icon: <DemoIcon sx={{ fontSize: 48, color: "warning.main" }} />,
       fields: [
         { name: "customer_name", label: "Customer Name", required: false },
@@ -107,7 +107,7 @@ export default function DataImport() {
     },
     {
       type: "sales",
-      title: "Sales Import",
+      title: t("import.salesImport", "Sales Import"),
       icon: <SalesIcon sx={{ fontSize: 48, color: "error.main" }} />,
       fields: [
         { name: "customer_name", label: "Customer Name", required: false },
@@ -244,10 +244,10 @@ export default function DataImport() {
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
           <CloudUploadIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-          Data Import
+          {t("import.title", "Data Import")}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Select an import type and upload your Excel file
+          {t("import.selectTypeSubtitle", "Select an import type and upload your Excel file")}
         </Typography>
       </Box>
 
@@ -308,7 +308,7 @@ export default function DataImport() {
                   color="text.secondary"
                   sx={{ mt: 1, textAlign: "center" }}
                 >
-                  Click to import
+                  {t("import.clickToImport", "Click to import")}
                 </Typography>
               </CardContent>
             </Card>
@@ -320,7 +320,7 @@ export default function DataImport() {
       <Card sx={{ mt: 4 }}>
         <CardContent>
           <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            📋 Instructions
+            📋 {t("import.instructions", "Instructions")}
           </Typography>
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
@@ -328,10 +328,10 @@ export default function DataImport() {
                 <CheckCircleIcon color="success" />
                 <Box>
                   <Typography variant="subtitle2" fontWeight={600}>
-                    Excel Format
+                    {t("import.excelFormat", "Excel Format")}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Upload .xlsx or .xls files only
+                    {t("import.excelFormatDesc", "Upload .xlsx or .xls files only")}
                   </Typography>
                 </Box>
               </Box>
@@ -341,10 +341,10 @@ export default function DataImport() {
                 <CheckCircleIcon color="success" />
                 <Box>
                   <Typography variant="subtitle2" fontWeight={600}>
-                    Fill Details
+                    {t("import.fillDetails", "Fill Details")}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Complete all required fields before upload
+                    {t("import.fillDetailsDesc", "Complete all required fields before upload")}
                   </Typography>
                 </Box>
               </Box>
@@ -354,10 +354,10 @@ export default function DataImport() {
                 <CheckCircleIcon color="success" />
                 <Box>
                   <Typography variant="subtitle2" fontWeight={600}>
-                    Data Validation
+                    {t("import.dataValidation", "Data Validation")}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Ensure Excel data matches the required format
+                    {t("import.dataValidationDesc", "Ensure Excel data matches the required format")}
                   </Typography>
                 </Box>
               </Box>
@@ -367,10 +367,10 @@ export default function DataImport() {
                 <CheckCircleIcon color="success" />
                 <Box>
                   <Typography variant="subtitle2" fontWeight={600}>
-                    Processing Time
+                    {t("import.processingTime", "Processing Time")}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Large files may take a few moments to process
+                    {t("import.processingTimeDesc", "Large files may take a few moments to process")}
                   </Typography>
                 </Box>
               </Box>
@@ -402,7 +402,7 @@ export default function DataImport() {
                     {importDialogs.find((d) => d.type === openDialog)?.title}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Fill in the details below to import your data
+                    {t("import.fillDetailsSubtitle", "Fill in the details below to import your data")}
                   </Typography>
                 </Box>
               </Box>
@@ -543,10 +543,10 @@ export default function DataImport() {
                     sx={{ fontSize: 48, color: "primary.main", mb: 1 }}
                   />
                   <Typography variant="h6" sx={{ mb: 1 }}>
-                    Click to select Excel file
+                    {t("import.clickToSelect", "Click to select Excel file")}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Supported formats: .xlsx, .xls
+                    {t("import.supportedFormats", "Supported formats: .xlsx, .xls")}
                   </Typography>
                 </Box>
               )}
@@ -574,7 +574,7 @@ export default function DataImport() {
           </DialogContent>
           <DialogActions sx={{ px: 4, pb: 3 }}>
             <Button onClick={handleCloseDialog} disabled={uploading}>
-              Cancel
+              {t("common.cancel", "Cancel")}
             </Button>
             <Button
               onClick={handleSubmit}
@@ -582,7 +582,7 @@ export default function DataImport() {
               disabled={uploading || !selectedFile}
               startIcon={<CloudUploadIcon />}
             >
-              {uploading ? "Uploading..." : "Upload & Import"}
+              {uploading ? t("import.uploading", "Uploading...") : t("import.uploadAndImport", "Upload & Import")}
             </Button>
           </DialogActions>
         </Dialog>

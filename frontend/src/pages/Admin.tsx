@@ -51,6 +51,7 @@ import { TableSkeleton } from "../components/Skeletons";
 import { useAuth } from "../contexts/AuthContext";
 import { PERMISSIONS } from "../config/permissions";
 import { automationAPI } from "../services/api";
+import { useTranslation } from "../hooks/useTranslation";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -116,6 +117,7 @@ function useCountdownTo10AM() {
 // ══════════════════════════════════════════════════════════════
 export default function AdminLogs() {
   const { user, hasPermission } = useAuth();
+  const { t } = useTranslation();
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -190,10 +192,10 @@ export default function AdminLogs() {
       {/* Header */}
       <Box sx={{ mb: { xs: 2, md: 3 } }}>
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5, display: "flex", alignItems: "center", gap: 1 }}>
-          <HistoryIcon color="primary" /> Activity Logs
+          <HistoryIcon color="primary" /> {t("admin.activityLogs", "Activity Logs")}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Track all user actions across the system
+          {t("admin.trackActions", "Track all user actions across the system")}
         </Typography>
       </Box>
 
@@ -201,7 +203,7 @@ export default function AdminLogs() {
       <CardContent>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Recent Activity ({total} total)
+            {t("admin.recentActivity", "Recent Activity")} ({total} {t("admin.total", "total")})
           </Typography>
           <Tooltip title="Refresh">
             <IconButton onClick={loadActivities} color="primary" disabled={loading}>
@@ -215,22 +217,22 @@ export default function AdminLogs() {
         {/* Filters */}
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={12} md={4}>
-            <TextField fullWidth label="Search" variant="outlined" size="small" value={searchTerm}
+            <TextField fullWidth label={t("common.search", "Search")} variant="outlined" size="small" value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }}
             />
           </Grid>
           <Grid item xs={12} md={4}>
-            <TextField fullWidth label="Filter by User" variant="outlined" size="small" select
+            <TextField fullWidth label={t("admin.filterByUser", "Filter by User")} variant="outlined" size="small" select
               value={filterUserEmail} onChange={e => setFilterUserEmail(e.target.value)}>
-              <MenuItem value="">All Users</MenuItem>
+              <MenuItem value="">{t("admin.allUsers", "All Users")}</MenuItem>
               {uniqueUsers.map(email => <MenuItem key={email} value={email}>{email}</MenuItem>)}
             </TextField>
           </Grid>
           <Grid item xs={12} md={4}>
-            <TextField fullWidth label="Filter by Action Type" variant="outlined" size="small" select
+            <TextField fullWidth label={t("admin.filterByAction", "Filter by Action Type")} variant="outlined" size="small" select
               value={filterActionType} onChange={e => setFilterActionType(e.target.value)}>
-              <MenuItem value="">All Actions</MenuItem>
+              <MenuItem value="">{t("admin.allActions", "All Actions")}</MenuItem>
               {uniqueActionTypes.map(type => <MenuItem key={type} value={type}>{type}</MenuItem>)}
             </TextField>
           </Grid>
@@ -244,18 +246,18 @@ export default function AdminLogs() {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>User</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Entity</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Date & Time</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("admin.user", "User")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("admin.action", "Action")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("admin.description", "Description")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("admin.entity", "Entity")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("admin.dateTime", "Date & Time")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {filteredActivities.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                        <Typography color="text.secondary">No activities found</Typography>
+                        <Typography color="text.secondary">{t("admin.noActivities", "No activities found")}</Typography>
                       </TableCell>
                     </TableRow>
                   ) : (

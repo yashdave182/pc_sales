@@ -29,6 +29,7 @@ import {
   Timeline as TimelineIcon,
 } from "@mui/icons-material";
 import { activityAPI } from "../services/api";
+import { useTranslation } from "../hooks/useTranslation";
 
 // ── Action icons & colors ──────────────────────────────────────
 const ACTION_CONFIG: Record<string, { icon: React.ReactElement; color: string; bg: string }> = {
@@ -63,6 +64,7 @@ function formatTime(dateStr: string): string {
 
 export default function Activity() {
   const theme = useTheme();
+  const { t } = useTranslation();
   const isDark = theme.palette.mode === "dark";
   const border = isDark ? "rgba(255,255,255,.08)" : "rgba(0,0,0,.08)";
   const surface = isDark ? "#1e1e1e" : "#fff";
@@ -107,10 +109,10 @@ export default function Activity() {
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800, display: "flex", alignItems: "center", gap: 1 }}>
-            <TimelineIcon sx={{ color: "#7c3aed" }} /> My Activity
+            <TimelineIcon sx={{ color: "#7c3aed" }} /> {t("activity.title", "My Activity")}
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.25 }}>
-            {isToday ? "Today's activity log" : `Activity for ${new Date(date).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}`}
+            {isToday ? t("activity.todayLog", "Today's activity log") : `${t("activity.activityFor", "Activity for")} ${new Date(date).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}`}
           </Typography>
         </Box>
         <TextField
@@ -127,7 +129,7 @@ export default function Activity() {
       <Stack direction="row" spacing={1.5} sx={{ mb: 3 }}>
         <Paper sx={{ flex: 1, p: 1.5, borderRadius: 2.5, border: `1px solid ${border}`, bgcolor: surface, textAlign: "center" }}>
           <Typography variant="h5" sx={{ fontWeight: 800, color: "#2563eb" }}>{logs.length}</Typography>
-          <Typography variant="caption" sx={{ color: "text.secondary" }}>Total Actions</Typography>
+          <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("activity.totalActions", "Total Actions")}</Typography>
         </Paper>
         {(["CREATE", "UPDATE", "DELETE"] as const).map(type => {
           const count = logs.filter(l => l.action_type === type).length;
@@ -135,7 +137,7 @@ export default function Activity() {
           return (
             <Paper key={type} sx={{ flex: 1, p: 1.5, borderRadius: 2.5, border: `1px solid ${border}`, bgcolor: surface, textAlign: "center" }}>
               <Typography variant="h5" sx={{ fontWeight: 800, color: cfg.color }}>{count}</Typography>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>{type.charAt(0) + type.slice(1).toLowerCase()}s</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>{type === "CREATE" ? t("activity.creates", "Creates") : type === "UPDATE" ? t("activity.updates", "Updates") : t("activity.deletes", "Deletes")}</Typography>
             </Paper>
           );
         })}
@@ -150,9 +152,9 @@ export default function Activity() {
         ) : logs.length === 0 ? (
           <Box sx={{ textAlign: "center", py: 8 }}>
             <CalendarIcon sx={{ fontSize: 48, color: "text.disabled", mb: 1 }} />
-            <Typography variant="h6" sx={{ color: "text.disabled", fontWeight: 600 }}>No activity recorded</Typography>
+            <Typography variant="h6" sx={{ color: "text.disabled", fontWeight: 600 }}>{t("activity.noActivity", "No activity recorded")}</Typography>
             <Typography variant="body2" sx={{ color: "text.disabled" }}>
-              {isToday ? "Start working and your actions will appear here." : "No activity was logged on this day."}
+              {isToday ? t("activity.startWorking", "Start working and your actions will appear here.") : t("activity.noActivityOnDay", "No activity was logged on this day.")}
             </Typography>
           </Box>
         ) : (

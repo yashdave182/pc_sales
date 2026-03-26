@@ -65,6 +65,7 @@ export default function Sales() {
   const [customerMode, setCustomerMode] = useState<"existing" | "new">(
     "existing",
   );
+  const [customerCategory, setCustomerCategory] = useState("Sabhasad");
   const [formData, setFormData] = useState({
     customer_id: 0,
     invoice_no: "",
@@ -174,6 +175,7 @@ export default function Sales() {
       status: "Active",
     });
     setCustomerMode("existing");
+    setCustomerCategory("Sabhasad");
     setItems([{ product_id: 0, quantity: 1, rate: 0, amount: 0 }]);
     setOpenDialog(true);
   };
@@ -194,16 +196,10 @@ export default function Sales() {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
 
-    // Auto-calculate amount
-    if (field === "quantity" || field === "rate") {
-      const item = newItems[index];
-      item.amount = (item.quantity || 0) * (item.rate || 0);
-    }
-
-    // Auto-fill rate from product with region logic
-    if (field === "product_id") {
-      const product = products.find((p) => p.product_id === value);
-      if (product) {
+    // Auto-fill rate from product with region and category logic
+    if (field === "product_id" || field === "quantity" || field === "rate") {
+      const product = products.find((p) => p.product_id === newItems[index].product_id);
+      if (product && field === "product_id") {
         // Determine rate based on customer state
         let rate = product.standard_rate || 0;
         let customerState = "Gujarat";
@@ -217,22 +213,52 @@ export default function Sales() {
           customerState = newCustomerData.state || "Gujarat";
         }
 
-        // Apply region rate
-        if (customerState === "Maharashtra" && product.rate_maharashtra) {
-          rate = product.rate_maharashtra;
-        } else if (customerState === "Madhya Pradesh" && product.rate_mp) {
-          rate = product.rate_mp;
-        } else if (customerState === "Gujarat" && product.rate_gujarat) {
-          rate = product.rate_gujarat;
-        }
+        // Apply region and category rate
+        const rKey = customerState === "Madhya Pradesh" ? "mp" : customerState.toLowerCase();
+        const catKey = customerCategory.toLowerCase().replace(" ", "_");
+        const priceField = `rate_${rKey}_${catKey}` as keyof Product;
+        const baseField = `rate_${rKey}` as keyof Product;
+
+        rate = (product[priceField] as number) || (product[baseField] as number) || product.standard_rate || 0;
 
         newItems[index].rate = rate;
-        newItems[index].amount =
-          (newItems[index].quantity || 0) * rate;
       }
+      
+      newItems[index].amount = (newItems[index].quantity || 0) * (newItems[index].rate || 0);
     }
 
     setItems(newItems);
+  };
+
+  const recalculateRates = (newCategory: string, newCustomerMode: string, customerId: number, newState: string) => {
+    let customerState = "Gujarat";
+    if (newCustomerMode === "existing") {
+      const selectedCustomer = customers.find(c => c.customer_id === customerId);
+      if (selectedCustomer?.state) {
+        customerState = selectedCustomer.state;
+      }
+    } else {
+      customerState = newState || "Gujarat";
+    }
+
+    const rKey = customerState === "Madhya Pradesh" ? "mp" : customerState.toLowerCase();
+    const catKey = newCategory.toLowerCase().replace(" ", "_");
+    const priceField = `rate_${rKey}_${catKey}` as keyof Product;
+    const baseField = `rate_${rKey}` as keyof Product;
+
+    const updatedItems = items.map(item => {
+      if (!item.product_id) return item;
+      const product = products.find(p => p.product_id === item.product_id);
+      if (!product) return item;
+      
+      const rate = (product[priceField] as number) || (product[baseField] as number) || product.standard_rate || 0;
+      return {
+        ...item,
+        rate,
+        amount: (item.quantity || 0) * rate
+      };
+    });
+    setItems(updatedItems);
   };
 
   const handleSubmit = async () => {
@@ -732,6 +758,26 @@ export default function Sales() {
                 <Divider />
               </Grid>
 
+              {/* Customer Category Selection */}
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  select
+                  label="Customer Category (Pricing Tier)"
+                  value={customerCategory}
+                  onChange={(e) => {
+                    setCustomerCategory(e.target.value);
+                    recalculateRates(e.target.value, customerMode, formData.customer_id, newCustomerData.state);
+                  }}
+                >
+                  {["Sabhasad", "Mantri", "Distributor", "Field Officer"].map((cat) => (
+                    <MenuItem key={cat} value={cat}>
+                      {cat}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+
               {/* Existing Customer Selection */}
               {customerMode === "existing" && (
                 <Grid item xs={12} sm={6}>
@@ -740,12 +786,14 @@ export default function Sales() {
                     select
                     label={`${t("customers.customerName")} *`}
                     value={formData.customer_id}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const newCustomerId = Number(e.target.value);
                       setFormData({
                         ...formData,
-                        customer_id: Number(e.target.value),
-                      })
-                    }
+                        customer_id: newCustomerId,
+                      });
+                      recalculateRates(customerCategory, "existing", newCustomerId, newCustomerData.state);
+                    }}
                   >
                     <MenuItem value={0}>
                       {t("sales.selectCustomer", "Select Sabhasad")}
@@ -850,12 +898,13 @@ export default function Sales() {
                       required
                       label="State"
                       value={newCustomerData.state || "Gujarat"}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setNewCustomerData({
                           ...newCustomerData,
                           state: e.target.value,
-                        })
-                      }
+                        });
+                        recalculateRates(customerCategory, "new", formData.customer_id, e.target.value);
+                      }}
                     >
                       <MenuItem value="Gujarat">Gujarat</MenuItem>
                       <MenuItem value="Maharashtra">Maharashtra</MenuItem>

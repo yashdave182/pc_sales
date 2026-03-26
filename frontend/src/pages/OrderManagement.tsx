@@ -29,8 +29,9 @@ import {
   StepLabel,
   Tooltip,
   Alert,
-  CircularProgress,
   Menu,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -97,6 +98,8 @@ export default function OrderManagement() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
@@ -519,7 +522,9 @@ export default function OrderManagement() {
         display="flex"
         justifyContent="space-between"
         alignItems="center"
-        mb={3}
+        mb={{ xs: 2, md: 3 }}
+        flexWrap="wrap"
+        gap={1}
       >
         <Typography variant="h4" fontWeight="bold">
           Order Management
@@ -527,8 +532,8 @@ export default function OrderManagement() {
       </Box>
 
       {/* Statistics Cards */}
-      <Grid container spacing={3} mb={3}>
-        <Grid item xs={12} sm={3}>
+      <Grid container spacing={{ xs: 1.5, md: 3 }} mb={{ xs: 2, md: 3 }}>
+        <Grid item xs={6} sm={3}>
           <Card
             sx={{
               borderLeft: 6,
@@ -548,15 +553,15 @@ export default function OrderManagement() {
                   transform: "rotate(15deg)",
                 }}
               >
-                <ShippingIcon sx={{ fontSize: 100, color: "warning.main" }} />
+                                <ShippingIcon sx={{ fontSize: { xs: 50, md: 100 }, color: "warning.main" }} />
               </Box>
-              <Typography color="textSecondary" variant="subtitle2" gutterBottom>
+              <Typography color="textSecondary" variant="subtitle2" gutterBottom sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
                 Pending
                 <Chip
                   label={`Return: ${stats.returned}`}
                   size="small"
                   color="warning"
-                  sx={{ ml: 1, height: 20, fontSize: "0.75rem", fontWeight: "bold" }}
+                  sx={{ ml: 0.5, height: 18, fontSize: "0.6rem", fontWeight: "bold" }}
                 />
               </Typography>
               <Typography variant="h4" fontWeight="bold" color="warning.main">
@@ -565,7 +570,7 @@ export default function OrderManagement() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={3}>
+        <Grid item xs={6} sm={3}>
           <Card
             sx={{
               borderLeft: 6,
@@ -585,7 +590,7 @@ export default function OrderManagement() {
                   transform: "rotate(15deg)",
                 }}
               >
-                <ShippingIcon sx={{ fontSize: 100, color: "info.main" }} />
+                <ShippingIcon sx={{ fontSize: { xs: 50, md: 100 }, color: "info.main" }} />
               </Box>
               <Typography color="textSecondary" variant="subtitle2" gutterBottom>
                 Prepared
@@ -597,7 +602,7 @@ export default function OrderManagement() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={3}>
+        <Grid item xs={6} sm={3}>
           <Card
             sx={{
               borderLeft: 6,
@@ -617,7 +622,7 @@ export default function OrderManagement() {
                   transform: "rotate(15deg)",
                 }}
               >
-                <ShippingIcon sx={{ fontSize: 100, color: "primary.main" }} />
+                <ShippingIcon sx={{ fontSize: { xs: 50, md: 100 }, color: "primary.main" }} />
               </Box>
               <Typography color="textSecondary" variant="subtitle2" gutterBottom>
                 Dispatched
@@ -628,7 +633,7 @@ export default function OrderManagement() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={3}>
+        <Grid item xs={6} sm={3}>
           <Card
             sx={{
               borderLeft: 6,
@@ -648,15 +653,15 @@ export default function OrderManagement() {
                   transform: "rotate(15deg)",
                 }}
               >
-                <CheckCircleIcon sx={{ fontSize: 100, color: "success.main" }} />
+                <CheckCircleIcon sx={{ fontSize: { xs: 50, md: 100 }, color: "success.main" }} />
               </Box>
-              <Typography color="textSecondary" variant="subtitle2" gutterBottom>
+              <Typography color="textSecondary" variant="subtitle2" gutterBottom sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
                 Delivered
                 <Chip
                   label={`Cancel: ${stats.cancelled}`}
                   size="small"
                   color="error"
-                  sx={{ ml: 1, height: 20, fontSize: "0.75rem", fontWeight: "bold" }}
+                  sx={{ ml: 0.5, height: 18, fontSize: "0.6rem", fontWeight: "bold" }}
                 />
               </Typography>
               <Typography variant="h4" fontWeight="bold" color="success.main">
@@ -688,7 +693,7 @@ export default function OrderManagement() {
       </Paper>
 
       {/* Orders Table */}
-      <TableContainer component={Paper}>
+      <TableContainer component={Paper} sx={{ overflowX: "auto" }}>
         <Table size="small">
           <TableHead>
             <TableRow sx={{ bgcolor: "grey.100" }}>
@@ -808,6 +813,7 @@ export default function OrderManagement() {
         onClose={() => setDetailsDialogOpen(false)}
         maxWidth="md"
         fullWidth
+        fullScreen={isMobile}
       >
         <DialogTitle>Order Details - {selectedOrder?.invoice_no}</DialogTitle>
         <DialogContent>
@@ -931,6 +937,7 @@ export default function OrderManagement() {
         onClose={() => setUpdateDialogOpen(false)}
         maxWidth="sm"
         fullWidth
+        fullScreen={isMobile}
       >
         <DialogTitle>Update Order Status</DialogTitle>
         <DialogContent>

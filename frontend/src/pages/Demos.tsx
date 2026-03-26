@@ -111,8 +111,8 @@ export default function Demos() {
   return (
     <PermissionGate permission={PERMISSIONS.VIEW_DEMOS} page permissionLabel="view demos">
       <Box>
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+        <Box sx={{ mb: { xs: 2, md: 4 } }}>
+          <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
             <ScienceIcon sx={{ mr: 1, verticalAlign: "middle" }} />
             {t("demos.title")}
           </Typography>
@@ -129,7 +129,7 @@ export default function Demos() {
 
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+            <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
               <PermissionGate permission={PERMISSIONS.SCHEDULE_DEMO}>
                 <Button
                   variant="contained"
@@ -157,7 +157,7 @@ export default function Demos() {
 
         <Card>
           <CardContent>
-            <Box sx={{ height: 600, width: "100%" }}>
+            <Box sx={{ height: 600, width: "100%", overflowX: "auto" }}>
               {loading ? (
                 <TableSkeleton rows={10} columns={5} />
               ) : (

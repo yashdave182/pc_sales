@@ -25,12 +25,14 @@ import DataImport from "./pages/DataImport";
 import CallingList from "./pages/CallingList";
 import OrderManagement from "./pages/OrderManagement";
 import Admin from "./pages/Admin";
+import CallDistribution from "./pages/CallDistribution";
 import Algorithm from "./pages/Algorithm";
 import UserManagement from "./pages/UserManagement";
 import ProductPricing from "./pages/ProductPricing";
 import Notifications from "./pages/Notifications";
 import RoleManagement from "./pages/RoleManagement";
 import Chat from "./pages/Chat";
+import Activity from "./pages/Activity";
 import { createAppTheme } from "./theme/theme";
 import { PERMISSIONS } from "./config/permissions";
 
@@ -172,6 +174,17 @@ function App() {
                   }
                 />
                 <Route
+                  path="/activity"
+                  element={
+                    <ProtectedRoute>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <Activity />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/orders"
                   element={
                     <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_ORDERS}>
@@ -188,6 +201,17 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_ACTIVITY_LOGS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Admin />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/call-distribution"
+                  element={
+                    <ProtectedRoute requiredPermission={PERMISSIONS.RUN_CALL_DISTRIBUTION}>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <CallDistribution />
                         <QuickActions />
                       </Layout>
                     </ProtectedRoute>

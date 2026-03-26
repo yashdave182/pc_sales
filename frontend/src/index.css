@@ -412,7 +412,203 @@ html {
     --spacing-lg: 16px;
     --spacing-xl: 24px;
   }
+
+  /* ══════════════════════════════════════════════════════════
+     AGGRESSIVE MOBILE OVERRIDES - PREVENT ALL HORIZONTAL OVERFLOW
+     ══════════════════════════════════════════════════════════ */
+
+  /* ── Force everything to respect screen width ────────── */
+  html, body, #root {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    width: 100% !important;
+  }
+
+  /* Every box inside main content should not exceed parent */
+  main, main > div, [role="main"], [role="main"] > div {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  /* ── Typography: scale down ALL headings ─────────────── */
+  h1, .MuiTypography-h1 { font-size: 1.6rem !important; line-height: 1.3 !important; }
+  h2, .MuiTypography-h2 { font-size: 1.35rem !important; line-height: 1.3 !important; }
+  h3, .MuiTypography-h3 { font-size: 1.15rem !important; line-height: 1.3 !important; }
+  h4, .MuiTypography-h4 { font-size: 1.05rem !important; line-height: 1.3 !important; }
+  h5, .MuiTypography-h5 { font-size: 0.95rem !important; }
+  h6, .MuiTypography-h6 { font-size: 0.875rem !important; }
+
+  /* ── DataGrid: SCROLLABLE WRAPPER ────────────────────── */
+  /* The DataGrid itself should scroll inside its container */
+  .MuiDataGrid-root {
+    font-size: 0.78rem !important;
+  }
+  .MuiDataGrid-columnHeaderTitle {
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .MuiDataGrid-cell {
+    padding: 4px 6px !important;
+    font-size: 0.78rem !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  /* Make the DataGrid virtual scroller scroll horizontally */
+  .MuiDataGrid-virtualScroller {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  .MuiDataGrid-main {
+    overflow: auto !important;
+  }
+
+  /* ── MUI Table: SCROLLABLE ───────────────────────────── */
+  .MuiTableContainer-root {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-width: 100% !important;
+  }
+  .MuiTableCell-root {
+    padding: 6px 8px !important;
+    font-size: 0.78rem !important;
+    white-space: nowrap !important;
+  }
+  .MuiTableCell-head {
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+  }
+
+  /* ── Cards: COMPACT ──────────────────────────────────── */
+  .MuiCard-root {
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+  .MuiCard-root > .MuiCardContent-root {
+    padding: 10px !important;
+  }
+  .MuiCard-root > .MuiCardContent-root:last-child {
+    padding-bottom: 10px !important;
+  }
+
+  /* ── Metric Cards: prevent icon box from overflowing ── */
+  .MuiCard-root .MuiBox-root[style*="width: 60px"],
+  .MuiCard-root .MuiBox-root[style*="width:60px"] {
+    width: 40px !important;
+    height: 40px !important;
+    flex-shrink: 0 !important;
+  }
+  .MuiCard-root .MuiBox-root[style*="width: 60px"] .MuiSvgIcon-root,
+  .MuiCard-root .MuiBox-root[style*="width:60px"] .MuiSvgIcon-root {
+    font-size: 20px !important;
+  }
+
+  /* ── Paper: prevent overflow ─────────────────────────── */
+  .MuiPaper-root {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+  }
+
+  /* ── Dialogs: FULL SCREEN (fallback for any we missed) ─ */
+  .MuiDialog-paper {
+    margin: 0 !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+  }
+
+  /* ── Chips: compact ──────────────────────────────────── */
+  .MuiChip-root {
+    height: 22px !important;
+    font-size: 0.65rem !important;
+  }
+  .MuiChip-label {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+  }
+
+  /* ── AppBar Toolbar: compact ─────────────────────────── */
+  .MuiAppBar-root .MuiToolbar-root {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+    min-height: 48px !important;
+  }
+  .MuiAppBar-root .MuiToolbar-root .MuiIconButton-root {
+    padding: 6px !important;
+  }
+
+  /* ── Grid items: prevent children from blowing out ───── */
+  .MuiGrid-item {
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  /* ── TextField: prevent overflow ─────────────────────── */
+  .MuiTextField-root,
+  .MuiFormControl-root {
+    max-width: 100% !important;
+  }
+  .MuiInputBase-root {
+    font-size: 0.875rem !important;
+  }
+
+  /* ── Buttons: prevent text overflow ──────────────────── */
+  .MuiButton-root {
+    font-size: 0.8rem !important;
+    padding: 6px 12px !important;
+    white-space: nowrap !important;
+  }
+
+  /* ── Tabs: scrollable ────────────────────────────────── */
+  .MuiTabs-root {
+    max-width: 100% !important;
+  }
+  .MuiTabs-scroller {
+    overflow-x: auto !important;
+  }
+
+  /* ── Stepper: compact ────────────────────────────────── */
+  .MuiStepper-root {
+    overflow-x: auto !important;
+  }
+  .MuiStepLabel-label {
+    font-size: 0.7rem !important;
+  }
+
+  /* ── Visible scroll indicator for touch ──────────────── */
+  *::-webkit-scrollbar {
+    height: 4px !important;
+    width: 4px !important;
+  }
+  *::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05) !important;
+    border-radius: 4px !important;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border-radius: 4px !important;
+  }
+
+  /* ── Stat Card text: truncate if too long ─────────────── */
+  .MuiCard-root .MuiTypography-subtitle2,
+  .MuiCard-root .MuiTypography-caption {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  /* ── Icon sizing in compact mode ─────────────────────── */
+  .MuiCard-root .MuiSvgIcon-root[style*="fontSize: 100"] {
+    font-size: 60px !important;
+  }
+  .MuiCard-root .MuiSvgIcon-root[style*="fontSize: 40"] {
+    font-size: 28px !important;
+  }
 }
+
 
 /* Print Styles */
 @media print {

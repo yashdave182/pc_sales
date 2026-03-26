@@ -17,6 +17,8 @@ import {
   InputAdornment,
   Grid,
   MenuItem,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -35,6 +37,8 @@ import type { Distributor } from "../types";
 import { useTranslation } from "../hooks/useTranslation";
 
 export default function Distributors() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { t, tf } = useTranslation();
   const [distributors, setDistributors] = useState<Distributor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +54,8 @@ export default function Distributors() {
     district: "",
     mantri_name: "",
     mantri_mobile: "",
-    sabhasad_count: 0,
+    sabhasad_morning: 0,
+    sabhasad_evening: 0,
     contact_in_group: 0,
     status: "Active",
   });
@@ -90,7 +95,8 @@ export default function Distributors() {
         district: "",
         mantri_name: "",
         mantri_mobile: "",
-        sabhasad_count: 0,
+        sabhasad_morning: 0,
+        sabhasad_evening: 0,
         contact_in_group: 0,
         status: "Active",
       });
@@ -164,11 +170,27 @@ export default function Distributors() {
       ),
     },
     {
+      field: "sabhasad_morning",
+      headerName: t("distributors.sabhasadMorning", "Sabhasad Morning"),
+      width: 120,
+      renderCell: (params) => (
+        <Chip label={params.value ?? 0} size="small" color="primary" />
+      ),
+    },
+    {
+      field: "sabhasad_evening",
+      headerName: t("distributors.sabhasadEvening", "Sabhasad Evening"),
+      width: 120,
+      renderCell: (params) => (
+        <Chip label={params.value ?? 0} size="small" color="info" />
+      ),
+    },
+    {
       field: "sabhasad_count",
-      headerName: t("distributors.sabhasadCount", "Sabhasad Count"),
+      headerName: t("distributors.sabhasadCount", "Sabhasad"),
       width: 140,
       renderCell: (params) => (
-        <Chip label={params.value || 0} size="small" color="primary" />
+        <Chip label={params.value ?? 0} size="small" color="secondary" />
       ),
     },
     {
@@ -223,8 +245,8 @@ export default function Distributors() {
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+      <Box sx={{ mb: { xs: 2, md: 4 } }}>
+        <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
           <GroupIcon sx={{ mr: 1, verticalAlign: "middle" }} />
           {t("distributors.title")}
         </Typography>
@@ -281,7 +303,7 @@ export default function Distributors() {
       {/* Data Grid */}
       <Card>
         <CardContent>
-          <Box sx={{ height: 600, width: "100%" }}>
+          <Box sx={{ height: 600, width: "100%", overflowX: "auto" }}>
             {loading ? (
               <TableSkeleton rows={10} columns={5} />
             ) : (
@@ -308,6 +330,7 @@ export default function Distributors() {
         onClose={handleCloseDialog}
         maxWidth="md"
         fullWidth
+        fullScreen={isMobile}
       >
         <DialogTitle>
           {editingDistributor
@@ -385,12 +408,26 @@ export default function Distributors() {
               <TextField
                 fullWidth
                 type="number"
-                label={t("distributors.sabhasadCount", "Sabhasad Count")}
-                value={formData.sabhasad_count}
+                label={t("distributors.sabhasadMorning", "Sabhasad Morning")}
+                value={formData.sabhasad_morning}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    sabhasad_count: Number(e.target.value),
+                    sabhasad_morning: Number(e.target.value),
+                  })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                fullWidth
+                type="number"
+                label={t("distributors.sabhasadEvening", "Sabhasad Evening")}
+                value={formData.sabhasad_evening}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    sabhasad_evening: Number(e.target.value),
                   })
                 }
               />

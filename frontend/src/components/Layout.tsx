@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
@@ -21,6 +21,10 @@ import {
   Menu,
   MenuItem,
   ListItemAvatar,
+  Snackbar,
+  Alert,
+  Slide,
+  Paper,
 } from "@mui/material";
 
 import {
@@ -38,6 +42,7 @@ import {
   Brightness4,
   Brightness7,
   Notifications,
+  Timeline as TimelineIcon,
   Settings,
   AccountCircle,
   Language as LanguageIcon,
@@ -47,6 +52,7 @@ import {
   Shield as ShieldIcon,
   ManageAccounts as ManageAccountsIcon,
   Chat as ChatIcon,
+  History as HistoryIcon,
 } from "@mui/icons-material";
 
 import { useTranslation } from "../hooks/useTranslation";
@@ -55,6 +61,8 @@ import type { Language } from "../i18n/i18n";
 import { languages } from "../i18n/i18n";
 import { useAuth, supabase } from "../contexts/AuthContext";
 import { notificationsAPI } from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
+import { notificationsAPI, activityAPI } from "../services/api";
 import { PERMISSIONS } from "../config/permissions";
 import { useChat } from "../hooks/useChat";
 
@@ -140,13 +148,6 @@ const navigationItems: NavItem[] = [
     permission: PERMISSIONS.VIEW_CALLING_LIST,
   },
   {
-    id: "algorithm",
-    labelKey: "nav.algorithm",
-    icon: <ScienceIcon />,
-    path: "/algorithm",
-    permission: PERMISSIONS.RUN_ALGORITHM,
-  },
-  {
     id: "import",
     labelKey: "nav.import",
     icon: <CloudUploadIcon />,
@@ -158,6 +159,11 @@ const navigationItems: NavItem[] = [
     labelKey: "nav.chat",
     icon: <ChatIcon />,
     path: "/chat",
+    id: "activity",
+    labelKey: "Activity",
+    icon: <TimelineIcon />,
+    path: "/activity",
+    // No permission needed - visible to all authenticated users
   },
 ];
 
@@ -299,6 +305,41 @@ export default function Layout({
     }
   }, [location.pathname]);
 
+  // Real-time Activity Toast Polling
+  const [activityToast, setActivityToast] = useState<{ msg: string; severity: "success" | "info" } | null>(null);
+  const lastActivityId = useRef<number | null>(null);
+
+  const fetchRecentActivity = async () => {
+    if (!user?.email) return;
+    try {
+      // Only fetch 1 to make it light
+      const res = await activityAPI.getMyLogs(new Date().toISOString().split("T")[0]);
+      if (res.logs && res.logs.length > 0) {
+        const latest = res.logs[0];
+        // Only show toast if we already initialized (lastActivityId.current !== null)
+        // and it's a new ID
+        if (lastActivityId.current !== null && latest.id !== lastActivityId.current) {
+          const isDeleted = latest.action_type === "DELETE";
+          setActivityToast({
+            msg: latest.action_description || `${latest.action_type} ${latest.entity_type}`,
+            severity: isDeleted ? "info" : "success"
+          });
+        }
+        lastActivityId.current = latest.id;
+      }
+    } catch (error) {
+      // silently fail
+    }
+  };
+
+  useEffect(() => {
+    fetchRecentActivity();
+    const interval = setInterval(fetchRecentActivity, 5000); // Check every 5 seconds (faster)
+    return () => clearInterval(interval);
+  }, [user?.email]);
+
+  const handleCloseToast = () => setActivityToast(null);
+
   const handleNotificationsClick = () => {
     navigate("/notifications");
   };
@@ -400,9 +441,41 @@ export default function Layout({
         })}
 
         {/* Admin Navigation - Only for users with admin permissions */}
-        {(hasPermission(PERMISSIONS.VIEW_ACTIVITY_LOGS) || hasPermission(PERMISSIONS.VIEW_USERS) || hasPermission(PERMISSIONS.MANAGE_PRICING) || hasPermission(PERMISSIONS.MANAGE_ROLES)) && (
+        {(hasPermission(PERMISSIONS.VIEW_ACTIVITY_LOGS) || hasPermission(PERMISSIONS.RUN_CALL_DISTRIBUTION) || hasPermission(PERMISSIONS.VIEW_USERS) || hasPermission(PERMISSIONS.MANAGE_PRICING) || hasPermission(PERMISSIONS.MANAGE_ROLES)) && (
           <>
             <Divider sx={{ my: 1 }} />
+            {hasPermission(PERMISSIONS.RUN_CALL_DISTRIBUTION) && (
+              <ListItem disablePadding sx={{ mb: 0.5 }}>
+                <ListItemButton
+                  onClick={() => handleNavigation("/call-distribution")}
+                  sx={{
+                    borderRadius: 2,
+                    mx: 1,
+                    backgroundColor: isActive("/call-distribution")
+                      ? theme.palette.mode === "dark"
+                        ? "rgba(244, 67, 54, 0.16)"
+                        : "rgba(211, 47, 47, 0.08)"
+                      : "transparent",
+                    color: isActive("/call-distribution") ? "error.main" : "inherit",
+                    "&:hover": {
+                      backgroundColor:
+                        theme.palette.mode === "dark"
+                          ? "rgba(244, 67, 54, 0.08)"
+                          : "rgba(211, 47, 47, 0.04)",
+                    },
+                    transition: "all 0.2s",
+                  }}
+                >
+                  <ListItemIcon sx={{ color: isActive("/call-distribution") ? "error.main" : "inherit", minWidth: 40 }}>
+                    <AdminIcon />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={t("nav.callDistribution", "Call Distribution")}
+                    primaryTypographyProps={{ fontWeight: isActive("/call-distribution") ? 600 : 500, fontSize: "0.95rem" }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            )}
             {hasPermission(PERMISSIONS.VIEW_ACTIVITY_LOGS) && (
               <ListItem disablePadding sx={{ mb: 0.5 }}>
                 <ListItemButton
@@ -426,7 +499,7 @@ export default function Layout({
                   }}
                 >
                   <ListItemIcon sx={{ color: isActive("/admin") ? "error.main" : "inherit", minWidth: 40 }}>
-                    <AdminIcon />
+                    <HistoryIcon />
                   </ListItemIcon>
                   <ListItemText
                     primary={t("nav.activityLogs", "Activity Logs")}
@@ -578,7 +651,7 @@ export default function Layout({
             variant="h6"
             noWrap
             component="div"
-            sx={{ flexGrow: 1, fontWeight: 600 }}
+            sx={{ flexGrow: 1, fontWeight: 600, fontSize: { xs: '0.95rem', sm: '1.25rem' } }}
           >
             {location.pathname === "/admin"
               ? t("nav.admin", "Admin")
@@ -594,10 +667,10 @@ export default function Layout({
           </Typography>
 
           {/* Actions */}
-          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-            {/* Language Switcher */}
+          <Box sx={{ display: "flex", gap: { xs: 0, sm: 1 }, alignItems: "center" }}>
+            {/* Language Switcher - hide on smallest screens */}
             <Tooltip title={t("layout.changeLanguage")}>
-              <IconButton onClick={handleLanguageMenuOpen} color="inherit">
+              <IconButton onClick={handleLanguageMenuOpen} color="inherit" sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>
                 <LanguageIcon />
               </IconButton>
             </Tooltip>
@@ -633,7 +706,7 @@ export default function Layout({
             </Tooltip>
 
             <Tooltip title={t("layout.settings")}>
-              <IconButton color="inherit">
+              <IconButton color="inherit" sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>
                 <Settings />
               </IconButton>
             </Tooltip>
@@ -738,8 +811,58 @@ export default function Layout({
         }}
       >
         <Toolbar /> {/* Spacer for AppBar */}
-        <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>{children}</Box>
+        <Box sx={{ p: { xs: 1.5, sm: 2.5, md: 4 }, maxWidth: '100%', overflowX: 'hidden' }}>{children}</Box>
       </Box>
+
+      {/* Floating Activity Toast */}
+      <Snackbar
+        open={!!activityToast}
+        autoHideDuration={4000}
+        onClose={handleCloseToast}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        TransitionComponent={Slide}
+      >
+        <Paper
+          elevation={6}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            p: 2,
+            minWidth: 280,
+            borderRadius: 3,
+            borderLeft: `6px solid ${
+              activityToast?.severity === "success" 
+                ? theme.palette.success.main 
+                : theme.palette.info.main
+            }`,
+            bgcolor: theme.palette.background.paper,
+            color: theme.palette.text.primary,
+          }}
+        >
+          <Avatar 
+            sx={{ 
+              bgcolor: activityToast?.severity === "success" 
+                ? `${theme.palette.success.main}1A` 
+                : `${theme.palette.info.main}1A`,
+              color: activityToast?.severity === "success" 
+                ? theme.palette.success.main 
+                : theme.palette.info.main,
+              width: 40, height: 40
+            }}
+          >
+            <TimelineIcon />
+          </Avatar>
+          <Box>
+            <Typography variant="subtitle2" fontWeight={600}>
+              Live Activity
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {activityToast?.msg}
+            </Typography>
+          </Box>
+        </Paper>
+      </Snackbar>
     </Box>
   );
 }

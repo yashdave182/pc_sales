@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException, Header, Body
 from pydantic import BaseModel
 from supabase_db import SupabaseClient, get_db
 from rbac_utils import verify_permission
+from activity_logger import get_activity_logger
 
 router = APIRouter()
 logger = logging.getLogger("automation")
@@ -24,6 +25,7 @@ class CallStatusUpdate(BaseModel):
     assignment_id: int
     call_outcome: str  # 'connected', 'not_reachable', 'callback', 'wrong_number'
     notes: Optional[str] = None
+    callback_date: Optional[str] = None
 
 class ReassignRequest(BaseModel):
     assignment_id: int
@@ -146,16 +148,29 @@ def distribute_calls(db: SupabaseClient, admin_email: str = "system") -> dict:
     # Sort by pending count ascending (least busy first)
     sorted_emails = sorted(emails, key=lambda e: pending_counts.get(e, 0))
 
-    # Round-robin with load-aware ordering
+    # 3b. Fetch historical affinity from call logs
+    affinity_map = {}
+    try:
+        history_res = db.table("call_logs").select("customer_id, user_email").execute()
+        for row in (history_res.data or []):
+            affinity_map[row["customer_id"]] = row["user_email"]
+    except Exception as e:
+        logger.warning(f"Could not load affinity map: {e}")
+
+    # Round-robin with load-aware ordering and affinity check
     assignments = []
     notifications_map = {}
     for i, cust in enumerate(customers):
-        assigned_email = sorted_emails[i % len(sorted_emails)]
+        assigned_email = affinity_map.get(cust["customer_id"])
+        # Fallback to round-robin if no active affinity
+        if not assigned_email or assigned_email not in emails:
+            assigned_email = sorted_emails[i % len(sorted_emails)]
+
         assignments.append({
             "user_email": assigned_email,
             "customer_id": cust["customer_id"],
             "priority": "Medium",
-            "reason": "Auto-assigned",
+            "reason": "Auto-assigned" if assigned_email not in affinity_map else "Historical Affinity",
             "assigned_date": today_str,
             "status": "Pending",
             "notes": "",
@@ -217,7 +232,10 @@ def get_my_assignments(
             .order("assignment_id")
 
         if status:
-            query = query.eq("status", status)
+            if status == "completed":
+                query = query.neq("status", "Pending")
+            else:
+                query = query.eq("status", status)
 
         query = query.limit(limit).offset(offset)
         res = query.execute()
@@ -229,7 +247,10 @@ def get_my_assignments(
             .eq("user_email", user_email) \
             .eq("assigned_date", today_str)
         if status:
-            count_query = count_query.eq("status", status)
+            if status == "completed":
+                count_query = count_query.neq("status", "Pending")
+            else:
+                count_query = count_query.eq("status", status)
         count_res = count_query.execute()
         total = len(count_res.data or [])
 
@@ -338,6 +359,40 @@ def update_call_status(
             "call_outcome": body.call_outcome,
             "notes": body.notes or "",
         }).execute()
+
+        # 5. If callback is selected with a date, schedule new assignment
+        if body.call_outcome == "callback" and body.callback_date:
+            db.table("calling_assignments").insert({
+                "user_email": user_email,  # Affinity: stay with same telecaller
+                "customer_id": assignment["customer_id"],
+                "priority": assignment.get("priority", "Medium"),
+                "reason": "Scheduled Callback",
+                "assigned_date": body.callback_date,
+                "status": "Pending",
+                "notes": body.notes or "",
+            }).execute()
+
+        # 6. Log the activity for the floating toast
+        try:
+            logger_service = get_activity_logger(db)
+            customer_name_str = "Customer"
+            try:
+                c_res = db.table("customers").select("name").eq("customer_id", assignment["customer_id"]).execute()
+                if c_res.data:
+                    customer_name_str = c_res.data[0].get("name", "Customer")
+            except:
+                pass
+            
+            logger_service.log_activity(
+                user_email=user_email,
+                action_type="CALL",
+                action_description=f"Logged call ({new_status}) for {customer_name_str}",
+                entity_type="customer",
+                entity_id=assignment["customer_id"],
+                entity_name=customer_name_str,
+            )
+        except Exception as e:
+            logger.error(f"Failed to log activity: {e}")
 
         return {"message": "Call status updated", "status": new_status}
 

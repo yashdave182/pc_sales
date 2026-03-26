@@ -15,6 +15,8 @@ const resolveApiBaseUrl = (): string => {
 
   // 3) Default fallback (Production URL)
   const fallback = "http://127.0.0.1:8000";
+  // 3) Default fallback (FORCING LOCALHOST FOR TESTING)
+  const fallback = "http://localhost:8000";
 
   const chosen = (windowOverride || envBase || fallback) as string;
 
@@ -145,6 +147,10 @@ export const customerAPI = {
   },
   getById: async (id: number) => {
     const response = await apiClient.get(`/api/customers/${id}`);
+    return response.data;
+  },
+  getSummary: async (id: number) => {
+    const response = await apiClient.get(`/api/customers/${id}/summary`);
     return response.data;
   },
   create: async (data: any) => {
@@ -349,12 +355,16 @@ export const automationAPI = {
     const response = await apiClient.get("/api/automation/my-assignments", { params });
     return response.data;
   },
-  updateCallStatus: async (assignmentId: number, callOutcome: string, notes?: string) => {
-    const response = await apiClient.post("/api/automation/update-call-status", {
+  updateCallStatus: async (assignmentId: number, outcome: string, notes?: string, callbackDate?: string) => {
+    const payload: any = {
       assignment_id: assignmentId,
-      call_outcome: callOutcome,
-      notes: notes || "",
-    });
+      call_outcome: outcome,
+      notes,
+    };
+    if (callbackDate) {
+      payload.callback_date = callbackDate;
+    }
+    const response = await apiClient.post("/api/automation/update-call-status", payload);
     return response.data;
   },
   getTelecallers: async () => {
@@ -399,15 +409,16 @@ export const fileAPI = {
   uploadFile: async (formData: FormData) => {
     const response = await apiClient.post("/api/imports/excel", formData, {
       headers: {
-        "Content-Type": "multipart/form-data",
+        "Content-Type": undefined, // Force browser/axios to set it
       },
     });
     return response.data;
   },
   upload: async (formData: FormData) => {
+    // Explicitly set Content-Type: undefined to let axios/browser handle it
     const response = await apiClient.post("/api/imports/excel", formData, {
       headers: {
-        "Content-Type": "multipart/form-data",
+        "Content-Type": undefined,
       },
     });
     return response.data;
@@ -584,6 +595,15 @@ export const rbacAPI = {
   /** Delete a non-system role */
   deleteRole: (roleId: number) =>
     apiClient.delete(`/api/rbac/roles/${roleId}`).then((r) => r.data),
+};
+
+// Activity API
+export const activityAPI = {
+  getMyLogs: async (date?: string) => {
+    const params = date ? { date } : {};
+    const response = await apiClient.get("/api/admin/my-logs", { params });
+    return response.data;
+  },
 };
 
 // Export the axios instance for direct use if needed

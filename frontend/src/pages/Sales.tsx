@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
   Button,
@@ -22,6 +22,8 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   InputAdornment,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -45,8 +47,11 @@ import PermissionGate from "../components/PermissionGate";
 import { PERMISSIONS } from "../config/permissions";
 
 export default function Sales() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { t, tf } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const [sales, setSales] = useState<Sale[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -94,6 +99,21 @@ export default function Sales() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Check router state from CallingList "Take Order" navigation
+  const takeOrderHandled = useRef(false);
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.openNewSale && customers.length > 0 && !openDialog && !takeOrderHandled.current) {
+      takeOrderHandled.current = true;
+      handleOpenDialog();
+      if (state.customerId) {
+        setFormData(prev => ({ ...prev, customer_id: state.customerId }));
+      }
+      // clear the state so it doesn't reopen on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, customers, openDialog, navigate]);
 
   const loadData = async (background = false) => {
     try {
@@ -577,7 +597,7 @@ export default function Sales() {
     <PermissionGate permission={PERMISSIONS.VIEW_SALES} page permissionLabel="view sales">
       <Box>
         {/* Header */}
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: { xs: 2, md: 4 } }}>
           <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
             <ShoppingCartIcon sx={{ mr: 1, verticalAlign: "middle" }} />
             {t("sales.title")}
@@ -596,7 +616,7 @@ export default function Sales() {
         {/* Actions */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+            <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
               <PermissionGate permission={PERMISSIONS.CREATE_SALE}>
                 <Button
                   variant="contained"
@@ -643,7 +663,7 @@ export default function Sales() {
         {/* Sales Table */}
         <Card>
           <CardContent>
-            <Box sx={{ height: 600, width: "100%" }}>
+            <Box sx={{ height: 600, width: "100%", overflowX: "auto" }}>
               {loading ? (
                 <TableSkeleton rows={10} columns={6} />
               ) : (
@@ -670,6 +690,7 @@ export default function Sales() {
           onClose={handleCloseDialog}
           maxWidth="md"
           fullWidth
+          fullScreen={isMobile}
         >
           <DialogTitle>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -1112,6 +1133,7 @@ export default function Sales() {
           onClose={() => setOpenInvoiceDialog(false)}
           maxWidth="sm"
           fullWidth
+          fullScreen={isMobile}
         >
           <DialogTitle>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>

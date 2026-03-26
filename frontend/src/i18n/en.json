@@ -12,6 +12,7 @@
     "algorithm": "Algorithm",
     "import": "Data Import",
     "chat": "Chat"
+    "activity": "Activity"
   },
   "common": {
     "add": "Add",

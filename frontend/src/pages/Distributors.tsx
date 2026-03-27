@@ -112,7 +112,15 @@ export default function Distributors() {
         return;
       }
 
-      await distributorAPI.create(formData as Distributor);
+      if (editingDistributor) {
+        await distributorAPI.update(
+          editingDistributor.distributor_id!,
+          formData as Distributor,
+        );
+      } else {
+        await distributorAPI.create(formData as Distributor);
+      }
+
       handleCloseDialog();
       loadDistributors();
       setError(null);
@@ -124,6 +132,43 @@ export default function Distributors() {
       );
       console.error("Error saving distributor:", err);
     }
+  };
+
+  const getRowColor = (row: Distributor) => {
+    // RED (Critical Issue): Missing core contact or identity data
+    const redFields = ["name", "village", "mantri_name", "mantri_mobile"];
+    const isRed = redFields.some(
+      (field) =>
+        row[field as keyof Distributor] === null ||
+        row[field as keyof Distributor] === undefined ||
+        row[field as keyof Distributor] === "",
+    );
+    if (isRed) return "red";
+
+    // GREEN (Strictly Complete): ALL specified data points must be present
+    const greenFields = [
+      "name",
+      "village",
+      "taluka",
+      "mantri_name",
+      "sabhasad_morning",
+      "sabhasad_evening",
+    ];
+    const isGreen = greenFields.every(
+      (field) =>
+        row[field as keyof Distributor] !== null &&
+        row[field as keyof Distributor] !== undefined &&
+        row[field as keyof Distributor] !== "",
+    );
+    if (isGreen) return "green";
+
+    // ORANGE (Partial): Critical fields exist, but others are missing
+    return "orange";
+  };
+
+  const displayValue = (val: any) => {
+    if (val === null || val === undefined || val === "") return "N/A";
+    return val;
   };
 
   const columns: GridColDef[] = [
@@ -145,7 +190,7 @@ export default function Distributors() {
       renderCell: (params) => (
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
           <LocationOnIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-          <Typography variant="body2">{params.value || "N/A"}</Typography>
+          <Typography variant="body2">{displayValue(params.value)}</Typography>
         </Box>
       ),
     },
@@ -153,6 +198,9 @@ export default function Distributors() {
       field: "mantri_name",
       headerName: t("distributors.mantriName", "Mantri Name"),
       width: 180,
+      renderCell: (params) => (
+        <Typography variant="body2">{displayValue(params.value)}</Typography>
+      ),
     },
     {
       field: "mantri_mobile",
@@ -161,7 +209,7 @@ export default function Distributors() {
       renderCell: (params) => (
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
           <PhoneIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-          <Typography variant="body2">{params.value || "N/A"}</Typography>
+          <Typography variant="body2">{displayValue(params.value)}</Typography>
         </Box>
       ),
     },
@@ -170,7 +218,7 @@ export default function Distributors() {
       headerName: t("distributors.sabhasadMorning", "Sabhasad Morning"),
       width: 120,
       renderCell: (params) => (
-        <Chip label={params.value ?? 0} size="small" color="primary" />
+        <Chip label={displayValue(params.value)} size="small" color="primary" />
       ),
     },
     {
@@ -178,7 +226,7 @@ export default function Distributors() {
       headerName: t("distributors.sabhasadEvening", "Sabhasad Evening"),
       width: 120,
       renderCell: (params) => (
-        <Chip label={params.value ?? 0} size="small" color="info" />
+        <Chip label={displayValue(params.value)} size="small" color="info" />
       ),
     },
     {
@@ -186,7 +234,7 @@ export default function Distributors() {
       headerName: t("distributors.sabhasadCount", "Sabhasad"),
       width: 140,
       renderCell: (params) => (
-        <Chip label={params.value ?? 0} size="small" color="secondary" />
+        <Chip label={displayValue(params.value)} size="small" color="secondary" />
       ),
     },
     {
@@ -194,7 +242,7 @@ export default function Distributors() {
       headerName: t("distributors.contactInGroup", "In Group"),
       width: 120,
       renderCell: (params) => (
-        <Chip label={params.value || 0} size="small" color="secondary" />
+        <Chip label={displayValue(params.value)} size="small" color="secondary" />
       ),
     },
     {
@@ -313,6 +361,28 @@ export default function Distributors() {
                     paginationModel: { pageSize: 25 },
                   },
                 }}
+                getRowClassName={(params) => `row-${getRowColor(params.row)}`}
+                sx={{
+                  "& .MuiDataGrid-row": {
+                    transition: "all 0.2s ease-in-out",
+                    borderLeft: "4px solid transparent",
+                  },
+                  "& .row-green": {
+                    bgcolor: "#e6f4ea !important",
+                    borderLeftColor: "#22c55e !important",
+                    "&:hover": { bgcolor: "#dcfce7 !important" },
+                  },
+                  "& .row-orange": {
+                    bgcolor: "#fff7ed !important",
+                    borderLeftColor: "#f97316 !important",
+                    "&:hover": { bgcolor: "#ffedd5 !important" },
+                  },
+                  "& .row-red": {
+                    bgcolor: "#fef2f2 !important",
+                    borderLeftColor: "#ef4444 !important",
+                    "&:hover": { bgcolor: "#fee2e2 !important" },
+                  },
+                }}
                 disableRowSelectionOnClick
               />
             )}
@@ -408,7 +478,7 @@ export default function Distributors() {
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    sabhasad_morning: Number(e.target.value),
+                    sabhasad_morning: Number(e.target.value) || 0,
                   })
                 }
               />
@@ -422,7 +492,7 @@ export default function Distributors() {
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    sabhasad_evening: Number(e.target.value),
+                    sabhasad_evening: Number(e.target.value) || 0,
                   })
                 }
               />
@@ -436,7 +506,7 @@ export default function Distributors() {
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    contact_in_group: Number(e.target.value),
+                    contact_in_group: Number(e.target.value) || 0,
                   })
                 }
               />

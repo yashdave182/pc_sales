@@ -77,11 +77,14 @@ def import_excel(
             }
 
         elif excel_type == "CUSTOMERS":
-            inserted = import_customers_excel(file_path, conn)
+            print("🔥 CUSTOMER IMPORT TRIGGERED")
+            print("🔥 USING DISTRIBUTOR LOGIC")
+            print("⚠️ Customer import redirected to distributor logic")
+            inserted = import_distributors_excel(file_path, conn)
             return {
-                "type": "Customers",
-                "customers_inserted": inserted,
-                "message": f"Successfully imported {inserted} customers",
+                "type": "Distributors",
+                "distributors_inserted": inserted,
+                "message": f"Successfully imported {inserted} distributors",
             }
 
         elif excel_type == "SALES":

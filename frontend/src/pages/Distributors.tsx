@@ -166,6 +166,26 @@ export default function Distributors() {
     return "orange";
   };
 
+  const StatusDot = ({ color }: { color: string }) => (
+    <Box
+      component="span"
+      sx={{
+        width: 6,
+        height: 6,
+        borderRadius: "50%",
+        bgcolor:
+          color === "green"
+            ? "#16a34a"
+            : color === "orange"
+              ? "#ea580c"
+              : "#dc2626",
+        display: "inline-block",
+        mr: 1,
+        boxShadow: "0 0 0 2px rgba(255,255,255,0.5)",
+      }}
+    />
+  );
+
   const displayValue = (val: any) => {
     if (val === null || val === undefined || val === "") return "N/A";
     return val;
@@ -178,9 +198,19 @@ export default function Distributors() {
       flex: 1,
       minWidth: 200,
       renderCell: (params) => (
-        <Typography variant="body2" fontWeight={600}>
-          {params.value}
-        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", height: "100%", gap: 1 }}>
+          <StatusDot color={getRowColor(params.row)} />
+          <Typography
+            sx={{
+              fontSize: "14px",
+              fontWeight: 600,
+              color: "#111827",
+              letterSpacing: "0.2px",
+            }}
+          >
+            {params.value}
+          </Typography>
+        </Box>
       ),
     },
     {
@@ -188,9 +218,11 @@ export default function Distributors() {
       headerName: tf("village"),
       width: 150,
       renderCell: (params) => (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          <LocationOnIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-          <Typography variant="body2">{displayValue(params.value)}</Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, height: "100%" }}>
+          <LocationOnIcon sx={{ fontSize: 14, color: "#4b5563" }} />
+          <Typography sx={{ fontSize: "13px", fontWeight: 600, color: "#111827" }}>
+            {displayValue(params.value)}
+          </Typography>
         </Box>
       ),
     },
@@ -199,7 +231,9 @@ export default function Distributors() {
       headerName: t("distributors.mantriName", "Mantri Name"),
       width: 180,
       renderCell: (params) => (
-        <Typography variant="body2">{displayValue(params.value)}</Typography>
+        <Typography sx={{ fontSize: "13px", fontWeight: 600, color: "#111827" }}>
+          {displayValue(params.value)}
+        </Typography>
       ),
     },
     {
@@ -207,9 +241,11 @@ export default function Distributors() {
       headerName: t("distributors.mobile", "Mantri Mobile"),
       width: 150,
       renderCell: (params) => (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          <PhoneIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-          <Typography variant="body2">{displayValue(params.value)}</Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, height: "100%" }}>
+          <PhoneIcon sx={{ fontSize: 14, color: "#4b5563" }} />
+          <Typography sx={{ fontSize: "13px", fontWeight: 600, color: "#111827" }}>
+            {displayValue(params.value)}
+          </Typography>
         </Box>
       ),
     },
@@ -218,7 +254,18 @@ export default function Distributors() {
       headerName: t("distributors.sabhasadMorning", "Sabhasad Morning"),
       width: 120,
       renderCell: (params) => (
-        <Chip label={displayValue(params.value)} size="small" color="primary" />
+        <Chip
+          label={displayValue(params.value)}
+          size="small"
+          color="primary"
+          sx={{
+            boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+            px: 1.2,
+            fontWeight: 500,
+            fontSize: "12px",
+            borderRadius: "999px",
+          }}
+        />
       ),
     },
     {
@@ -226,7 +273,18 @@ export default function Distributors() {
       headerName: t("distributors.sabhasadEvening", "Sabhasad Evening"),
       width: 120,
       renderCell: (params) => (
-        <Chip label={displayValue(params.value)} size="small" color="info" />
+        <Chip
+          label={displayValue(params.value)}
+          size="small"
+          color="info"
+          sx={{
+            boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+            px: 1.2,
+            fontWeight: 500,
+            fontSize: "12px",
+            borderRadius: "999px",
+          }}
+        />
       ),
     },
     {
@@ -234,7 +292,18 @@ export default function Distributors() {
       headerName: t("distributors.sabhasadCount", "Sabhasad"),
       width: 140,
       renderCell: (params) => (
-        <Chip label={displayValue(params.value)} size="small" color="secondary" />
+        <Chip
+          label={displayValue(params.value)}
+          size="small"
+          color="secondary"
+          sx={{
+            boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+            px: 1.2,
+            fontWeight: 500,
+            fontSize: "12px",
+            borderRadius: "999px",
+          }}
+        />
       ),
     },
     {
@@ -242,7 +311,18 @@ export default function Distributors() {
       headerName: t("distributors.contactInGroup", "In Group"),
       width: 120,
       renderCell: (params) => (
-        <Chip label={displayValue(params.value)} size="small" color="secondary" />
+        <Chip
+          label={displayValue(params.value)}
+          size="small"
+          color="secondary"
+          sx={{
+            boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+            px: 1.2,
+            fontWeight: 500,
+            fontSize: "12px",
+            borderRadius: "999px",
+          }}
+        />
       ),
     },
     {
@@ -258,6 +338,13 @@ export default function Distributors() {
           }
           size="small"
           color={params.value === "Active" ? "success" : "default"}
+          sx={{
+            boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+            fontWeight: 500,
+            fontSize: "12px",
+            borderRadius: "999px",
+            px: 0.5,
+          }}
         />
       ),
     },
@@ -362,25 +449,54 @@ export default function Distributors() {
                   },
                 }}
                 getRowClassName={(params) => `row-${getRowColor(params.row)}`}
+                getRowSpacing={() => ({
+                  top: 4,
+                  bottom: 4,
+                })}
                 sx={{
+                  border: "none",
                   "& .MuiDataGrid-row": {
-                    transition: "all 0.2s ease-in-out",
-                    borderLeft: "4px solid transparent",
+                    borderRadius: "6px",
+                    marginBottom: "6px",
+                    transition: "all 0.2s ease",
+                    bgcolor: "#fff",
+                    "&:hover": {
+                      cursor: "pointer",
+                    },
                   },
                   "& .row-green": {
-                    bgcolor: "#e6f4ea !important",
-                    borderLeftColor: "#22c55e !important",
-                    "&:hover": { bgcolor: "#dcfce7 !important" },
+                    backgroundColor: "#d1fae5 !important",
+                    borderLeft: "5px solid #16a34a !important",
+                    "&:hover": {
+                      backgroundColor: "#bbf7d0 !important",
+                    },
                   },
                   "& .row-orange": {
-                    bgcolor: "#fff7ed !important",
-                    borderLeftColor: "#f97316 !important",
-                    "&:hover": { bgcolor: "#ffedd5 !important" },
+                    backgroundColor: "#ffedd5 !important",
+                    borderLeft: "5px solid #ea580c !important",
+                    "&:hover": {
+                      backgroundColor: "#fed7aa !important",
+                    },
                   },
                   "& .row-red": {
-                    bgcolor: "#fef2f2 !important",
-                    borderLeftColor: "#ef4444 !important",
-                    "&:hover": { bgcolor: "#fee2e2 !important" },
+                    backgroundColor: "#fee2e2 !important",
+                    borderLeft: "5px solid #dc2626 !important",
+                    "&:hover": {
+                      backgroundColor: "#fecaca !important",
+                    },
+                  },
+                  "& .MuiDataGrid-cell": {
+                    borderBottom: "none",
+                    fontSize: "13px",
+                    px: 2,
+                  },
+                  "& .MuiDataGrid-columnHeaders": {
+                    bgcolor: "rgba(0,0,0,0.01)",
+                    borderRadius: 0,
+                    borderBottom: "1px solid rgba(0,0,0,0.08)",
+                    color: "#111827",
+                    fontWeight: 700,
+                    fontSize: "13px",
                   },
                 }}
                 disableRowSelectionOnClick

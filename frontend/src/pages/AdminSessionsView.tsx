@@ -136,8 +136,10 @@ const SessionCalendarModal = ({ open, onClose, userEmail }: { open: boolean, onC
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          width: { xs: "95%", md: 900 },
-          maxHeight: '90vh',
+          width: { xs: "98%", sm: "95%", md: "90%", lg: 1100 },
+          maxWidth: 1200,
+          height: 'auto',
+          maxHeight: '95vh',
           display: 'flex',
           flexDirection: 'column',
           bgcolor: "background.paper",
@@ -148,7 +150,7 @@ const SessionCalendarModal = ({ open, onClose, userEmail }: { open: boolean, onC
           overflow: "hidden",
         }}>
           {/* Header */}
-          <Box sx={{ p: 3, display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: 1, borderColor: "divider" }}>
+          <Box sx={{ p: 2, display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: 1, borderColor: "divider" }}>
             <Box>
               <Typography variant="h6">{t("admin.calendarTitle", "Session Calendar")}</Typography>
               <Typography variant="body2" color="text.secondary">{userEmail}</Typography>
@@ -157,7 +159,7 @@ const SessionCalendarModal = ({ open, onClose, userEmail }: { open: boolean, onC
           </Box>
 
           {/* Body */}
-          <Box sx={{ p: 3, overflowY: "auto", flexGrow: 1 }}>
+          <Box sx={{ p: 2, flexGrow: 1 }}>
             {loading ? (
               <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}><CircularProgress /></Box>
             ) : error ? (
@@ -165,9 +167,9 @@ const SessionCalendarModal = ({ open, onClose, userEmail }: { open: boolean, onC
             ) : (
               <Box>
                 {/* Month Navigation */}
-                <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", mb: 3 }}>
+                <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", mb: 2 }}>
                   <Button onClick={handlePrevMonth} variant="outlined" size="small" sx={{ minWidth: 40 }}>&lt;</Button>
-                  <Typography variant="h5" sx={{ fontWeight: 'bold', width: 200, textAlign: 'center' }}>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', width: 220, textAlign: 'center' }}>
                     {monthName} {year}
                   </Typography>
                   <Button onClick={handleNextMonth} variant="outlined" size="small" sx={{ minWidth: 40 }}>&gt;</Button>
@@ -178,17 +180,17 @@ const SessionCalendarModal = ({ open, onClose, userEmail }: { open: boolean, onC
                   display: "grid",
                   gridTemplateColumns: "repeat(7, 1fr)",
                   gap: 0.5,
-                  mb: 2
+                  mb: 1
                 }}>
                   {/* Days of Week Header */}
                   {weekDays.map(day => (
                     <Box key={day} sx={{
                       textAlign: "center",
-                      py: 1.5,
+                      py: 1,
                       fontWeight: 600,
                       bgcolor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
                       borderRadius: 1,
-                      fontSize: '0.875rem'
+                      fontSize: '0.85rem'
                     }}>
                       {day}
                     </Box>
@@ -201,7 +203,7 @@ const SessionCalendarModal = ({ open, onClose, userEmail }: { open: boolean, onC
                         <Box
                           key={`empty-${idx}`}
                           sx={{
-                            minHeight: 110,
+                            height: 80,
                             borderRadius: 1,
                             bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.100',
                           }}
@@ -220,36 +222,36 @@ const SessionCalendarModal = ({ open, onClose, userEmail }: { open: boolean, onC
 
                     return (
                       <Box key={dateStr} sx={{
-                        minHeight: 110,
-                        p: 1.5,
+                        height: 80,
+                        p: 1,
                         borderRadius: 1,
                         bgcolor: color,
                         display: 'flex',
                         flexDirection: 'column',
                         position: 'relative',
                         transition: 'all 0.2s ease',
-                        border: isToday ? '3px solid' : 'none',
+                        border: isToday ? '2px solid' : 'none',
                         borderColor: isToday ? 'primary.light' : 'transparent',
                         '&:hover': {
-                          transform: 'scale(1.03)',
+                          transform: 'scale(1.02)',
                           zIndex: 1,
-                          boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+                          boxShadow: '0 4px 15px rgba(0,0,0,0.25)'
                         }
                       }}>
                         {/* Date Number and Day Abbreviation */}
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <Typography sx={{
                             fontWeight: 700,
-                            fontSize: '1.25rem',
+                            fontSize: '1rem',
                             color: 'white',
-                            textShadow: '0px 1px 3px rgba(0,0,0,0.5)',
+                            textShadow: '0px 1px 2px rgba(0,0,0,0.5)',
                             lineHeight: 1
                           }}>
                             {dateObj.getDate()}
                           </Typography>
                           <Typography sx={{
                             fontWeight: 500,
-                            fontSize: '0.75rem',
+                            fontSize: '0.65rem',
                             color: 'rgba(255,255,255,0.85)',
                             textShadow: '0px 1px 2px rgba(0,0,0,0.5)',
                           }}>
@@ -267,9 +269,9 @@ const SessionCalendarModal = ({ open, onClose, userEmail }: { open: boolean, onC
                           <Typography sx={{
                             color: 'white',
                             fontWeight: 700,
-                            fontSize: '1.1rem',
-                            textShadow: '0px 2px 4px rgba(0,0,0,0.6)',
-                            letterSpacing: '0.5px'
+                            fontSize: '0.95rem',
+                            textShadow: '0px 1px 3px rgba(0,0,0,0.6)',
+                            letterSpacing: '0.3px'
                           }}>
                             {formatSecondsToTime(seconds, true)}
                           </Typography>
@@ -283,38 +285,39 @@ const SessionCalendarModal = ({ open, onClose, userEmail }: { open: boolean, onC
                 <Box sx={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 1.5,
+                  gap: 1,
                   justifyContent: "center",
                   flexWrap: "wrap",
-                  mt: 4,
-                  p: 2,
+                  mt: 1.5,
+                  py: 1,
+                  px: 2,
                   bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
-                  borderRadius: 2
+                  borderRadius: 1
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box sx={{ width: 20, height: 20, bgcolor: getLevelColor(0), borderRadius: 0.5 }} />
-                    <Typography variant="caption" color="text.secondary">0 hrs</Typography>
+                    <Box sx={{ width: 16, height: 16, bgcolor: getLevelColor(0), borderRadius: 0.5 }} />
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>0 hrs</Typography>
                   </Box>
-                  <Box sx={{ width: 1, height: 20, bgcolor: 'divider' }} />
+                  <Box sx={{ width: 1, height: 16, bgcolor: 'divider' }} />
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box sx={{ width: 20, height: 20, bgcolor: getLevelColor(1), borderRadius: 0.5 }} />
-                    <Typography variant="caption" color="text.secondary">&lt;2 hrs</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box sx={{ width: 20, height: 20, bgcolor: getLevelColor(3), borderRadius: 0.5 }} />
-                    <Typography variant="caption" color="text.secondary">2-4 hrs</Typography>
+                    <Box sx={{ width: 16, height: 16, bgcolor: getLevelColor(1), borderRadius: 0.5 }} />
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>&lt;2</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box sx={{ width: 20, height: 20, bgcolor: getLevelColor(5), borderRadius: 0.5 }} />
-                    <Typography variant="caption" color="text.secondary">4-6 hrs</Typography>
+                    <Box sx={{ width: 16, height: 16, bgcolor: getLevelColor(3), borderRadius: 0.5 }} />
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>2-4</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box sx={{ width: 20, height: 20, bgcolor: getLevelColor(7), borderRadius: 0.5 }} />
-                    <Typography variant="caption" color="text.secondary">6-8 hrs</Typography>
+                    <Box sx={{ width: 16, height: 16, bgcolor: getLevelColor(5), borderRadius: 0.5 }} />
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>4-6</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box sx={{ width: 20, height: 20, bgcolor: getLevelColor(9), borderRadius: 0.5 }} />
-                    <Typography variant="caption" color="text.secondary">8+ hrs</Typography>
+                    <Box sx={{ width: 16, height: 16, bgcolor: getLevelColor(7), borderRadius: 0.5 }} />
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>6-8</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Box sx={{ width: 16, height: 16, bgcolor: getLevelColor(9), borderRadius: 0.5 }} />
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>8+</Typography>
                   </Box>
                 </Box>
               </Box>

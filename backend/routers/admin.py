@@ -696,3 +696,51 @@ def create_user(
     except Exception as e:
         print(f"Error creating user: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/user-sessions", dependencies=[Depends(verify_permission("view_activity_logs"))])
+def get_all_user_sessions(
+    date: Optional[str] = None,
+    db: SupabaseClient = Depends(get_db),
+):
+    """Get total session time for all users for a specific date (defaults to today IST)"""
+    try:
+        if not date:
+            ist_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
+            date = ist_now.strftime("%Y-%m-%d")
+        
+        response = (
+            db.table("user_sessions")
+            .select("user_email, total_seconds")
+            .eq("session_date", date)
+            .order("total_seconds", desc=True)
+            .execute()
+        )
+        return {"data": response.data or [], "date": date}
+    except Exception as e:
+        error_msg = str(e).lower()
+        if "relation" in error_msg and "does not exist" in error_msg:
+             return {"data": [], "date": date, "error": "Table user_sessions does not exist yet."}
+        raise HTTPException(status_code=500, detail=f"Error fetching user sessions: {str(e)}")
+
+
+@router.get("/user-sessions/history", dependencies=[Depends(verify_permission("view_activity_logs"))])
+def get_user_session_history(
+    email: str,
+    db: SupabaseClient = Depends(get_db),
+):
+    """Get historical session times for a specific user to render contribution calendar"""
+    try:
+        response = (
+            db.table("user_sessions")
+            .select("session_date, total_seconds")
+            .eq("user_email", email)
+            .order("session_date", desc=True)
+            .execute()
+        )
+        return {"data": response.data or [], "user_email": email}
+    except Exception as e:
+        error_msg = str(e).lower()
+        if "relation" in error_msg and "does not exist" in error_msg:
+             return {"data": [], "user_email": email, "error": "Table user_sessions does not exist yet."}
+        raise HTTPException(status_code=500, detail=f"Error fetching user session history: {str(e)}")

@@ -295,7 +295,14 @@
     "activityFor": "Activity for"
   },
   "admin": {
-    "activityLogs": "Activity Logs",
+    "activityLogs": "User Activity Logs",
+    "userSessions": "User Sessions",
+    "sessionTime": "Total Session Time",
+    "viewCalendar": "View Activity Calendar",
+    "calendarTitle": "Session Calendar",
+    "close": "Close",
+    "noSessionData": "No session data found",
+    "trackSessions": "Monitor daily user activity and time spent",
     "searchLogs": "Search logs...",
     "filterByUser": "Filter by User",
     "filterByAction": "Filter by Action",

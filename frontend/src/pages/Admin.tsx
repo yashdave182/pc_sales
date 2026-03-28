@@ -48,6 +48,7 @@ import {
   Assessment as StatsIcon,
 } from "@mui/icons-material";
 import { TableSkeleton } from "../components/Skeletons";
+import { AdminSessionsView } from "./AdminSessionsView";
 import { useAuth } from "../contexts/AuthContext";
 import { PERMISSIONS } from "../config/permissions";
 import { automationAPI } from "../services/api";
@@ -126,6 +127,7 @@ export default function AdminLogs() {
   const [filterActionType, setFilterActionType] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [activeTab, setActiveTab] = useState(0);
   const [total, setTotal] = useState(0);
 
   const loadActivities = async () => {
@@ -192,13 +194,23 @@ export default function AdminLogs() {
       {/* Header */}
       <Box sx={{ mb: { xs: 2, md: 3 } }}>
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5, display: "flex", alignItems: "center", gap: 1 }}>
-          <HistoryIcon color="primary" /> {t("admin.activityLogs", "Activity Logs")}
+          <HistoryIcon color="primary" /> {t("admin.activityLogs", "User Activity Logs")}
         </Typography>
         <Typography variant="body2" color="text.secondary">
           {t("admin.trackActions", "Track all user actions across the system")}
         </Typography>
       </Box>
 
+      {/* Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
+        <Tabs value={activeTab} onChange={(_e, newValue) => setActiveTab(newValue)}>
+          <Tab label={t("admin.activityLogs", "User Activity Logs")} />
+          <Tab label={t("admin.userSessions", "User Sessions")} />
+        </Tabs>
+      </Box>
+
+      {/* Content based on Active Tab */}
+      {activeTab === 0 && (
       <Card>
       <CardContent>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
@@ -309,7 +321,9 @@ export default function AdminLogs() {
         )}
       </CardContent>
     </Card>
+    )}
+
+    {activeTab === 1 && <AdminSessionsView />}
   </Box>
   );
 }
-

@@ -324,7 +324,14 @@
     "activityFor": "પ્રવૃત્તિ માટે"
   },
   "admin": {
-    "activityLogs": "ગતિવિધિ લૉગ",
+    "activityLogs": "વપરાશકર્તા પ્રવૃત્તિ લૉગ",
+    "userSessions": "વપરાશકર્તા સત્રો",
+    "sessionTime": "કુલ સત્ર સમય",
+    "viewCalendar": "પ્રવૃત્તિ કૅલેન્ડર જુઓ",
+    "calendarTitle": "સત્ર કૅલેન્ડર",
+    "close": "બંધ કરો",
+    "noSessionData": "કોઈ સત્ર ડેટા મળ્યો નથી",
+    "trackSessions": "દૈનિક વપરાશકર્તા પ્રવૃત્તિ અને વિતાવેલા સમયનું નિરીક્ષણ કરો",
     "searchLogs": "લૉગ શોધો...",
     "filterByUser": "વપરાશકર્તા દ્વારા ફિલ્ટર",
     "filterByAction": "ક્રિયા દ્વારા ફિલ્ટર",

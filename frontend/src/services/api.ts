@@ -429,6 +429,17 @@ export const fileAPI = {
 
 // Admin API
 export const adminAPI = {
+  getUserSessionsForDate: async (date?: string) => {
+    const params = date ? { date } : {};
+    const response = await apiClient.get("/api/admin/user-sessions", { params });
+    return response.data;
+  },
+  getUserSessionHistory: async (email: string) => {
+    const response = await apiClient.get("/api/admin/user-sessions/history", {
+      params: { email },
+    });
+    return response.data;
+  },
   getActivityLogs: async (params?: {
     limit?: number;
     offset?: number;

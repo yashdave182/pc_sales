@@ -324,7 +324,14 @@
     "activityFor": "गतिविधि के लिए"
   },
   "admin": {
-    "activityLogs": "गतिविधि लॉग",
+    "activityLogs": "उपयोगकर्ता गतिविधि लॉग",
+    "userSessions": "उपयोगकर्ता सत्र",
+    "sessionTime": "कुल सत्र समय",
+    "viewCalendar": "गतिविधि कैलेंडर देखें",
+    "calendarTitle": "सत्र कैलेंडर",
+    "close": "बंद करें",
+    "noSessionData": "कोई सत्र डेटा नहीं मिला",
+    "trackSessions": "दैनिक उपयोगकर्ता गतिविधि और बिताए गए समय की निगरानी करें",
     "searchLogs": "लॉग खोजें...",
     "filterByUser": "उपयोगकर्ता द्वारा फ़िल्टर",
     "filterByAction": "क्रिया द्वारा फ़िल्टर",

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Box,
+  Button,
   Card,
   CardContent,
   Typography,
@@ -25,28 +26,31 @@ import { useTranslation } from "react-i18next";
 import { adminAPI } from "../services/api";
 import { Refresh as RefreshIcon, CalendarMonth as CalendarIcon, Close as CloseIcon } from "@mui/icons-material";
 
-// Helper info for Github-style calendar map
-const getLevelColor = (hours: number, theme: any) => {
-  if (hours === 0) return "#ffeb3b"; // Wait, red requested:
-  // 0 hrs → red
-  if (hours === 0) return theme.palette.error.main || "#f44336";
-  // 0-2 hrs → light green
-  if (hours <= 2) return "#c8e6c9";
-  // 2-4 hrs → medium green
-  if (hours <= 4) return "#81c784";
-  // 4-6 hrs → dark green
-  if (hours <= 6) return "#4caf50";
-  // 6+ hrs → darkest green
-  return "#2e7d32";
+import { Theme } from "@mui/material";
+
+// Helper info for calendar color coding - matching the reference design
+const getLevelColor = (hours: number) => {
+  if (hours === 0) return "#b71c1c"; // Dark red for 0 hours
+  if (hours < 2) return "#558b2f"; // Light green
+  if (hours < 4) return "#33691e"; // Medium green
+  if (hours < 6) return "#2e7d32"; // Darker green
+  if (hours < 8) return "#1b5e20"; // Dark green
+  return "#0d5016"; // Darkest green for 8+ hours
 };
 
-const formatSecondsToTime = (totalSeconds: number) => {
+// Format seconds to time display like "0h 0m", "2h 15m", "8h 0m+"
+const formatSecondsToTime = (totalSeconds: number, showPlus: boolean = false) => {
+  if (totalSeconds === 0) return "0h 0m";
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
-  if (h > 0) {
-    return `${h}h ${m}m`;
-  }
-  return `${m}m`;
+  const suffix = showPlus && h >= 8 ? "+" : "";
+  return `${h}h ${m}m${suffix}`;
+};
+
+// Get day abbreviation
+const getDayAbbr = (date: Date) => {
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  return days[date.getDay()];
 };
 
 // Internal Modal block
@@ -57,8 +61,13 @@ const SessionCalendarModal = ({ open, onClose, userEmail }: { open: boolean, onC
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Calendar State
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+
   useEffect(() => {
     if (open && userEmail) {
+      // Whenever modal opens, reset to current month and fetch history
+      setCurrentMonth(new Date());
       loadHistory();
     }
   }, [open, userEmail]);
@@ -77,25 +86,41 @@ const SessionCalendarModal = ({ open, onClose, userEmail }: { open: boolean, onC
     }
   };
 
-  const getDaysArray = (start: Date, end: Date) => {
-    const arr = [];
-    for(let dt = new Date(start); dt <= end; dt.setDate(dt.getDate() + 1)) {
-        arr.push(new Date(dt));
-    }
-    return arr;
+  const handlePrevMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
   };
 
-  // Build a 90 day calendar
-  const today = new Date();
-  const startDate = new Date();
-  startDate.setDate(today.getDate() - 90);
-  
-  const days = getDaysArray(startDate, today);
+  const handleNextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+  };
 
   const historyMap = new Map();
   history.forEach(item => {
     historyMap.set(item.session_date, item.total_seconds);
   });
+
+  // Calendar Generation Logic
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  
+  const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 (Sun) to 6 (Sat)
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  
+  const monthName = currentMonth.toLocaleString('default', { month: 'long' });
+  const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  // Create array for all cells in the grid (blanks + actual days)
+  const calendarCells: (Date | null)[] = [];
+  for (let i = 0; i < firstDayOfMonth; i++) {
+    calendarCells.push(null);
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    calendarCells.push(new Date(year, month, d));
+  }
+  // Fill the rest of the last week row
+  while (calendarCells.length % 7 !== 0) {
+    calendarCells.push(null);
+  }
 
   return (
     <Modal
@@ -111,14 +136,19 @@ const SessionCalendarModal = ({ open, onClose, userEmail }: { open: boolean, onC
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          width: { xs: "90%", md: 800 },
+          width: { xs: "95%", md: 900 },
+          maxHeight: '90vh',
+          display: 'flex',
+          flexDirection: 'column',
           bgcolor: "background.paper",
           borderRadius: 2,
           boxShadow: 24,
-          p: 4,
+          p: 0,
           outline: "none",
+          overflow: "hidden",
         }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+          {/* Header */}
+          <Box sx={{ p: 3, display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: 1, borderColor: "divider" }}>
             <Box>
               <Typography variant="h6">{t("admin.calendarTitle", "Session Calendar")}</Typography>
               <Typography variant="body2" color="text.secondary">{userEmail}</Typography>
@@ -126,53 +156,170 @@ const SessionCalendarModal = ({ open, onClose, userEmail }: { open: boolean, onC
             <IconButton onClick={onClose}><CloseIcon /></IconButton>
           </Box>
 
-          {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}><CircularProgress /></Box>
-          ) : error ? (
-            <Alert severity="error">{error}</Alert>
-          ) : (
-            <Box>
-              <Typography variant="body2" sx={{ mb: 1, color: "text.secondary" }}>Last 90 Days Activity</Typography>
-              <Box sx={{ 
-                display: "grid", 
-                gridTemplateColumns: "repeat(13, 1fr)", 
-                gap: 0.5, 
-                mb: 3, 
-                overflowX: "auto",
-                pb: 1
-              }}>
-                {days.map((date, i) => {
-                  const dateStr = date.toISOString().split("T")[0];
-                  const seconds = historyMap.get(dateStr) || 0;
-                  const hours = seconds / 3600;
-                  const color = getLevelColor(hours, theme);
+          {/* Body */}
+          <Box sx={{ p: 3, overflowY: "auto", flexGrow: 1 }}>
+            {loading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}><CircularProgress /></Box>
+            ) : error ? (
+              <Alert severity="error">{error}</Alert>
+            ) : (
+              <Box>
+                {/* Month Navigation */}
+                <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", mb: 3 }}>
+                  <Button onClick={handlePrevMonth} variant="outlined" size="small" sx={{ minWidth: 40 }}>&lt;</Button>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', width: 200, textAlign: 'center' }}>
+                    {monthName} {year}
+                  </Typography>
+                  <Button onClick={handleNextMonth} variant="outlined" size="small" sx={{ minWidth: 40 }}>&gt;</Button>
+                </Box>
 
-                  return (
-                    <Tooltip key={i} title={`${dateStr}: ${formatSecondsToTime(seconds)}`}>
-                      <Box
-                        sx={{
-                          width: { xs: 12, sm: 16 },
-                          height: { xs: 12, sm: 16 },
-                          bgcolor: color,
-                          borderRadius: "2px",
-                        }}
-                      />
-                    </Tooltip>
-                  );
-                })}
-              </Box>
+                {/* Calendar Grid */}
+                <Box sx={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(7, 1fr)",
+                  gap: 0.5,
+                  mb: 2
+                }}>
+                  {/* Days of Week Header */}
+                  {weekDays.map(day => (
+                    <Box key={day} sx={{
+                      textAlign: "center",
+                      py: 1.5,
+                      fontWeight: 600,
+                      bgcolor: theme.palette.mode === 'dark' ? 'grey.800' : 'grey.200',
+                      borderRadius: 1,
+                      fontSize: '0.875rem'
+                    }}>
+                      {day}
+                    </Box>
+                  ))}
 
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end", flexWrap: "wrap", mt: 4 }}>
-                <Typography variant="caption" color="text.secondary">Less</Typography>
-                <Tooltip title="0 hrs"><Box sx={{ width: 12, height: 12, bgcolor: getLevelColor(0, theme), borderRadius: "2px" }} /></Tooltip>
-                <Tooltip title="0-2 hrs"><Box sx={{ width: 12, height: 12, bgcolor: getLevelColor(1, theme), borderRadius: "2px" }} /></Tooltip>
-                <Tooltip title="2-4 hrs"><Box sx={{ width: 12, height: 12, bgcolor: getLevelColor(3, theme), borderRadius: "2px" }} /></Tooltip>
-                <Tooltip title="4-6 hrs"><Box sx={{ width: 12, height: 12, bgcolor: getLevelColor(5, theme), borderRadius: "2px" }} /></Tooltip>
-                <Tooltip title="6+ hrs"><Box sx={{ width: 12, height: 12, bgcolor: getLevelColor(7, theme), borderRadius: "2px" }} /></Tooltip>
-                <Typography variant="caption" color="text.secondary">More</Typography>
+                  {/* Calendar Cells */}
+                  {calendarCells.map((dateObj, idx) => {
+                    if (!dateObj) {
+                      return (
+                        <Box
+                          key={`empty-${idx}`}
+                          sx={{
+                            minHeight: 110,
+                            borderRadius: 1,
+                            bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.100',
+                          }}
+                        />
+                      );
+                    }
+
+                    // For timezone safety, format exactly to YYYY-MM-DD local
+                    const dateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+                    const seconds = historyMap.get(dateStr) || 0;
+                    const hours = seconds / 3600;
+                    const color = getLevelColor(hours);
+                    const dayAbbr = getDayAbbr(dateObj);
+
+                    const isToday = new Date().toDateString() === dateObj.toDateString();
+
+                    return (
+                      <Box key={dateStr} sx={{
+                        minHeight: 110,
+                        p: 1.5,
+                        borderRadius: 1,
+                        bgcolor: color,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        position: 'relative',
+                        transition: 'all 0.2s ease',
+                        border: isToday ? '3px solid' : 'none',
+                        borderColor: isToday ? 'primary.light' : 'transparent',
+                        '&:hover': {
+                          transform: 'scale(1.03)',
+                          zIndex: 1,
+                          boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+                        }
+                      }}>
+                        {/* Date Number and Day Abbreviation */}
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <Typography sx={{
+                            fontWeight: 700,
+                            fontSize: '1.25rem',
+                            color: 'white',
+                            textShadow: '0px 1px 3px rgba(0,0,0,0.5)',
+                            lineHeight: 1
+                          }}>
+                            {dateObj.getDate()}
+                          </Typography>
+                          <Typography sx={{
+                            fontWeight: 500,
+                            fontSize: '0.75rem',
+                            color: 'rgba(255,255,255,0.85)',
+                            textShadow: '0px 1px 2px rgba(0,0,0,0.5)',
+                          }}>
+                            {dayAbbr}
+                          </Typography>
+                        </Box>
+
+                        {/* Hours Display - Centered */}
+                        <Box sx={{
+                          flexGrow: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <Typography sx={{
+                            color: 'white',
+                            fontWeight: 700,
+                            fontSize: '1.1rem',
+                            textShadow: '0px 2px 4px rgba(0,0,0,0.6)',
+                            letterSpacing: '0.5px'
+                          }}>
+                            {formatSecondsToTime(seconds, true)}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Box>
+
+                {/* Legend */}
+                <Box sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.5,
+                  justifyContent: "center",
+                  flexWrap: "wrap",
+                  mt: 4,
+                  p: 2,
+                  bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
+                  borderRadius: 2
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Box sx={{ width: 20, height: 20, bgcolor: getLevelColor(0), borderRadius: 0.5 }} />
+                    <Typography variant="caption" color="text.secondary">0 hrs</Typography>
+                  </Box>
+                  <Box sx={{ width: 1, height: 20, bgcolor: 'divider' }} />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Box sx={{ width: 20, height: 20, bgcolor: getLevelColor(1), borderRadius: 0.5 }} />
+                    <Typography variant="caption" color="text.secondary">&lt;2 hrs</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Box sx={{ width: 20, height: 20, bgcolor: getLevelColor(3), borderRadius: 0.5 }} />
+                    <Typography variant="caption" color="text.secondary">2-4 hrs</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Box sx={{ width: 20, height: 20, bgcolor: getLevelColor(5), borderRadius: 0.5 }} />
+                    <Typography variant="caption" color="text.secondary">4-6 hrs</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Box sx={{ width: 20, height: 20, bgcolor: getLevelColor(7), borderRadius: 0.5 }} />
+                    <Typography variant="caption" color="text.secondary">6-8 hrs</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Box sx={{ width: 20, height: 20, bgcolor: getLevelColor(9), borderRadius: 0.5 }} />
+                    <Typography variant="caption" color="text.secondary">8+ hrs</Typography>
+                  </Box>
+                </Box>
               </Box>
-            </Box>
-          )}
+            )}
+          </Box>
         </Box>
       </Fade>
     </Modal>

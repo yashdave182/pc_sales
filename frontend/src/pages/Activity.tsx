@@ -118,9 +118,20 @@ export default function Activity() {
   const [error, setError] = useState<string | null>(null);
 
   // ── Session timer state ────────────────────────────────────────
-  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [timerSeconds, setTimerSeconds] = useState(() => {
+    // Instantly restore from localStorage on mount
+    const storedDate = localStorage.getItem("session_current_date");
+    const today = getISTDateStr();
+    if (storedDate === today) {
+      return parseInt(localStorage.getItem("session_total_seconds") || "0", 10);
+    }
+    // Date changed — reset
+    localStorage.setItem("session_current_date", today);
+    localStorage.setItem("session_total_seconds", "0");
+    return 0;
+  });
   const lastHeartbeatRef = useRef<number>(Date.now());
-  const savedSecondsRef = useRef<number>(0);
+  const savedSecondsRef = useRef<number>(timerSeconds);
   const sessionStartRef = useRef<number>(Date.now());
 
   // ── Load activity logs ─────────────────────────────────────────
@@ -144,31 +155,54 @@ export default function Activity() {
     // Claim leadership on mount
     claimLeadership();
 
-    // Load today's saved seconds from API
-    activityAPI.getSessionToday().then(res => {
-      savedSecondsRef.current = res.total_seconds || 0;
-      sessionStartRef.current = Date.now();
-      setTimerSeconds(savedSecondsRef.current);
-    }).catch(() => {
-      // If API fails, start from 0
+    // Restore from localStorage instantly (already done in useState init)
+    const localSeconds = parseInt(localStorage.getItem("session_total_seconds") || "0", 10);
+    const storedDate = localStorage.getItem("session_current_date") || "";
+    const today = getISTDateStr();
+
+    if (storedDate !== today) {
+      // New day — reset
       savedSecondsRef.current = 0;
       sessionStartRef.current = Date.now();
+      localStorage.setItem("session_current_date", today);
+      localStorage.setItem("session_total_seconds", "0");
+    } else {
+      savedSecondsRef.current = localSeconds;
+      sessionStartRef.current = Date.now();
+    }
+
+    // Also fetch from API and use the higher value (API may have data from other sessions)
+    activityAPI.getSessionToday().then(res => {
+      const apiSeconds = res.total_seconds || 0;
+      if (apiSeconds > savedSecondsRef.current) {
+        savedSecondsRef.current = apiSeconds;
+        sessionStartRef.current = Date.now();
+        setTimerSeconds(apiSeconds);
+        localStorage.setItem("session_total_seconds", String(apiSeconds));
+      }
+    }).catch(() => {
+      // API failed — keep localStorage value
     });
 
     // 1-second tick
     const tickInterval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - sessionStartRef.current) / 1000);
-      setTimerSeconds(savedSecondsRef.current + elapsed);
+      const total = savedSecondsRef.current + elapsed;
+      setTimerSeconds(total);
+
+      // Persist to localStorage every tick
+      localStorage.setItem("session_total_seconds", String(total));
 
       // Ping leadership every tick
       pingLeader();
 
       // Check midnight reset (IST date changed)
       const currentDate = getISTDateStr();
-      const storedDate = localStorage.getItem("session_current_date") || currentDate;
-      if (currentDate !== storedDate) {
+      const sd = localStorage.getItem("session_current_date") || currentDate;
+      if (currentDate !== sd) {
         // Midnight crossed — reset
         localStorage.setItem("session_current_date", currentDate);
+        localStorage.setItem("session_total_seconds", "0");
         savedSecondsRef.current = 0;
         sessionStartRef.current = Date.now();
         setTimerSeconds(0);
@@ -185,6 +219,7 @@ export default function Activity() {
           savedSecondsRef.current = res.total_seconds || savedSecondsRef.current;
           sessionStartRef.current = Date.now();
           lastHeartbeatRef.current = now;
+          localStorage.setItem("session_total_seconds", String(savedSecondsRef.current));
         }).catch(() => {
           // Silent fail — will retry next interval
         });
@@ -195,18 +230,26 @@ export default function Activity() {
     // Store IST date
     localStorage.setItem("session_current_date", getISTDateStr());
 
-    // beforeunload — send final heartbeat
+    // beforeunload — send final heartbeat via sync XHR (sendBeacon can't send custom headers)
     const handleUnload = () => {
       if (!isLeader()) return;
       const delta = Math.floor((Date.now() - lastHeartbeatRef.current) / 1000);
       if (delta > 0 && delta <= 120) {
-        // Use sendBeacon for reliability
-        const url = `${(import.meta as any)?.env?.VITE_API_BASE_URL || "https://pc-sales-8phu.onrender.com"}/api/user-sessions/heartbeat`;
-        const userEmail = localStorage.getItem("user_email") || "";
-        navigator.sendBeacon(
-          url,
-          new Blob([JSON.stringify({ delta_seconds: delta })], { type: "application/json" })
-        );
+        try {
+          const url = `${(import.meta as any)?.env?.VITE_API_BASE_URL || "https://pc-sales-8phu.onrender.com"}/api/user-sessions/heartbeat`;
+          const xhr = new XMLHttpRequest();
+          xhr.open("POST", url, false); // synchronous
+          xhr.setRequestHeader("Content-Type", "application/json");
+          // Get user email from stored auth
+          const authStr = localStorage.getItem("sb-auth-token") || "";
+          try {
+            const auth = JSON.parse(authStr);
+            if (auth?.user?.email) {
+              xhr.setRequestHeader("x-user-email", auth.user.email);
+            }
+          } catch { /* ignore */ }
+          xhr.send(JSON.stringify({ delta_seconds: delta }));
+        } catch { /* ignore errors on unload */ }
       }
       // Release leadership
       if (localStorage.getItem(LS_LEADER_KEY) === TAB_ID) {

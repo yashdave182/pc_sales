@@ -215,10 +215,21 @@ const SessionCalendarModal = ({ open, onClose, userEmail }: { open: boolean, onC
                     const dateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
                     const seconds = historyMap.get(dateStr) || 0;
                     const hours = seconds / 3600;
-                    const color = getLevelColor(hours);
                     const dayAbbr = getDayAbbr(dateObj);
 
-                    const isToday = new Date().toDateString() === dateObj.toDateString();
+                    // Check if date is today or in the past
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const cellDate = new Date(dateObj);
+                    cellDate.setHours(0, 0, 0, 0);
+                    
+                    const isToday = today.getTime() === cellDate.getTime();
+                    const isFuture = cellDate.getTime() > today.getTime();
+                    
+                    // Future dates get gray color, past dates get color based on hours
+                    const color = isFuture
+                      ? (theme.palette.mode === 'dark' ? '#424242' : '#bdbdbd')
+                      : getLevelColor(hours);
 
                     return (
                       <Box key={dateStr} sx={{
@@ -232,7 +243,8 @@ const SessionCalendarModal = ({ open, onClose, userEmail }: { open: boolean, onC
                         transition: 'all 0.2s ease',
                         border: isToday ? '2px solid' : 'none',
                         borderColor: isToday ? 'primary.light' : 'transparent',
-                        '&:hover': {
+                        opacity: isFuture ? 0.6 : 1,
+                        '&:hover': isFuture ? {} : {
                           transform: 'scale(1.02)',
                           zIndex: 1,
                           boxShadow: '0 4px 15px rgba(0,0,0,0.25)'
@@ -243,8 +255,8 @@ const SessionCalendarModal = ({ open, onClose, userEmail }: { open: boolean, onC
                           <Typography sx={{
                             fontWeight: 700,
                             fontSize: '1rem',
-                            color: 'white',
-                            textShadow: '0px 1px 2px rgba(0,0,0,0.5)',
+                            color: isFuture ? (theme.palette.mode === 'dark' ? 'grey.400' : 'grey.600') : 'white',
+                            textShadow: isFuture ? 'none' : '0px 1px 2px rgba(0,0,0,0.5)',
                             lineHeight: 1
                           }}>
                             {dateObj.getDate()}
@@ -252,29 +264,31 @@ const SessionCalendarModal = ({ open, onClose, userEmail }: { open: boolean, onC
                           <Typography sx={{
                             fontWeight: 500,
                             fontSize: '0.65rem',
-                            color: 'rgba(255,255,255,0.85)',
-                            textShadow: '0px 1px 2px rgba(0,0,0,0.5)',
+                            color: isFuture ? (theme.palette.mode === 'dark' ? 'grey.500' : 'grey.500') : 'rgba(255,255,255,0.85)',
+                            textShadow: isFuture ? 'none' : '0px 1px 2px rgba(0,0,0,0.5)',
                           }}>
                             {dayAbbr}
                           </Typography>
                         </Box>
 
-                        {/* Hours Display - Centered */}
+                        {/* Hours Display - Centered (only show for past/today dates) */}
                         <Box sx={{
                           flexGrow: 1,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center'
                         }}>
-                          <Typography sx={{
-                            color: 'white',
-                            fontWeight: 700,
-                            fontSize: '0.95rem',
-                            textShadow: '0px 1px 3px rgba(0,0,0,0.6)',
-                            letterSpacing: '0.3px'
-                          }}>
-                            {formatSecondsToTime(seconds, true)}
-                          </Typography>
+                          {!isFuture && (
+                            <Typography sx={{
+                              color: 'white',
+                              fontWeight: 700,
+                              fontSize: '0.95rem',
+                              textShadow: '0px 1px 3px rgba(0,0,0,0.6)',
+                              letterSpacing: '0.3px'
+                            }}>
+                              {formatSecondsToTime(seconds, true)}
+                            </Typography>
+                          )}
                         </Box>
                       </Box>
                     );
@@ -330,11 +344,19 @@ const SessionCalendarModal = ({ open, onClose, userEmail }: { open: boolean, onC
 };
 
 
+// Helper to get local date string in YYYY-MM-DD format
+const getLocalDateString = (date: Date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const AdminSessionsView = () => {
   const { t } = useTranslation();
   
-  // Format dates in YYYY-MM-DD
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
+  // Format dates in YYYY-MM-DD using local timezone
+  const [selectedDate, setSelectedDate] = useState(() => getLocalDateString());
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -384,7 +406,7 @@ export const AdminSessionsView = () => {
                 size="small"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                inputProps={{ max: new Date().toISOString().split("T")[0] }}
+                inputProps={{ max: getLocalDateString() }}
               />
             </Box>
             <IconButton onClick={loadSessions} color="primary" disabled={loading}>

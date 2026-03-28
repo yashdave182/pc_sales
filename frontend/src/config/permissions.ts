@@ -48,6 +48,7 @@ export const PERMISSIONS = {
     // Distributors
     VIEW_DISTRIBUTORS: "view_distributors",
     CREATE_DISTRIBUTOR: "create_distributor",
+    EDIT_DISTRIBUTOR: "edit_distributor",
 
     // Reports
     VIEW_REPORTS: "view_reports",

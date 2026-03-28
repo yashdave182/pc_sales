@@ -35,6 +35,8 @@ import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { distributorAPI } from "../services/api";
 import type { Distributor } from "../types";
 import { useTranslation } from "../hooks/useTranslation";
+import PermissionGate from "../components/PermissionGate";
+import { PERMISSIONS } from "../config/permissions";
 
 export default function Distributors() {
   const theme = useTheme();
@@ -359,13 +361,15 @@ export default function Distributors() {
       sortable: false,
       renderCell: (params) => (
         <Box>
-          <IconButton
-            size="small"
-            onClick={() => handleOpenDialog(params.row)}
-            color="primary"
-          >
-            <EditIcon fontSize="small" />
-          </IconButton>
+          <PermissionGate permission={PERMISSIONS.EDIT_DISTRIBUTOR}>
+            <IconButton
+              size="small"
+              onClick={() => handleOpenDialog(params.row)}
+              color="primary"
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </PermissionGate>
         </Box>
       ),
     },
@@ -421,13 +425,15 @@ export default function Distributors() {
               }}
               sx={{ flexGrow: 1, minWidth: 250 }}
             />
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => handleOpenDialog()}
-            >
-              {t("distributors.addDistributor")}
-            </Button>
+            <PermissionGate permission={PERMISSIONS.CREATE_DISTRIBUTOR}>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => handleOpenDialog()}
+              >
+                {t("distributors.addDistributor")}
+              </Button>
+            </PermissionGate>
             <IconButton onClick={loadDistributors} color="primary">
               <RefreshIcon />
             </IconButton>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Box,
   Typography,
@@ -27,6 +27,7 @@ import {
   Person as PersonIcon,
   CalendarToday as CalendarIcon,
   Timeline as TimelineIcon,
+  Timer as TimerIcon,
 } from "@mui/icons-material";
 import { activityAPI } from "../services/api";
 import { useTranslation } from "../hooks/useTranslation";
@@ -62,6 +63,48 @@ function formatTime(dateStr: string): string {
   return d.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true });
 }
 
+// ── IST date helper ────────────────────────────────────────────
+function getISTDateStr(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }); // YYYY-MM-DD
+}
+
+// ── Format seconds → HH:MM:SS ─────────────────────────────────
+function formatDuration(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+// ── Multi-tab lock helpers ─────────────────────────────────────
+const TAB_ID = `tab_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+const LS_LEADER_KEY = "session_leader_tab";
+const LS_LEADER_PING = "session_leader_ping";
+const LEADER_TIMEOUT_MS = 5000; // If leader doesn't ping for 5s, take over
+
+function claimLeadership() {
+  localStorage.setItem(LS_LEADER_KEY, TAB_ID);
+  localStorage.setItem(LS_LEADER_PING, String(Date.now()));
+}
+
+function isLeader(): boolean {
+  const leader = localStorage.getItem(LS_LEADER_KEY);
+  if (leader === TAB_ID) return true;
+  // Check if leader is stale
+  const lastPing = Number(localStorage.getItem(LS_LEADER_PING) || "0");
+  if (Date.now() - lastPing > LEADER_TIMEOUT_MS) {
+    claimLeadership();
+    return true;
+  }
+  return false;
+}
+
+function pingLeader() {
+  if (isLeader()) {
+    localStorage.setItem(LS_LEADER_PING, String(Date.now()));
+  }
+}
+
 export default function Activity() {
   const theme = useTheme();
   const { t } = useTranslation();
@@ -74,6 +117,13 @@ export default function Activity() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ── Session timer state ────────────────────────────────────────
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const lastHeartbeatRef = useRef<number>(Date.now());
+  const savedSecondsRef = useRef<number>(0);
+  const sessionStartRef = useRef<number>(Date.now());
+
+  // ── Load activity logs ─────────────────────────────────────────
   const load = useCallback(async () => {
     try {
       setLoading(true);
@@ -88,6 +138,96 @@ export default function Activity() {
   }, [date]);
 
   useEffect(() => { load(); }, [load]);
+
+  // ── Session timer: init + tick + heartbeat + midnight reset ─────
+  useEffect(() => {
+    // Claim leadership on mount
+    claimLeadership();
+
+    // Load today's saved seconds from API
+    activityAPI.getSessionToday().then(res => {
+      savedSecondsRef.current = res.total_seconds || 0;
+      sessionStartRef.current = Date.now();
+      setTimerSeconds(savedSecondsRef.current);
+    }).catch(() => {
+      // If API fails, start from 0
+      savedSecondsRef.current = 0;
+      sessionStartRef.current = Date.now();
+    });
+
+    // 1-second tick
+    const tickInterval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - sessionStartRef.current) / 1000);
+      setTimerSeconds(savedSecondsRef.current + elapsed);
+
+      // Ping leadership every tick
+      pingLeader();
+
+      // Check midnight reset (IST date changed)
+      const currentDate = getISTDateStr();
+      const storedDate = localStorage.getItem("session_current_date") || currentDate;
+      if (currentDate !== storedDate) {
+        // Midnight crossed — reset
+        localStorage.setItem("session_current_date", currentDate);
+        savedSecondsRef.current = 0;
+        sessionStartRef.current = Date.now();
+        setTimerSeconds(0);
+      }
+    }, 1000);
+
+    // 60-second heartbeat (only leader sends)
+    const heartbeatInterval = setInterval(() => {
+      if (!isLeader()) return;
+      const now = Date.now();
+      const delta = Math.floor((now - lastHeartbeatRef.current) / 1000);
+      if (delta > 0 && delta <= 120) {
+        activityAPI.sendHeartbeat(delta).then(res => {
+          savedSecondsRef.current = res.total_seconds || savedSecondsRef.current;
+          sessionStartRef.current = Date.now();
+          lastHeartbeatRef.current = now;
+        }).catch(() => {
+          // Silent fail — will retry next interval
+        });
+      }
+      lastHeartbeatRef.current = now;
+    }, 60000);
+
+    // Store IST date
+    localStorage.setItem("session_current_date", getISTDateStr());
+
+    // beforeunload — send final heartbeat
+    const handleUnload = () => {
+      if (!isLeader()) return;
+      const delta = Math.floor((Date.now() - lastHeartbeatRef.current) / 1000);
+      if (delta > 0 && delta <= 120) {
+        // Use sendBeacon for reliability
+        const url = `${(import.meta as any)?.env?.VITE_API_BASE_URL || "https://pc-sales-8phu.onrender.com"}/api/user-sessions/heartbeat`;
+        const userEmail = localStorage.getItem("user_email") || "";
+        navigator.sendBeacon(
+          url,
+          new Blob([JSON.stringify({ delta_seconds: delta })], { type: "application/json" })
+        );
+      }
+      // Release leadership
+      if (localStorage.getItem(LS_LEADER_KEY) === TAB_ID) {
+        localStorage.removeItem(LS_LEADER_KEY);
+        localStorage.removeItem(LS_LEADER_PING);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleUnload);
+
+    return () => {
+      clearInterval(tickInterval);
+      clearInterval(heartbeatInterval);
+      window.removeEventListener("beforeunload", handleUnload);
+      // Release leadership on unmount
+      if (localStorage.getItem(LS_LEADER_KEY) === TAB_ID) {
+        localStorage.removeItem(LS_LEADER_KEY);
+        localStorage.removeItem(LS_LEADER_PING);
+      }
+    };
+  }, []); // Run once on mount
 
   const isToday = date === new Date().toISOString().split("T")[0];
 
@@ -109,20 +249,52 @@ export default function Activity() {
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800, display: "flex", alignItems: "center", gap: 1 }}>
-            <TimelineIcon sx={{ color: "#7c3aed" }} /> {t("activity.title", "My Activity")}
+            <TimelineIcon sx={{ color: "#7c3aed" }} /> {t("activity.title", "User Activity")}
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.25 }}>
             {isToday ? t("activity.todayLog", "Today's activity log") : `${t("activity.activityFor", "Activity for")} ${new Date(date).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}`}
           </Typography>
         </Box>
-        <TextField
-          type="date"
-          size="small"
-          value={date}
-          onChange={e => setDate(e.target.value)}
-          inputProps={{ max: new Date().toISOString().split("T")[0] }}
-          sx={{ width: 160, "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-        />
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          {/* Session Timer */}
+          <Paper
+            elevation={0}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0.75,
+              px: 1.5,
+              py: 0.75,
+              borderRadius: 2,
+              border: `1px solid ${border}`,
+              bgcolor: isDark ? "rgba(124,58,237,0.1)" : "rgba(124,58,237,0.06)",
+            }}
+          >
+            <TimerIcon sx={{ fontSize: 18, color: "#7c3aed" }} />
+            <Typography
+              variant="body2"
+              sx={{
+                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                fontWeight: 700,
+                fontSize: "0.85rem",
+                color: "#7c3aed",
+                letterSpacing: "0.05em",
+                minWidth: 64,
+                textAlign: "center",
+              }}
+            >
+              {formatDuration(timerSeconds)}
+            </Typography>
+          </Paper>
+          <TextField
+            type="date"
+            size="small"
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            inputProps={{ max: new Date().toISOString().split("T")[0] }}
+            sx={{ width: 160, "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
+          />
+        </Stack>
       </Stack>
 
       {/* Stats */}

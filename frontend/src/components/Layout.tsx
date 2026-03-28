@@ -160,7 +160,7 @@ const navigationItems: NavItem[] = [
   },
   {
     id: "activity",
-    labelKey: "Activity",
+    labelKey: "nav.activity",
     icon: <TimelineIcon />,
     path: "/activity",
     // No permission needed - visible to all authenticated users

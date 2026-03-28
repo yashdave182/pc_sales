@@ -602,6 +602,16 @@ export const activityAPI = {
     const response = await apiClient.get("/api/admin/my-logs", { params });
     return response.data;
   },
+  getSessionToday: async () => {
+    const response = await apiClient.get("/api/user-sessions/today");
+    return response.data;
+  },
+  sendHeartbeat: async (deltaSeconds: number) => {
+    const response = await apiClient.post("/api/user-sessions/heartbeat", {
+      delta_seconds: deltaSeconds,
+    });
+    return response.data;
+  },
 };
 
 // Export the axios instance for direct use if needed

@@ -13,3 +13,4 @@ from .products import router as products
 from .rbac import router as rbac
 from .reports import router as reports
 from .sales import router as sales
+from .sessions import router as sessions

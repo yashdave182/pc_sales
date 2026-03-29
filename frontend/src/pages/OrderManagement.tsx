@@ -414,12 +414,31 @@ export default function OrderManagement() {
   const handleDeleteOrder = async () => {
     if (!orderToDelete) return;
     try {
-      await salesAPI.delete(orderToDelete.sale_id);
+      // User wanted Trash icon to "Cancel" order instead of hard delete
+      const validSaleFields = {
+        customer_id: orderToDelete.customer_id,
+        invoice_no: orderToDelete.invoice_no,
+        sale_date: orderToDelete.sale_date,
+        total_amount: orderToDelete.total_amount,
+        total_liters: orderToDelete.total_liters,
+        payment_status: orderToDelete.payment_status,
+        notes: orderToDelete.notes,
+        sale_code: orderToDelete.sale_code,
+        payment_terms: orderToDelete.payment_terms,
+        order_status: "cancelled", // Set status to cancelled
+        shipment_status: orderToDelete.shipment_status,
+        shipment_date: orderToDelete.shipment_date,
+        dispatch_date: orderToDelete.dispatch_date,
+        delivery_date: orderToDelete.delivery_date,
+        tracking_number: orderToDelete.tracking_number,
+      };
+
+      await salesAPI.update(orderToDelete.sale_id, validSaleFields);
       setDeleteConfirmOpen(false);
       setOrderToDelete(null);
       fetchData();
     } catch (error) {
-      console.error("Error deleting order:", error);
+      console.error("Error cancelling order:", error);
     }
   };
 
@@ -818,7 +837,7 @@ export default function OrderManagement() {
                         <EditIcon />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Delete Order">
+                    <Tooltip title="Cancel Order">
                       <IconButton
                         size="small"
                         color="error"
@@ -1063,26 +1082,26 @@ export default function OrderManagement() {
         )}
       </Menu>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Cancel Confirmation Dialog (Reused Delete Dialog State) */}
       <Dialog
         open={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
       >
-        <DialogTitle>Delete Order</DialogTitle>
+        <DialogTitle>Cancel Order</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete order <strong>{orderToDelete?.invoice_no}</strong>?
-            This will permanently remove the order and all its items.
+            Are you sure you want to cancel order <strong>{orderToDelete?.invoice_no}</strong>?
+            This will mark the order as cancelled but keep the record.
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>Back</Button>
           <Button
             onClick={handleDeleteOrder}
             variant="contained"
             color="error"
           >
-            Delete
+            Cancel Order
           </Button>
         </DialogActions>
       </Dialog>

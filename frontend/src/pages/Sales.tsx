@@ -210,8 +210,11 @@ export default function Sales() {
   };
 
   const handleDeleteClick = () => {
-    setDeleteConfirmOpen(true);
     handleMenuClose();
+    // Use timeout to prevent MUI Dialog and Menu focus trap race conditions (aria-hidden error)
+    setTimeout(() => {
+      setDeleteConfirmOpen(true);
+    }, 10);
   };
 
   const confirmDeleteSale = async () => {
@@ -227,56 +230,70 @@ export default function Sales() {
     }
   };
 
-  const handleEditClick = async () => {
+  const handleEditClick = () => {
     if (!selectedActionSale) return;
     const saleId = selectedActionSale.sale_id || 0;
     handleMenuClose();
 
-    try {
-      setLoading(true);
-      // Fetch full sale details to get items
-      const saleDetails = await salesAPI.getById(saleId);
+    // Use timeout to prevent MUI Dialog and Menu focus trap race conditions
+    setTimeout(async () => {
+      try {
+        setLoading(true);
+        // Fetch full sale details to get items
+        const saleDetails = await salesAPI.getById(saleId);
 
-      setEditingSaleId(saleId);
-      setCustomerMode("existing");
-      setCustomerCategory("Sabhasad");
+        setEditingSaleId(saleId);
+        setCustomerMode("existing");
+        setCustomerCategory("Sabhasad");
 
-      setFormData({
-        customer_id: saleDetails.customer_id,
-        invoice_no: saleDetails.invoice_no || "",
-        sale_date: new Date(saleDetails.sale_date).toISOString().split("T")[0],
-        notes: saleDetails.notes || "",
-        paid_amount: 0, // Paid amount tracking might be decoupled in payments
-      });
+        // Safe Date Parsing
+        let safeDateString = new Date().toISOString().split("T")[0];
+        if (saleDetails.sale_date) {
+          const d = new Date(saleDetails.sale_date);
+          if (!isNaN(d.getTime())) {
+            safeDateString = d.toISOString().split("T")[0];
+          } else if (typeof saleDetails.sale_date === 'string' && saleDetails.sale_date.length >= 10) {
+            safeDateString = saleDetails.sale_date.substring(0, 10); // fallback for YYYY-MM-DD
+          }
+        }
 
-      if (saleDetails.payment_terms) {
-        try {
-          const terms = JSON.parse(saleDetails.payment_terms);
-          setPaymentTerms({
-            ...paymentTerms,
-            ...terms
-          });
-        } catch (e) { }
+        setFormData({
+          customer_id: saleDetails.customer_id,
+          invoice_no: saleDetails.invoice_no || "",
+          sale_date: safeDateString,
+          notes: saleDetails.notes || "",
+          paid_amount: 0, // Paid amount tracking might be decoupled in payments
+        });
+
+        if (saleDetails.payment_terms) {
+          try {
+            const terms = JSON.parse(saleDetails.payment_terms);
+            setPaymentTerms({
+              ...paymentTerms,
+              ...terms
+            });
+          } catch (e) { }
+        }
+
+        if (saleDetails.items && saleDetails.items.length > 0) {
+          setItems(saleDetails.items.map((item: any) => ({
+            product_id: item.product_id,
+            quantity: item.quantity,
+            rate: item.rate,
+            amount: item.amount,
+          })));
+        } else {
+          setItems([{ product_id: 0, quantity: 1, rate: 0, amount: 0 }]);
+        }
+
+        setOpenDialog(true);
+      } catch (err: any) {
+        console.error("Error fetching sale details:", err);
+        setError(err?.response?.data?.detail || "Failed to load sale details");
+      } finally {
+        setLoading(false);
       }
-
-      if (saleDetails.items && saleDetails.items.length > 0) {
-        setItems(saleDetails.items.map((item: any) => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          rate: item.rate,
-          amount: item.amount,
-        })));
-      } else {
-        setItems([{ product_id: 0, quantity: 1, rate: 0, amount: 0 }]);
-      }
-
-      setOpenDialog(true);
-    } catch (err: any) {
-      console.error("Error fetching sale details:", err);
-      setError(err?.response?.data?.detail || "Failed to load sale details");
-    } finally {
-      setLoading(false);
-    }
+    }, 10);
   };
 
   const handleCloseDialog = () => {

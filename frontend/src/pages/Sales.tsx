@@ -24,6 +24,7 @@ import {
   InputAdornment,
   useMediaQuery,
   useTheme,
+  Menu,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -36,6 +37,8 @@ import {
   Download as DownloadIcon,
   CheckCircle as CheckCircleIcon,
   Search as SearchIcon,
+  MoreVert as MoreVertIcon,
+  Edit as EditIcon,
 } from "@mui/icons-material";
 import { TableSkeleton } from "../components/Skeletons";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
@@ -97,6 +100,11 @@ export default function Sales() {
     ],
   });
 
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const [selectedActionSale, setSelectedActionSale] = useState<Sale | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [editingSaleId, setEditingSaleId] = useState<number | null>(null);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -157,6 +165,7 @@ export default function Sales() {
   };
 
   const handleOpenDialog = () => {
+    setEditingSaleId(null);
     setFormData({
       customer_id: 0,
       invoice_no: "",
@@ -177,7 +186,97 @@ export default function Sales() {
     setCustomerMode("existing");
     setCustomerCategory("Sabhasad");
     setItems([{ product_id: 0, quantity: 1, rate: 0, amount: 0 }]);
+    setPaymentTerms({
+      type: 'after_delivery',
+      days: 0,
+      emiParts: [
+        { part: 1, days: 0, percentage: 25 },
+        { part: 2, days: 0, percentage: 25 },
+        { part: 3, days: 0, percentage: 25 },
+        { part: 4, days: 0, percentage: 25 },
+      ],
+    });
     setOpenDialog(true);
+  };
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, sale: Sale) => {
+    setMenuAnchor(event.currentTarget);
+    setSelectedActionSale(sale);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchor(null);
+    setSelectedActionSale(null);
+  };
+
+  const handleDeleteClick = () => {
+    setDeleteConfirmOpen(true);
+    handleMenuClose();
+  };
+
+  const confirmDeleteSale = async () => {
+    if (!selectedActionSale) return;
+    try {
+      await salesAPI.delete(selectedActionSale.sale_id || 0);
+      setDeleteConfirmOpen(false);
+      setSelectedActionSale(null);
+      loadData(true);
+    } catch (err: any) {
+      console.error("Error deleting sale:", err);
+      setError(err?.response?.data?.detail || "Failed to delete sale");
+    }
+  };
+
+  const handleEditClick = async () => {
+    if (!selectedActionSale) return;
+    const saleId = selectedActionSale.sale_id || 0;
+    handleMenuClose();
+
+    try {
+      setLoading(true);
+      // Fetch full sale details to get items
+      const saleDetails = await salesAPI.getById(saleId);
+
+      setEditingSaleId(saleId);
+      setCustomerMode("existing");
+      setCustomerCategory("Sabhasad");
+
+      setFormData({
+        customer_id: saleDetails.customer_id,
+        invoice_no: saleDetails.invoice_no || "",
+        sale_date: new Date(saleDetails.sale_date).toISOString().split("T")[0],
+        notes: saleDetails.notes || "",
+        paid_amount: 0, // Paid amount tracking might be decoupled in payments
+      });
+
+      if (saleDetails.payment_terms) {
+        try {
+          const terms = JSON.parse(saleDetails.payment_terms);
+          setPaymentTerms({
+            ...paymentTerms,
+            ...terms
+          });
+        } catch (e) { }
+      }
+
+      if (saleDetails.items && saleDetails.items.length > 0) {
+        setItems(saleDetails.items.map((item: any) => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          rate: item.rate,
+          amount: item.amount,
+        })));
+      } else {
+        setItems([{ product_id: 0, quantity: 1, rate: 0, amount: 0 }]);
+      }
+
+      setOpenDialog(true);
+    } catch (err: any) {
+      console.error("Error fetching sale details:", err);
+      setError(err?.response?.data?.detail || "Failed to load sale details");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCloseDialog = () => {
@@ -223,7 +322,7 @@ export default function Sales() {
 
         newItems[index].rate = rate;
       }
-      
+
       newItems[index].amount = (newItems[index].quantity || 0) * (newItems[index].rate || 0);
     }
 
@@ -250,7 +349,7 @@ export default function Sales() {
       if (!item.product_id) return item;
       const product = products.find(p => p.product_id === item.product_id);
       if (!product) return item;
-      
+
       const rate = (product[priceField] as number) || (product[baseField] as number) || product.standard_rate || 0;
       return {
         ...item,
@@ -373,24 +472,30 @@ export default function Sales() {
         payment_method: "Cash", // Default to Cash for now, or add UI for it
       };
 
-      console.log("Creating sale:", saleData);
-      const response = await salesAPI.create(saleData);
-      console.log("Sale created:", response);
+      console.log(`${editingSaleId ? "Updating" : "Creating"} sale:`, saleData);
 
-      // Store sale ID and show invoice dialog
+      let response;
+      if (editingSaleId) {
+        response = await salesAPI.update(editingSaleId, saleData);
+        console.log("Sale updated:", response);
+      } else {
+        response = await salesAPI.create(saleData);
+        console.log("Sale created:", response);
+      }
+
+      // Store sale ID and show invoice dialog (only on create)
       const saleId = response.sale?.sale_id;
-      if (saleId) {
+      if (saleId && !editingSaleId) {
         setCreatedSaleId(saleId);
         setOpenInvoiceDialog(true);
       }
 
       handleCloseDialog();
 
-      // OPTIMISTIC UPDATE: Add new sale to list immediately if possible
+      // OPTIMISTIC UPDATE: Add/Update sale in list immediately if possible
       if (response.sale) {
         try {
           const newSale = response.sale;
-          // Find customer details to enrich the sale object for the table
           const customer = customers.find(c => c.customer_id === newSale.customer_id);
           if (customer) {
             const enrichedSale = {
@@ -399,7 +504,12 @@ export default function Sales() {
               village: customer.village,
               mobile: customer.mobile
             };
-            setSales(prev => [enrichedSale, ...prev]);
+
+            if (editingSaleId) {
+              setSales(prev => prev.map(s => s.sale_id === editingSaleId ? enrichedSale : s));
+            } else {
+              setSales(prev => [enrichedSale, ...prev]);
+            }
           }
         } catch (e) {
           console.log("Optimistic update failed, waiting for refresh");
@@ -617,6 +727,16 @@ export default function Sales() {
         }
       },
     },
+    {
+      field: "actions",
+      headerName: "Actions",
+      width: 80,
+      renderCell: (params) => (
+        <IconButton size="small" onClick={(e) => handleMenuOpen(e, params.row)}>
+          <MoreVertIcon fontSize="small" />
+        </IconButton>
+      ),
+    },
   ];
 
   return (
@@ -710,7 +830,7 @@ export default function Sales() {
           </CardContent>
         </Card>
 
-        {/* Create Sale Dialog */}
+        {/* Create/Edit Sale Dialog */}
         <Dialog
           open={openDialog}
           onClose={handleCloseDialog}
@@ -721,7 +841,7 @@ export default function Sales() {
           <DialogTitle>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <ReceiptIcon />
-              {t("sales.addSale")}
+              {editingSaleId ? "Edit Sale" : t("sales.addSale")}
             </Box>
           </DialogTitle>
           <DialogContent>
@@ -1171,7 +1291,47 @@ export default function Sales() {
           <DialogActions>
             <Button onClick={handleCloseDialog}>{t("common.cancel")}</Button>
             <Button onClick={handleSubmit} variant="contained">
-              {t("sales.addSale")}
+              {editingSaleId ? "Save Changes" : t("sales.addSale")}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Action Menu */}
+        <Menu
+          anchorEl={menuAnchor}
+          open={Boolean(menuAnchor)}
+          onClose={handleMenuClose}
+        >
+          <PermissionGate permission={PERMISSIONS.EDIT_SALE}>
+            <MenuItem onClick={handleEditClick}>
+              <EditIcon sx={{ mr: 1 }} fontSize="small" color="secondary" />
+              Edit Sale
+            </MenuItem>
+          </PermissionGate>
+          <PermissionGate permission={PERMISSIONS.DELETE_SALE}>
+            <MenuItem onClick={handleDeleteClick} sx={{ color: 'error.main' }}>
+              <DeleteIcon sx={{ mr: 1 }} fontSize="small" color="error" />
+              Delete Sale
+            </MenuItem>
+          </PermissionGate>
+        </Menu>
+
+        {/* Delete Confirmation */}
+        <Dialog
+          open={deleteConfirmOpen}
+          onClose={() => setDeleteConfirmOpen(false)}
+        >
+          <DialogTitle>Delete Sale</DialogTitle>
+          <DialogContent>
+            <Typography>
+              Are you sure you want to delete invoice <strong>{selectedActionSale?.invoice_no}</strong>?
+              This will permanently remove the sale and all its items.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
+            <Button onClick={confirmDeleteSale} color="error" variant="contained">
+              Delete
             </Button>
           </DialogActions>
         </Dialog>

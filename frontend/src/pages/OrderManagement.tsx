@@ -818,6 +818,19 @@ export default function OrderManagement() {
                         <EditIcon />
                       </IconButton>
                     </Tooltip>
+                    <Tooltip title="Delete Order">
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => {
+                          setOrderToDelete(order);
+                          setDeleteConfirmOpen(true);
+                        }}
+                        sx={{ mr: 1 }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
                     <Tooltip title={t("orderManagement.moreActions", "More Actions")}>
                       <IconButton
                         size="small"
@@ -1048,14 +1061,6 @@ export default function OrderManagement() {
             Cancel Order
           </MenuItem>
         )}
-        <MenuItem onClick={handleEditOrder}>
-          <EditIcon sx={{ mr: 1 }} fontSize="small" color="secondary" />
-          Edit Order
-        </MenuItem>
-        <MenuItem onClick={handleDeleteConfirm} sx={{ color: 'error.main' }}>
-          <DeleteIcon sx={{ mr: 1 }} fontSize="small" color="error" />
-          Delete Order
-        </MenuItem>
       </Menu>
 
       {/* Delete Confirmation Dialog */}

@@ -51,7 +51,6 @@ export default function MessageInput({
           (u.name?.toLowerCase().includes(mentionQuery.toLowerCase()) ||
             u.email.toLowerCase().includes(mentionQuery.toLowerCase()))
       )
-      .slice(0, 6)
     : [];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

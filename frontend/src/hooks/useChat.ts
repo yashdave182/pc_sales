@@ -109,7 +109,6 @@ export function useChat(currentUserEmail: string | null | undefined) {
             .select("content, created_at")
             .eq("conversation_id", id)
             .eq("is_deleted", false)
-            .or(`mentions.eq.{},mentions.cs.{${currentUserEmail}},sender_email.eq.${currentUserEmail}`)
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle()  // returns null (not error) when conversation has no messages
@@ -127,15 +126,22 @@ export function useChat(currentUserEmail: string | null | undefined) {
           const receipt = receipts?.find((r: any) => r.conversation_id === id);
           // If no read receipt exists yet, default to start of time so all messages count as unread until user opens chat
           const since = receipt?.last_read_at || "1970-01-01T00:00:00.000Z";
-          const { count } = await supabase
+          const { data } = await supabase
             .from("chat_messages")
-            .select("*", { count: "exact", head: true })
+            .select("*")
             .eq("conversation_id", id)
             .eq("is_deleted", false)
             .gt("created_at", since)
-            .or(`mentions.eq.{},mentions.cs.{${currentUserEmail}}`)
             .neq("sender_email", currentUserEmail);
-          return { id, count: count ?? 0 };
+            
+          // Client-side filtering for mentions to safely avoid PostgREST parsing errors
+          const filteredCount = (data || []).filter((msg: any) => {
+            const hasMentions = msg.mentions && msg.mentions.length > 0;
+            const isMentioned = hasMentions && msg.mentions.includes(currentUserEmail);
+            return !hasMentions || isMentioned;
+          }).length;
+          
+          return { id, count: filteredCount };
         })
       );
 
@@ -200,12 +206,20 @@ export function useChat(currentUserEmail: string | null | undefined) {
         .select("*")
         .eq("conversation_id", convId)
         .eq("is_deleted", false)
-        .or(`mentions.eq.{},mentions.cs.{${currentUserEmailRef.current}},sender_email.eq.${currentUserEmailRef.current}`)
         .order("created_at", { ascending: true })
         .limit(100);
       if (error) { console.error("[useChat] loadMessages error:", error); return; }
+      
+      // Client-side filtering for mentions visibility
+      const filteredMessages = (data || []).filter((m: any) => {
+        const isSender = m.sender_email === currentUserEmailRef.current;
+        const hasMentions = m.mentions && m.mentions.length > 0;
+        const isMentioned = hasMentions && m.mentions.includes(currentUserEmailRef.current);
+        return isSender || (!hasMentions) || isMentioned;
+      });
+      
       setMessages(
-        (data || []).map((m: any) => ({
+        filteredMessages.map((m: any) => ({
           ...m,
           sender_name: getUserNameRef.current(m.sender_email),
         }))

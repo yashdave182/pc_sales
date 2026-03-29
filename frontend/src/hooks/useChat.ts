@@ -109,7 +109,7 @@ export function useChat(currentUserEmail: string | null | undefined) {
             .select("content, created_at")
             .eq("conversation_id", id)
             .eq("is_deleted", false)
-            .or(`mentions.eq.[],mentions.cs.["${currentUserEmail}"],sender_email.eq.${currentUserEmail}`)
+            .or(`mentions.eq.{},mentions.cs.{${currentUserEmail}},sender_email.eq.${currentUserEmail}`)
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle()  // returns null (not error) when conversation has no messages
@@ -133,7 +133,7 @@ export function useChat(currentUserEmail: string | null | undefined) {
             .eq("conversation_id", id)
             .eq("is_deleted", false)
             .gt("created_at", since)
-            .or(`mentions.eq.[],mentions.cs.["${currentUserEmail}"]`)
+            .or(`mentions.eq.{},mentions.cs.{${currentUserEmail}}`)
             .neq("sender_email", currentUserEmail);
           return { id, count: count ?? 0 };
         })
@@ -200,7 +200,7 @@ export function useChat(currentUserEmail: string | null | undefined) {
         .select("*")
         .eq("conversation_id", convId)
         .eq("is_deleted", false)
-        .or(`mentions.eq.[],mentions.cs.["${currentUserEmailRef.current}"],sender_email.eq.${currentUserEmailRef.current}`)
+        .or(`mentions.eq.{},mentions.cs.{${currentUserEmailRef.current}},sender_email.eq.${currentUserEmailRef.current}`)
         .order("created_at", { ascending: true })
         .limit(100);
       if (error) { console.error("[useChat] loadMessages error:", error); return; }

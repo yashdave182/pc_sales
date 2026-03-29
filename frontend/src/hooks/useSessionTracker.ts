@@ -1,21 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { activityAPI } from "../services/api";
 
-// ── Session Day helper (turns over at 12:07 PM IST) ─────────────
-function getSessionDayStr(): string {
-  const now = new Date();
-  const istStr = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
-  const ist = new Date(istStr);
-
-  // If before 12:07 PM IST, it belongs to the previous "session day"
-  if (ist.getHours() < 12 || (ist.getHours() === 12 && ist.getMinutes() < 7)) {
-    ist.setDate(ist.getDate() - 1);
-  }
-
-  const y = ist.getFullYear();
-  const m = String(ist.getMonth() + 1).padStart(2, "0");
-  const d = String(ist.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+// ── IST date helper ────────────────────────────────────────────
+function getISTDateStr(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }); // YYYY-MM-DD
 }
 
 // ── Multi-tab lock helpers ─────────────────────────────────────
@@ -64,7 +52,7 @@ export function useSessionTracker({ userEmail }: UseSessionTrackerOptions) {
   const [timerSeconds, setTimerSeconds] = useState(() => {
     // Instantly restore from localStorage on mount
     const storedDate = localStorage.getItem("session_current_date");
-    const today = getSessionDayStr();
+    const today = getISTDateStr();
     if (storedDate === today) {
       return parseInt(localStorage.getItem("session_total_seconds") || "0", 10);
     }
@@ -141,7 +129,7 @@ export function useSessionTracker({ userEmail }: UseSessionTrackerOptions) {
       10,
     );
     const storedDate = localStorage.getItem("session_current_date") || "";
-    const today = getSessionDayStr();
+    const today = getISTDateStr();
 
     if (storedDate !== today) {
       // New day — reset
@@ -185,11 +173,11 @@ export function useSessionTracker({ userEmail }: UseSessionTrackerOptions) {
       // Ping leadership every tick
       pingLeader();
 
-      // Check 12:07 PM IST reset (session day changed)
-      const currentDate = getSessionDayStr();
+      // Check midnight reset (IST date changed)
+      const currentDate = getISTDateStr();
       const sd = localStorage.getItem("session_current_date") || currentDate;
       if (currentDate !== sd) {
-        // 12:07 PM crossed — reset
+        // Midnight crossed — reset
         localStorage.setItem("session_current_date", currentDate);
         localStorage.setItem("session_total_seconds", "0");
         savedSecondsRef.current = 0;
@@ -225,8 +213,8 @@ export function useSessionTracker({ userEmail }: UseSessionTrackerOptions) {
       lastHeartbeatRef.current = now;
     }, 60000);
 
-    // Store session day string
-    localStorage.setItem("session_current_date", getSessionDayStr());
+    // Store IST date
+    localStorage.setItem("session_current_date", getISTDateStr());
 
     // beforeunload — send final heartbeat via sync XHR
     const handleUnload = () => {

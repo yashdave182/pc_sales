@@ -93,7 +93,8 @@ export function useChat(currentUserEmail: string | null | undefined) {
       const { data: convs, error: cErr } = await supabase
         .from("chat_conversations")
         .select("*")
-        .in("conversation_id", convIds);
+        .in("conversation_id", convIds)
+        .eq("type", "group");
       if (cErr || !convs) return;
 
       const { data: allParticipants } = await supabase
@@ -108,6 +109,7 @@ export function useChat(currentUserEmail: string | null | undefined) {
             .select("content, created_at")
             .eq("conversation_id", id)
             .eq("is_deleted", false)
+            .or(`mentions.eq.[],mentions.cs.["${currentUserEmail}"],sender_email.eq.${currentUserEmail}`)
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle()  // returns null (not error) when conversation has no messages
@@ -131,6 +133,7 @@ export function useChat(currentUserEmail: string | null | undefined) {
             .eq("conversation_id", id)
             .eq("is_deleted", false)
             .gt("created_at", since)
+            .or(`mentions.eq.[],mentions.cs.["${currentUserEmail}"]`)
             .neq("sender_email", currentUserEmail);
           return { id, count: count ?? 0 };
         })
@@ -197,6 +200,7 @@ export function useChat(currentUserEmail: string | null | undefined) {
         .select("*")
         .eq("conversation_id", convId)
         .eq("is_deleted", false)
+        .or(`mentions.eq.[],mentions.cs.["${currentUserEmailRef.current}"],sender_email.eq.${currentUserEmailRef.current}`)
         .order("created_at", { ascending: true })
         .limit(100);
       if (error) { console.error("[useChat] loadMessages error:", error); return; }
@@ -231,6 +235,16 @@ export function useChat(currentUserEmail: string | null | undefined) {
         },
         (payload) => {
           const newMsg = payload.new as any;
+          
+          // --- Mention Visibility Check ---
+          const isSender = newMsg.sender_email === currentUserEmailRef.current;
+          const hasMentions = newMsg.mentions && newMsg.mentions.length > 0;
+          const isMentioned = hasMentions && newMsg.mentions.includes(currentUserEmailRef.current);
+          
+          if (hasMentions && !isMentioned && !isSender) {
+            return; // Ignore message meant for someone else
+          }
+
           // Only append if user is still viewing this conversation
           if (activeConvIdRef.current === convId) {
             setMessages((prev) => {
@@ -275,9 +289,28 @@ export function useChat(currentUserEmail: string | null | undefined) {
         { event: "INSERT", schema: "public", table: "chat_messages" },
         (payload) => {
           const newMsg = payload.new as any;
-          const convId = newMsg.conversation_id;
+          
+          // --- Mention Visibility Check ---
           const isOwn = newMsg.sender_email === currentUserEmailRef.current;
+          const hasMentions = newMsg.mentions && newMsg.mentions.length > 0;
+          const isMentioned = hasMentions && newMsg.mentions.includes(currentUserEmailRef.current);
+          
+          if (hasMentions && !isMentioned && !isOwn) {
+            return; // Ignore message meant for someone else
+          }
+
+          const convId = newMsg.conversation_id;
           const isActive = activeConvIdRef.current === convId;
+
+          // Native Browser Notification
+          if (!isOwn && (!isActive || document.hidden) && Notification.permission === "granted") {
+            const senderName = getUserNameRef.current(newMsg.sender_email);
+            const title = isMentioned ? `${senderName} mentioned you` : `New message from ${senderName}`;
+            new Notification(title, {
+              body: newMsg.content.substring(0, 50) + (newMsg.content.length > 50 ? '...' : ''),
+              icon: '/logo.jpg'
+            });
+          }
 
           // Update sidebar for every conversation this message belongs to
           setConversations((prev) => {

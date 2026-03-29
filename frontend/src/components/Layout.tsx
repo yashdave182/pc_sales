@@ -289,9 +289,20 @@ export default function Layout({
           table: "notifications",
           filter: `user_email=eq.${user.email}`,
         },
-        () => {
+        (payload) => {
           // Instantly refresh the count when a new notification arrives
           fetchUnreadCount();
+
+          // Spawn native notification
+          if ("Notification" in window && Notification.permission === "granted") {
+            const newNotif = payload.new as any;
+            if (newNotif && newNotif.title) {
+              new Notification(newNotif.title, {
+                body: newNotif.message || "",
+                icon: "/logo.jpg"
+              });
+            }
+          }
         },
       )
       .subscribe();
@@ -914,9 +925,12 @@ export default function Layout({
         <Toolbar /> {/* Spacer for AppBar */}
         <Box
           sx={{
-            p: { xs: 1.5, sm: 2.5, md: 4 },
+            p: location.pathname === "/chat" ? 0 : { xs: 1.5, sm: 2.5, md: 4 },
             maxWidth: "100%",
             overflowX: "hidden",
+            height: location.pathname === "/chat" ? "calc(100vh - 64px)" : "auto",
+            display: "flex",
+            flexDirection: "column"
           }}
         >
           {children}

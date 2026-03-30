@@ -1,5 +1,5 @@
-from typing import Optional
-from fastapi import APIRouter, Depends, Header, HTTPException
+from typing import Optional, List
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from models import Distributor
 from supabase_db import SupabaseClient, get_supabase
 from rbac_utils import verify_permission
@@ -8,7 +8,7 @@ from activity_logger import get_activity_logger
 router = APIRouter()
 
 
-@router.get("/", dependencies=[Depends(verify_permission("view_distributors"))])
+@router.get("/", response_model=List[Distributor], dependencies=[Depends(verify_permission("view_distributors"))])
 def get_distributors(db: SupabaseClient = Depends(get_supabase)):
     """Get all distributors"""
     try:
@@ -24,6 +24,7 @@ def get_distributors(db: SupabaseClient = Depends(get_supabase)):
 
         return response.data
     except Exception as e:
+        print("❌ GET ERROR:", str(e))
         raise HTTPException(
             status_code=500, detail=f"Error fetching distributors: {str(e)}"
         )
@@ -38,7 +39,6 @@ def create_distributor(
     """Create a new distributor"""
     try:
         distributor_data = {
-            "name": distributor.name,
             "village": distributor.village,
             "taluka": distributor.taluka,
             "district": distributor.district,
@@ -49,6 +49,22 @@ def create_distributor(
             "sabhasad_evening": distributor.sabhasad_evening,
             "contact_in_group": distributor.contact_in_group,
             "status": distributor.status,
+            "record_date": distributor.record_date,
+            "state": distributor.state,
+            "dairy_type": distributor.dairy_type,
+            "dairy_time_morning": distributor.dairy_time_morning,
+            "dairy_time_evening": distributor.dairy_time_evening,
+            "milk_collection_morning": distributor.milk_collection_morning,
+            "milk_collection_evening": distributor.milk_collection_evening,
+            "nature_of_sabhasad": distributor.nature_of_sabhasad,
+            "support": distributor.support,
+            "animal_delivery_period": distributor.animal_delivery_period,
+            "payment_recovery_demo": distributor.payment_recovery_demo,
+            "payment_recovery_dispatch": distributor.payment_recovery_dispatch,
+            "decision_maker_availability_morning": distributor.decision_maker_availability_morning,
+            "decision_maker_availability_evening": distributor.decision_maker_availability_evening,
+            "high_holder_to_low_holder_villages": distributor.high_holder_to_low_holder_villages,
+            "current_status_of_business": distributor.current_status_of_business,
         }
 
         response = db.table("distributors").insert(distributor_data).execute()
@@ -71,24 +87,30 @@ def create_distributor(
                 logger.log_create(
                     user_email=user_email,
                     entity_type="distributor",
-                    entity_name=distributor.name,
+                    entity_name=f"{distributor.village} - {distributor.taluka}",
                 )
             except Exception:
                 pass
 
 
 @router.put("/{distributor_id}", dependencies=[Depends(verify_permission("edit_distributor"))])
-def update_distributor(
+async def update_distributor(
     distributor_id: int,
+    request: Request,
     distributor: Distributor,
     db: SupabaseClient = Depends(get_supabase),
     user_email: Optional[str] = Header(None, alias="x-user-email"),
 ):
     """Update an existing distributor"""
+    print("🔥 UPDATE HIT")
     try:
+        raw_body = await request.json()
+        print("🔥 RAW REQUEST BODY:", raw_body)
+        print("📦 PARSED DATA:", distributor.model_dump())
+        print("🧠 MODEL FIELDS:", Distributor.model_fields.keys())
+        
         # Prepare data for update
         update_data = {
-            "name": distributor.name,
             "village": distributor.village,
             "taluka": distributor.taluka,
             "district": distributor.district,
@@ -98,6 +120,22 @@ def update_distributor(
             "sabhasad_evening": int(distributor.sabhasad_evening or 0),
             "status": distributor.status,
             "contact_in_group": distributor.contact_in_group,
+            "record_date": distributor.record_date,
+            "state": distributor.state,
+            "dairy_type": distributor.dairy_type,
+            "dairy_time_morning": distributor.dairy_time_morning,
+            "dairy_time_evening": distributor.dairy_time_evening,
+            "milk_collection_morning": distributor.milk_collection_morning,
+            "milk_collection_evening": distributor.milk_collection_evening,
+            "nature_of_sabhasad": distributor.nature_of_sabhasad,
+            "support": distributor.support,
+            "animal_delivery_period": distributor.animal_delivery_period,
+            "payment_recovery_demo": distributor.payment_recovery_demo,
+            "payment_recovery_dispatch": distributor.payment_recovery_dispatch,
+            "decision_maker_availability_morning": distributor.decision_maker_availability_morning,
+            "decision_maker_availability_evening": distributor.decision_maker_availability_evening,
+            "high_holder_to_low_holder_villages": distributor.high_holder_to_low_holder_villages,
+            "current_status_of_business": distributor.current_status_of_business,
         }
 
         # Remove None values to avoid overwriting with null
@@ -116,6 +154,7 @@ def update_distributor(
         if not response.data or len(response.data) == 0:
             raise HTTPException(status_code=404, detail="Distributor not found")
 
+        print("✅ UPDATE SUCCESS")
         return {
             "message": "Distributor updated successfully",
             "data": response.data[0],
@@ -123,6 +162,7 @@ def update_distributor(
     except HTTPException:
         raise
     except Exception as e:
+        print("❌ ERROR OCCURRED:", str(e))
         print(f"[ERROR] Error updating distributor {distributor_id}: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"Error updating distributor: {str(e)}"
@@ -134,7 +174,7 @@ def update_distributor(
                 logger.log_update(
                     user_email=user_email,
                     entity_type="distributor",
-                    entity_name=distributor.name,
+                    entity_name=f"{distributor.village} - {distributor.taluka}",
                     entity_id=distributor_id,
                 )
             except Exception:

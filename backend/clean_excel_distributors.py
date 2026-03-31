@@ -21,7 +21,7 @@ DISTRICT_ALIASES  = {"district", "district name", "jilla"}
 MANTRI_NAME_ALIASES   = {"mantri name", "mantry name", "mantri", "mantry name / distributors",
                          "distributor name", "distributors"}
 MANTRI_MOBILE_ALIASES = {"mantri mobile", "mobile", "mobile no", "mobile number",
-                         "contact", "phone", "phone no"}
+                         "contact", "phone", "phone no", "number"}
 SABHASAD_MORNING_ALIASES = {"sabhasad morning", "morning", "sabhasad (morning)",
                              "sabhsad morning", "subhasad morning"}
 SABHASAD_EVENING_ALIASES = {"sabhasad evening", "evening", "sabhasad (evening)",
@@ -84,6 +84,36 @@ def _match_col(norm_cols: list[str], aliases: set[str]) -> str | None:
         if c in aliases:
             return c
     return None
+
+
+def _match_col_flexible(norm_cols: list[str], keyword: str, must_not_have: str | None = None) -> str | None:
+    """Return the first column that contains the keyword, optionally excluding another."""
+    for c in norm_cols:
+        if keyword in c:
+            if must_not_have and must_not_have in c:
+                continue
+            return c
+    return None
+
+
+def parse_date(value) -> Optional[str]:
+    if pd.isna(value): return None
+    try:
+        return pd.to_datetime(value).strftime("%Y-%m-%d")
+    except:
+        return None
+
+
+def parse_time(value) -> Optional[str]:
+    if pd.isna(value): return None
+    if hasattr(value, 'strftime'):
+        return value.strftime("%H:%M")
+    s = str(value).strip()
+    try:
+        # pd.to_datetime is usually smart enough for %H:%M or %I:%M %p
+        return pd.to_datetime(s).strftime("%H:%M")
+    except:
+        return None
 
 
 def _safe_int(value, default=None):
@@ -160,7 +190,7 @@ def extract_distributors(filepath: str, sheet_name: int | str = 0) -> list[dict]
     Returns
     -------
     list of dicts with keys:
-        name, village, taluka, district,
+        village, taluka, district,
         mantri_name, mantri_mobile,
         sabhasad_morning, sabhasad_evening
     """
@@ -183,11 +213,12 @@ def extract_distributors(filepath: str, sheet_name: int | str = 0) -> list[dict]
 
     # ── Step 4: Handle multi-level (merged) column headers ────────────────────
     if isinstance(df.columns, pd.MultiIndex):
-        flat_cols = []
-        for tup in df.columns:
-            parts = [str(p).strip() for p in tup if not str(p).startswith("Unnamed")]
-            flat_cols.append(" ".join(parts) if parts else str(tup[-1]))
-        df.columns = flat_cols
+        df.columns = [
+            " ".join([str(i).strip() for i in col if pd.notna(i) and str(i).strip() and "unnamed" not in str(i).lower()])
+            if isinstance(col, tuple)
+            else str(col)
+            for col in df.columns
+        ]
     else:
         cols = list(df.columns)
         last_named = ""
@@ -214,6 +245,57 @@ def extract_distributors(filepath: str, sheet_name: int | str = 0) -> list[dict]
     col_mantri_mobile = _match_col(norm_cols, MANTRI_MOBILE_ALIASES)
     col_morning  = _match_col(norm_cols, SABHASAD_MORNING_ALIASES)
     col_evening  = _match_col(norm_cols, SABHASAD_EVENING_ALIASES)
+
+    # New Fields - Flexible Matching
+    col_record_date = _match_col_flexible(norm_cols, "date")
+    col_state = _match_col_flexible(norm_cols, "state")
+    col_dairy_type = _match_col_flexible(norm_cols, "dairy type")
+    
+    col_nature = _match_col_flexible(norm_cols, "nature of sabhasad")
+    col_support = _match_col_flexible(norm_cols, "support")
+    col_animal_period = _match_col_flexible(norm_cols, "animal delivery")
+    col_high_holder = _match_col_flexible(norm_cols, "high holder")
+    col_current_status = _match_col_flexible(norm_cols, "current status")
+
+    col_dairy_time_m = None
+    col_dairy_time_e = None
+    col_milk_m = None
+    col_milk_e = None
+    col_recovery_demo = None
+    col_recovery_dispatch = None
+    col_dm_avail_m = None
+    col_dm_avail_e = None
+
+    for col in norm_cols:
+        col_lower = col.lower()
+        
+        # Payment Recovery
+        if "payment recovery" in col_lower and ("demo" in col_lower or "sub" not in col_lower and not col_recovery_demo):
+            col_recovery_demo = col
+        elif "payment recovery" in col_lower and ("dispatch" in col_lower or "sub" in col_lower):
+            col_recovery_dispatch = col
+
+        # Decision Maker
+        if "decision maker" in col_lower and ("morning" in col_lower or ("evening" not in col_lower and "sub" not in col_lower and not col_dm_avail_m)):
+            col_dm_avail_m = col
+        elif "decision maker" in col_lower and ("evening" in col_lower or "sub" in col_lower):
+            col_dm_avail_e = col
+
+        # Dairy Time
+        if "dairy time" in col_lower and ("morning" in col_lower or ("evening" not in col_lower and "sub" not in col_lower and not col_dairy_time_m)):
+            col_dairy_time_m = col
+        elif "dairy time" in col_lower and ("evening" in col_lower or "sub" in col_lower):
+            col_dairy_time_e = col
+            
+        # Milk Collection
+        if "milk collection" in col_lower and ("morning" in col_lower or ("evening" not in col_lower and "sub" not in col_lower and not col_milk_m)):
+            col_milk_m = col
+        elif "milk collection" in col_lower and ("evening" in col_lower or "sub" in col_lower):
+            col_milk_e = col
+
+    print("📊 AVAILABLE COLUMNS:", norm_cols)
+    print("✅ MATCHED DEMO:", col_recovery_demo)
+    print("✅ MATCHED DISPATCH:", col_recovery_dispatch)
 
     # Fallback: infer morning/evening from generic split sabhasad columns
     if col_morning is None or col_evening is None:
@@ -253,13 +335,8 @@ def extract_distributors(filepath: str, sheet_name: int | str = 0) -> list[dict]
         sabhasad_morning = _safe_int(row[col_morning]) if col_morning else None
         sabhasad_evening = _safe_int(row[col_evening]) if col_evening else None
 
-        # Construct canonical name
-        v_upper = village.upper().strip()
-        t_upper = taluka.upper().strip()
-        name = f"{v_upper} - {t_upper}" if v_upper and t_upper else (v_upper or t_upper)
 
         record = {
-            "name":             name,
             "village":          village.upper() or None,
             "taluka":           taluka.upper()  or None,
             "district":         district.upper() if district else None,
@@ -267,7 +344,28 @@ def extract_distributors(filepath: str, sheet_name: int | str = 0) -> list[dict]
             "mantri_mobile":    mantri_mobile,
             "sabhasad_morning": sabhasad_morning,
             "sabhasad_evening": sabhasad_evening,
+            
+            # Additional Fields
+            "record_date": parse_date(row[col_record_date]) if col_record_date else None,
+            "state": _safe_str(row[col_state]) if col_state else None,
+            "dairy_type": _safe_str(row[col_dairy_type]) if col_dairy_type else None,
+            "dairy_time_morning": parse_time(row[col_dairy_time_m]) if col_dairy_time_m else None,
+            "dairy_time_evening": parse_time(row[col_dairy_time_e]) if col_dairy_time_e else None,
+            "milk_collection_morning": _safe_int(row[col_milk_m]) if col_milk_m else None,
+            "milk_collection_evening": _safe_int(row[col_milk_e]) if col_milk_e else None,
+            "nature_of_sabhasad": _safe_str(row[col_nature]) if col_nature else None,
+            "support": _safe_str(row[col_support]) if col_support else None,
+            "animal_delivery_period": _safe_str(row[col_animal_period]) if col_animal_period else None,
+            "payment_recovery_demo": _safe_int(row[col_recovery_demo]) if col_recovery_demo else None,
+            "payment_recovery_dispatch": _safe_int(row[col_recovery_dispatch]) if col_recovery_dispatch else None,
+            "decision_maker_availability_morning": _safe_str(row[col_dm_avail_m]) if col_dm_avail_m else None,
+            "decision_maker_availability_evening": _safe_str(row[col_dm_avail_e]) if col_dm_avail_e else None,
+            "high_holder_to_low_holder_villages": _safe_str(row[col_high_holder]) if col_high_holder else None,
+            "current_status_of_business": _safe_str(row[col_current_status]) if col_current_status else None,
         }
+        
+        # 📦 DEBUG LOG
+        print("📦 EXTRA FIELDS:", record)
         records.append(record)
 
     print(f"[DEBUG] Extracted {len(records)} valid record(s).")

@@ -153,12 +153,12 @@ export default function Dashboard() {
     };
 
     const [salesDateRange, setSalesDateRange] = useState({
-        start: getLocalISODate(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
+        start: "2024-09-02",
         end: getLocalISODate(new Date()),
     });
 
     const [collectedPaymentRange, setCollectedPaymentRange] = useState({
-        start: getLocalISODate(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
+        start: "2024-09-02",
         end: getLocalISODate(new Date()),
     });
 

@@ -421,14 +421,15 @@ export default function Layout({
       {/* Logo Section */}
       <Box
         sx={{
-          p: 3,
-          px: sidebarExpanded ? 3 : 1.5,
+          py: 2,
+          px: sidebarExpanded ? 2 : 1.5,
           display: "flex",
           alignItems: "center",
-          gap: 2,
+          gap: 1.5,
           justifyContent: sidebarExpanded ? "flex-start" : "center",
           background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
           color: "white",
+          minHeight: 64,
           transition: theme.transitions.create(["padding"], {
             duration: theme.transitions.duration.shorter,
           }),
@@ -438,21 +439,35 @@ export default function Layout({
           src="/logo.jpg"
           alt="Sales Management Logo"
           sx={{
-            width: 50,
-            height: 50,
+            width: 40,
+            height: 40,
             bgcolor: "rgba(255, 255, 255, 0.2)",
+            flexShrink: 0,
           }}
         />
         {sidebarExpanded && (
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-              {t("common.salesManagementSystem").split(" ")[0]}
+          <Box sx={{ minWidth: 0, overflow: "hidden" }}>
+            <Typography
+              sx={{
+                fontWeight: 700,
+                fontSize: "0.9rem",
+                lineHeight: 1.2,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              Sales Management
             </Typography>
             <Typography
-              variant="body2"
-              sx={{ opacity: 0.9, fontSize: "0.85rem" }}
+              sx={{
+                opacity: 0.85,
+                fontSize: "0.75rem",
+                lineHeight: 1.2,
+                whiteSpace: "nowrap",
+              }}
             >
-              {t("common.salesManagementSystem").split(" ").slice(1).join(" ")}
+              System
             </Typography>
           </Box>
         )}
@@ -1038,35 +1053,38 @@ export default function Layout({
           {drawer}
         </Drawer>
 
-        {/* Fixed sidebar toggle button - always visible on sidebar edge */}
-        <IconButton
+        {/* Fixed sidebar toggle - creative gradient pill on sidebar edge */}
+        <Box
           onClick={toggleSidebar}
           sx={{
             position: "fixed",
-            left: desktopDrawerWidth - 14,
+            left: desktopDrawerWidth - 12,
             top: "50%",
             transform: "translateY(-50%)",
             zIndex: 1201,
-            width: 28,
-            height: 28,
-            bgcolor: theme.palette.background.paper,
-            border: `1px solid ${theme.palette.divider}`,
-            boxShadow: theme.shadows[3],
-            "&:hover": {
-              bgcolor: theme.palette.action.hover,
-            },
+            width: 24,
+            height: 48,
+            borderRadius: "0 12px 12px 0",
+            background: "linear-gradient(180deg, #667eea 0%, #764ba2 100%)",
+            cursor: "pointer",
+            display: { xs: "none", md: "flex" },
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "2px 0 8px rgba(102, 126, 234, 0.3)",
             transition: theme.transitions.create(["left"], {
               duration: theme.transitions.duration.standard,
             }),
-            display: { xs: "none", md: "flex" },
+            "&:hover": {
+              background: "linear-gradient(180deg, #667eea 0%, #764ba2 100%)",
+            },
           }}
         >
           {sidebarExpanded ? (
-            <ChevronLeftIcon sx={{ fontSize: 18 }} />
+            <ChevronLeftIcon sx={{ fontSize: 18, color: "#fff", transition: "transform 0.3s ease" }} />
           ) : (
-            <ChevronRightIcon sx={{ fontSize: 18 }} />
+            <ChevronRightIcon sx={{ fontSize: 18, color: "#fff", transition: "transform 0.3s ease" }} />
           )}
-        </IconButton>
+        </Box>
       </Box>
 
       {/* Main content */}

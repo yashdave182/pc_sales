@@ -16,6 +16,8 @@ import {
   CircularProgress,
   InputAdornment,
   Grid,
+  Divider,
+  Tooltip,
   MenuItem,
   useMediaQuery,
   useTheme,
@@ -49,17 +51,65 @@ export default function Distributors() {
   const [editingDistributor, setEditingDistributor] =
     useState<Distributor | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [columnNames, setColumnNames] = useState<Record<string, string>>(() => {
+    const saved = localStorage.getItem("distributorColumnNames");
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  useEffect(() => {
+    localStorage.setItem("distributorColumnNames", JSON.stringify(columnNames));
+  }, [columnNames]);
+
+  const [renameField, setRenameField] = useState<string | null>(null);
+  const [newColumnName, setNewColumnName] = useState("");
+
+  const handleRenameClick = (field: string) => {
+    setRenameField(field);
+    setNewColumnName(columnNames[field] || "");
+  };
+
+  const handleSaveRename = () => {
+    if (renameField) {
+      setColumnNames((prev) => ({
+        ...prev,
+        [renameField]: newColumnName,
+      }));
+      setRenameField(null);
+    }
+  };
+
+  const handleCloseRename = () => {
+    setRenameField(null);
+    setNewColumnName("");
+  };
+  
   const [formData, setFormData] = useState<Partial<Distributor>>({
-    name: "",
     village: "",
     taluka: "",
     district: "",
+    state: "Gujarat",
     mantri_name: "",
     mantri_mobile: "",
     sabhasad_morning: 0,
     sabhasad_evening: 0,
+    sabhasad_count: 0,
     contact_in_group: 0,
     status: "Active",
+    record_date: new Date().toISOString().split('T')[0],
+    dairy_type: "",
+    dairy_time_morning: "",
+    dairy_time_evening: "",
+    milk_collection_morning: 0,
+    milk_collection_evening: 0,
+    nature_of_sabhasad: "",
+    support: "",
+    animal_delivery_period: "",
+    payment_recovery_demo: 0,
+    payment_recovery_dispatch: 0,
+    decision_maker_availability_morning: "",
+    decision_maker_availability_evening: "",
+    high_holder_to_low_holder_villages: "",
+    current_status_of_business: "",
   });
 
   useEffect(() => {
@@ -91,16 +141,32 @@ export default function Distributors() {
     } else {
       setEditingDistributor(null);
       setFormData({
-        name: "",
         village: "",
         taluka: "",
         district: "",
+        state: "Gujarat",
         mantri_name: "",
         mantri_mobile: "",
         sabhasad_morning: 0,
         sabhasad_evening: 0,
+        sabhasad_count: 0,
         contact_in_group: 0,
         status: "Active",
+        record_date: new Date().toISOString().split('T')[0],
+        dairy_type: "",
+        dairy_time_morning: "",
+        dairy_time_evening: "",
+        milk_collection_morning: 0,
+        milk_collection_evening: 0,
+        nature_of_sabhasad: "",
+        support: "",
+        animal_delivery_period: "",
+        payment_recovery_demo: 0,
+        payment_recovery_dispatch: 0,
+        decision_maker_availability_morning: "",
+        decision_maker_availability_evening: "",
+        high_holder_to_low_holder_villages: "",
+        current_status_of_business: "",
       });
     }
     setOpenDialog(true);
@@ -113,12 +179,13 @@ export default function Distributors() {
 
   const handleSubmit = async () => {
     try {
-      if (!formData.name || !formData.mantri_name) {
-        setError("Name and Mantri Name are required");
+      if (!formData.village || !formData.taluka || !formData.mantri_name) {
+        setError("Village, Taluka and Mantri Name are required");
         return;
       }
 
       if (editingDistributor) {
+        console.log("🚀 PAYLOAD BEING SENT:", formData);
         await distributorAPI.update(
           editingDistributor.distributor_id!,
           formData as Distributor,
@@ -142,7 +209,7 @@ export default function Distributors() {
 
   const getRowColor = (row: Distributor) => {
     // RED (Critical Issue): Missing core contact or identity data
-    const redFields = ["name", "village", "mantri_name", "mantri_mobile"];
+    const redFields = ["village", "taluka", "mantri_name", "mantri_mobile"];
     const isRed = redFields.some(
       (field) =>
         row[field as keyof Distributor] === null ||
@@ -153,7 +220,6 @@ export default function Distributors() {
 
     // GREEN (Strictly Complete): ALL specified data points must be present
     const greenFields = [
-      "name",
       "village",
       "taluka",
       "mantri_name",
@@ -174,20 +240,17 @@ export default function Distributors() {
 
   const StatusDot = ({ color }: { color: string }) => (
     <Box
-      component="span"
       sx={{
-        width: 6,
-        height: 6,
+        width: 8,
+        height: 8,
         borderRadius: "50%",
-        bgcolor:
+        backgroundColor:
           color === "green"
             ? "#16a34a"
             : color === "orange"
               ? "#ea580c"
-              : "#dc2626",
-        display: "inline-block",
-        mr: 1,
-        boxShadow: "0 0 0 2px rgba(255,255,255,0.5)",
+              : "#ef4444",
+        flexShrink: 0,
       }}
     />
   );
@@ -197,144 +260,370 @@ export default function Distributors() {
     return val;
   };
 
-  const columns: GridColDef[] = [
+  const renderBadge = (params: any) => {
+    const value = params.value;
+    const field = params.field;
+
+    if (value === null || value === undefined) return "N/A";
+
+    const getBadgeColor = (fieldName: string, val: any) => {
+      if (!val || val === 0) return "#6b7280"; // gray for 0/null/empty
+      if (fieldName.includes("sabhasad")) return "#2563eb"; // blue
+      if (fieldName.includes("contact") || fieldName.includes("group"))
+        return "#7c3aed"; // purple
+      if (fieldName.includes("milk")) return "#16a34a"; // green
+      if (fieldName.includes("payment")) return "#ea580c"; // orange
+      return "#2563eb"; // default
+    };
+
+    const bgColor = getBadgeColor(field, value);
+
+    return (
+      <span
+        style={{
+          backgroundColor: bgColor,
+          color: "white",
+          borderRadius: "999px",
+          padding: "4px 10px",
+          fontSize: "12px",
+          fontWeight: 500,
+          display: "inline-block",
+          minWidth: "28px",
+          textAlign: "center",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
+        }}
+      >
+        {value}
+      </span>
+    );
+  };
+
+  const baseColumns: GridColDef[] = [
     {
-      field: "name",
-      headerName: t("distributors.distributorName"),
-      flex: 1,
-      minWidth: 200,
+      field: "actions",
+      headerName: t("common.actions"),
+      width: 120,
+      sortable: false,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
       renderCell: (params) => (
-        <Box sx={{ display: "flex", alignItems: "center", height: "100%", gap: 1 }}>
-          <StatusDot color={getRowColor(params.row)} />
-          <Typography
-            sx={{
-              fontSize: "14px",
-              fontWeight: 600,
-              color: "#111827",
-              letterSpacing: "0.2px",
-            }}
-          >
-            {params.value}
-          </Typography>
+        <Box>
+          <PermissionGate permission={PERMISSIONS.EDIT_DISTRIBUTOR}>
+            <IconButton
+              size="small"
+              onClick={() => handleOpenDialog(params.row)}
+              color="primary"
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </PermissionGate>
         </Box>
       ),
     },
-    {
-      field: "village",
-      headerName: tf("village"),
-      width: 150,
-      renderCell: (params) => (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, height: "100%" }}>
-          <LocationOnIcon sx={{ fontSize: 14, color: "#4b5563" }} />
-          <Typography sx={{ fontSize: "13px", fontWeight: 600, color: "#111827" }}>
-            {displayValue(params.value)}
-          </Typography>
-        </Box>
-      ),
-    },
+    // 1. Mantri (Moved to start)
     {
       field: "mantri_name",
       headerName: t("distributors.mantriName", "Mantri Name"),
-      width: 180,
+      width: 220,
+      minWidth: 180,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
       renderCell: (params) => (
-        <Typography sx={{ fontSize: "13px", fontWeight: 600, color: "#111827" }}>
-          {displayValue(params.value)}
-        </Typography>
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          width: '100%',
+          overflow: 'hidden'
+        }}>
+          <StatusDot color={getRowColor(params.row)} />
+          <span style={{
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}>
+            {displayValue(params.value)}
+          </span>
+        </Box>
       ),
     },
     {
       field: "mantri_mobile",
       headerName: t("distributors.mobile", "Mantri Mobile"),
       width: 150,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
       renderCell: (params) => (
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, height: "100%" }}>
-          <PhoneIcon sx={{ fontSize: 14, color: "#4b5563" }} />
-          <Typography sx={{ fontSize: "13px", fontWeight: 600, color: "#111827" }}>
-            {displayValue(params.value)}
-          </Typography>
+          <PhoneIcon sx={{ fontSize: 16 }} />
+          <span>{displayValue(params.value)}</span>
         </Box>
       ),
     },
+
+    // 2. Identity
+    {
+      field: "village",
+      headerName: tf("village"),
+      width: 150,
+      minWidth: 120,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+      renderCell: (params) => <span>{displayValue(params.value)}</span>,
+    },
+    {
+      field: "taluka",
+      headerName: tf("taluka"),
+      width: 150,
+      minWidth: 120,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+      renderCell: (params) => <span>{displayValue(params.value)}</span>,
+    },
+    {
+      field: "district",
+      headerName: tf("district"),
+      width: 150,
+      minWidth: 120,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+    },
+    {
+      field: "state",
+      headerName: tf("state"),
+      width: 150,
+      minWidth: 120,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+    },
+    {
+      field: "record_date",
+      headerName: t("distributors.recordDate", "Record Date"),
+      width: 150,
+      minWidth: 120,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+      valueFormatter: (params) =>
+        params.value ? new Date(params.value).toLocaleDateString("en-GB") : "N/A",
+      sortComparator: (v1, v2) =>
+        new Date(v1 as string).getTime() - new Date(v2 as string).getTime(),
+    },
+
+    // 3. Core Data
     {
       field: "sabhasad_morning",
-      headerName: t("distributors.sabhasadMorning", "Sabhasad Morning"),
+      headerName: "Sabhasad (M)",
       width: 120,
-      renderCell: (params) => (
-        <Chip
-          label={displayValue(params.value)}
-          size="small"
-          color="primary"
-          sx={{
-            boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-            px: 1.2,
-            fontWeight: 500,
-            fontSize: "12px",
-            borderRadius: "999px",
-          }}
-        />
-      ),
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+      renderCell: renderBadge,
     },
     {
       field: "sabhasad_evening",
-      headerName: t("distributors.sabhasadEvening", "Sabhasad Evening"),
+      headerName: "Sabhasad (E)",
       width: 120,
-      renderCell: (params) => (
-        <Chip
-          label={displayValue(params.value)}
-          size="small"
-          color="info"
-          sx={{
-            boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-            px: 1.2,
-            fontWeight: 500,
-            fontSize: "12px",
-            borderRadius: "999px",
-          }}
-        />
-      ),
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+      renderCell: renderBadge,
     },
     {
       field: "sabhasad_count",
-      headerName: t("distributors.sabhasadCount", "Sabhasad"),
+      headerName: "Total Sabhasad",
       width: 140,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+      renderCell: renderBadge,
+    },
+    {
+      field: "milk_collection_morning",
+      headerName: "Milk (M)",
+      width: 120,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+      renderCell: renderBadge,
+    },
+    {
+      field: "milk_collection_evening",
+      headerName: "Milk (E)",
+      width: 120,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+      renderCell: renderBadge,
+    },
+
+    // 4. Operational
+    {
+      field: "dairy_type",
+      headerName: "Dairy Type",
+      width: 150,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+    },
+    {
+      field: "dairy_time_morning",
+      headerName: "Dairy Time (M)",
+      width: 150,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+      valueFormatter: (params) =>
+        params.value ? String(params.value).slice(0, 5) : "N/A",
+      sortComparator: (v1, v2) =>
+        (v1 as string || "").localeCompare(v2 as string || ""),
+    },
+    {
+      field: "dairy_time_evening",
+      headerName: "Dairy Time (E)",
+      width: 150,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+      valueFormatter: (params) =>
+        params.value ? String(params.value).slice(0, 5) : "N/A",
+      sortComparator: (v1, v2) =>
+        (v1 as string || "").localeCompare(v2 as string || ""),
+    },
+    {
+      field: "nature_of_sabhasad",
+      headerName: "Nature of Sabhasad",
+      width: 150,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+    },
+
+    // 5. Advanced
+    {
+      field: "payment_recovery_demo",
+      headerName: "Recovery (Demo)",
+      width: 150,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+      renderCell: renderBadge,
+    },
+    {
+      field: "payment_recovery_dispatch",
+      headerName: "Recovery (Dispatch)",
+      width: 150,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+      renderCell: renderBadge,
+    },
+    {
+      field: "decision_maker_availability_morning",
+      headerName: "DM Avail (M)",
+      width: 150,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+    },
+    {
+      field: "decision_maker_availability_evening",
+      headerName: "DM Avail (E)",
+      width: 150,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+    },
+
+    // 6. Long Text
+    {
+      field: "support",
+      headerName: "Support",
+      width: 250,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
       renderCell: (params) => (
-        <Chip
-          label={displayValue(params.value)}
-          size="small"
-          color="secondary"
-          sx={{
-            boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-            px: 1.2,
-            fontWeight: 500,
-            fontSize: "12px",
-            borderRadius: "999px",
-          }}
-        />
+        <Tooltip title={params.value || "N/A"}>
+          <span
+            style={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {displayValue(params.value)}
+          </span>
+        </Tooltip>
       ),
     },
     {
-      field: "contact_in_group",
-      headerName: t("distributors.contactInGroup", "In Group"),
-      width: 120,
+      field: "high_holder_to_low_holder_villages",
+      headerName: "High/Low Villages",
+      width: 250,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
       renderCell: (params) => (
-        <Chip
-          label={displayValue(params.value)}
-          size="small"
-          color="secondary"
-          sx={{
-            boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-            px: 1.2,
-            fontWeight: 500,
-            fontSize: "12px",
-            borderRadius: "999px",
-          }}
-        />
+        <Tooltip title={params.value || "N/A"}>
+          <span
+            style={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {displayValue(params.value)}
+          </span>
+        </Tooltip>
       ),
+    },
+    {
+      field: "current_status_of_business",
+      headerName: "Business Status",
+      width: 250,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+      renderCell: (params) => (
+        <Tooltip title={params.value || "N/A"}>
+          <span
+            style={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {displayValue(params.value)}
+          </span>
+        </Tooltip>
+      ),
+    },
+
+    // 7. Admin
+    {
+      field: "contact_in_group",
+      headerName: "In Group",
+      width: 120,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+      renderCell: renderBadge,
     },
     {
       field: "status",
       headerName: tf("status"),
       width: 100,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
       renderCell: (params) => (
         <Chip
           label={
@@ -354,26 +643,30 @@ export default function Distributors() {
         />
       ),
     },
-    {
-      field: "actions",
-      headerName: t("common.actions"),
-      width: 120,
-      sortable: false,
-      renderCell: (params) => (
-        <Box>
-          <PermissionGate permission={PERMISSIONS.EDIT_DISTRIBUTOR}>
-            <IconButton
-              size="small"
-              onClick={() => handleOpenDialog(params.row)}
-              color="primary"
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </PermissionGate>
-        </Box>
-      ),
-    },
   ];
+
+  const columns: GridColDef[] = baseColumns.map((col) => ({
+    ...col,
+    headerName: columnNames[col.field] || col.headerName,
+    renderHeader: (params: any) => (
+      <Tooltip title="Double click to rename">
+        <Box
+          onDoubleClick={() => handleRenameClick(params.field)}
+          sx={{
+            width: "100%",
+            cursor: "pointer",
+            textAlign: "center",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100%",
+          }}
+        >
+          {columnNames[params.field] || params.colDef.headerName}
+        </Box>
+      </Tooltip>
+    ),
+  }));
 
   const filteredDistributors = distributors.filter((distributor) =>
     Object.values(distributor).some((value) =>
@@ -452,7 +745,14 @@ export default function Distributors() {
                 rows={filteredDistributors}
                 columns={columns}
                 getRowId={(row) => row.distributor_id}
-                pageSizeOptions={[10, 25, 50, 100]}
+                columnBuffer={10}
+                pageSizeOptions={[10, 25, 50]}
+                disableRowSelectionOnClick
+                scrollbarSize={8}
+                rowHeight={48}
+                localeText={{
+                  noRowsLabel: "No distributor data available",
+                }}
                 initialState={{
                   pagination: {
                     paginationModel: { pageSize: 25 },
@@ -465,6 +765,11 @@ export default function Distributors() {
                 })}
                 sx={{
                   border: "none",
+                  "& .multi-line-header": {
+                    whiteSpace: "normal !important",
+                    lineHeight: "1.2 !important",
+                    textAlign: "center",
+                  },
                   "& .MuiDataGrid-row": {
                     borderRadius: "6px",
                     marginBottom: "6px",
@@ -497,19 +802,22 @@ export default function Distributors() {
                   },
                   "& .MuiDataGrid-cell": {
                     borderBottom: "none",
-                    fontSize: "13px",
+                    display: "flex",
+                    alignItems: "center",
+                    fontWeight: 500,
+                    fontSize: "14px",
                     px: 2,
+                    whiteSpace: "nowrap",
                   },
                   "& .MuiDataGrid-columnHeaders": {
                     bgcolor: "rgba(0,0,0,0.01)",
                     borderRadius: 0,
                     borderBottom: "1px solid rgba(0,0,0,0.08)",
                     color: "#111827",
-                    fontWeight: 700,
-                    fontSize: "13px",
+                    fontWeight: 600,
+                    fontSize: "14px",
                   },
                 }}
-                disableRowSelectionOnClick
               />
             )}
           </Box>
@@ -531,15 +839,12 @@ export default function Distributors() {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label={`${t("distributors.distributorName")} *`}
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-              />
+            {/* Section 1: Basic Info */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 600 }}>
+                {t("distributors.basicInfo", "Basic Information")}
+              </Typography>
+              <Divider sx={{ mt: 0.5, mb: 1.5 }} />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
@@ -569,6 +874,18 @@ export default function Distributors() {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
+                type="date"
+                label={t("distributors.recordDate", "Record Date")}
+                value={formData.record_date || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, record_date: e.target.value })
+                }
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
                 label={tf("village")}
                 value={formData.village}
                 onChange={(e) =>
@@ -576,7 +893,7 @@ export default function Distributors() {
                 }
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={4}>
               <TextField
                 fullWidth
                 label={tf("taluka")}
@@ -586,7 +903,7 @@ export default function Distributors() {
                 }
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={4}>
               <TextField
                 fullWidth
                 label={tf("district")}
@@ -595,6 +912,24 @@ export default function Distributors() {
                   setFormData({ ...formData, district: e.target.value })
                 }
               />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                fullWidth
+                label={tf("state")}
+                value={formData.state || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, state: e.target.value })
+                }
+              />
+            </Grid>
+
+            {/* Section 2: Sabhasad & Counts */}
+            <Grid item xs={12} sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 600 }}>
+                {t("distributors.sabhasadDetails", "Sabhasad & Participation")}
+              </Typography>
+              <Divider sx={{ mt: 0.5, mb: 1.5 }} />
             </Grid>
             <Grid item xs={12} sm={4}>
               <TextField
@@ -628,6 +963,20 @@ export default function Distributors() {
               <TextField
                 fullWidth
                 type="number"
+                label={t("distributors.sabhasadCount", "Total Sabhasad")}
+                value={formData.sabhasad_count || 0}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    sabhasad_count: Number(e.target.value) || 0,
+                  })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="number"
                 label={t("distributors.contactInGroup", "Contact in Group")}
                 value={formData.contact_in_group}
                 onChange={(e) =>
@@ -638,7 +987,7 @@ export default function Distributors() {
                 }
               />
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 select
@@ -654,12 +1003,196 @@ export default function Distributors() {
                 </MenuItem>
               </TextField>
             </Grid>
+
+            {/* Section 3: Dairy Operations */}
+            <Grid item xs={12} sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 600 }}>
+                {t("distributors.dairyOps", "Dairy Operations")}
+              </Typography>
+              <Divider sx={{ mt: 0.5, mb: 1.5 }} />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label={t("distributors.dairyType", "Dairy Type")}
+                value={formData.dairy_type || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, dairy_type: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label={t("distributors.nature", "Nature of Sabhasad")}
+                value={formData.nature_of_sabhasad || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, nature_of_sabhasad: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <TextField
+                fullWidth
+                type="time"
+                label={t("distributors.dairyTimeM", "Dairy Time (M)")}
+                value={formData.dairy_time_morning || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, dairy_time_morning: e.target.value })
+                }
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <TextField
+                fullWidth
+                type="time"
+                label={t("distributors.dairyTimeE", "Dairy Time (E)")}
+                value={formData.dairy_time_evening || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, dairy_time_evening: e.target.value })
+                }
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <TextField
+                fullWidth
+                type="number"
+                label={t("distributors.milkM", "Milk (M)")}
+                value={formData.milk_collection_morning || 0}
+                onChange={(e) =>
+                  setFormData({ ...formData, milk_collection_morning: Number(e.target.value) || 0 })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <TextField
+                fullWidth
+                type="number"
+                label={t("distributors.milkE", "Milk (E)")}
+                value={formData.milk_collection_evening || 0}
+                onChange={(e) =>
+                  setFormData({ ...formData, milk_collection_evening: Number(e.target.value) || 0 })
+                }
+              />
+            </Grid>
+
+            {/* Section 4: Business Insights */}
+            <Grid item xs={12} sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 600 }}>
+                {t("distributors.businessInsights", "Business & Recovery")}
+              </Typography>
+              <Divider sx={{ mt: 0.5, mb: 1.5 }} />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="number"
+                label={t("distributors.recoveryDemo", "Recovery Days (Demo)")}
+                value={formData.payment_recovery_demo || 0}
+                onChange={(e) =>
+                  setFormData({ ...formData, payment_recovery_demo: Number(e.target.value) || 0 })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="number"
+                label={t("distributors.recoveryDispatch", "Recovery Days (Dispatch)")}
+                value={formData.payment_recovery_dispatch || 0}
+                onChange={(e) =>
+                  setFormData({ ...formData, payment_recovery_dispatch: Number(e.target.value) || 0 })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label={t("distributors.dmAvailM", "DM Avail (M)")}
+                value={formData.decision_maker_availability_morning || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, decision_maker_availability_morning: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label={t("distributors.dmAvailE", "DM Avail (E)")}
+                value={formData.decision_maker_availability_evening || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, decision_maker_availability_evening: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label={t("distributors.support", "Support Level")}
+                value={formData.support || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, support: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                multiline
+                rows={2}
+                label={t("distributors.highLowVillages", "High to Low Holder Villages")}
+                value={formData.high_holder_to_low_holder_villages || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, high_holder_to_low_holder_villages: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                multiline
+                rows={2}
+                label={t("distributors.businessStatus", "Current Status of Business")}
+                value={formData.current_status_of_business || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, current_status_of_business: e.target.value })
+                }
+              />
+            </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>{t("common.cancel")}</Button>
           <Button onClick={handleSubmit} variant="contained">
             {t("common.save")}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Rename Column Dialog */}
+      <Dialog open={Boolean(renameField)} onClose={handleCloseRename} maxWidth="xs" fullWidth>
+        <DialogTitle>{t("common.renameColumn", "Rename Column")}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 1 }}>
+            <TextField
+              autoFocus
+              fullWidth
+              size="small"
+              label={t("common.newColumnName", "New Column Name")}
+              value={newColumnName}
+              onChange={(e) => setNewColumnName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveRename();
+              }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseRename}>{t("common.cancel", "Cancel")}</Button>
+          <Button onClick={handleSaveRename} variant="contained" color="primary">
+            {t("common.save", "Save")}
           </Button>
         </DialogActions>
       </Dialog>

@@ -1,5 +1,5 @@
 import axios, { AxiosError } from "axios";
-
+console.log("API BASE:", import.meta.env.VITE_API_BASE_URL);
 // Resolve API base URL with multiple fallbacks and optional window override
 const resolveApiBaseUrl = (): string => {
   // 1) Runtime override from window (if provided via script tag or inline config)

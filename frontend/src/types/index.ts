@@ -120,7 +120,8 @@ export interface Demo {
 
 export interface Distributor {
   distributor_id?: number;
-  name: string;
+  record_date?: string;
+  state?: string;
   village?: string;
   taluka?: string;
   district?: string;
@@ -129,6 +130,20 @@ export interface Distributor {
   sabhasad_count?: number;
   sabhasad_morning?: number;
   sabhasad_evening?: number;
+  dairy_type?: string;
+  dairy_time_morning?: string;
+  dairy_time_evening?: string;
+  milk_collection_morning?: number;
+  milk_collection_evening?: number;
+  nature_of_sabhasad?: string;
+  support?: string;
+  animal_delivery_period?: string;
+  payment_recovery_demo?: number;
+  payment_recovery_dispatch?: number;
+  decision_maker_availability_morning?: string;
+  decision_maker_availability_evening?: string;
+  high_holder_to_low_holder_villages?: string;
+  current_status_of_business?: string;
   contact_in_group?: number;
   status?: string;
   created_date?: string;
@@ -276,7 +291,8 @@ export interface DemoFormData {
 }
 
 export interface DistributorFormData {
-  name: string;
+  record_date?: string;
+  state?: string;
   village: string;
   taluka: string;
   district: string;
@@ -285,6 +301,21 @@ export interface DistributorFormData {
   sabhasad_count: number;
   sabhasad_morning?: number;
   sabhasad_evening?: number;
+  dairy_type?: string;
+  dairy_time_morning?: string;
+  dairy_time_evening?: string;
+  milk_collection_morning?: number;
+  milk_collection_evening?: number;
+  nature_of_sabhasad?: string;
+  support?: string;
+  animal_delivery_period?: string;
+  payment_recovery_demo?: number;
+  payment_recovery_dispatch?: number;
+  decision_maker_availability_morning?: string;
+  decision_maker_availability_evening?: string;
+  high_holder_to_low_holder_villages?: string;
+  current_status_of_business?: string;
+  status?: string;
   contact_in_group: number;
 }
 

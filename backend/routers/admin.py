@@ -38,9 +38,9 @@ def get_my_activity_logs(
         start_ist = target_dt.replace(tzinfo=ist, hour=0, minute=0, second=0, microsecond=0)
         end_ist = target_dt.replace(tzinfo=ist, hour=23, minute=59, second=59, microsecond=999999)
         
-        # Use .isoformat() which includes to exact timezone offset (e.g. +00:00) so Supabase does not evaluate in local time
-        normalized_start = start_ist.astimezone(timezone.utc).isoformat()
-        normalized_end = end_ist.astimezone(timezone.utc).isoformat()
+        # Use strftime with 'Z' suffix to avoid URL-encoding issues with '+00:00'
+        normalized_start = start_ist.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        normalized_end = end_ist.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
         query = (
             db.table("activity_logs")
@@ -98,14 +98,15 @@ def get_activity_logs(
             start_ist = selected_dt.replace(tzinfo=ist, hour=0, minute=0, second=0, microsecond=0)
             end_ist = selected_dt.replace(tzinfo=ist, hour=23, minute=59, second=59, microsecond=999999)
             
-            # Use .isoformat() which includes to exact timezone offset (e.g. +00:00) so Supabase does not evaluate in local time
-            normalized_start = start_ist.astimezone(timezone.utc).isoformat()
-            normalized_end = end_ist.astimezone(timezone.utc).isoformat()
+            # Use strftime with 'Z' suffix instead of .isoformat() to avoid URL-encoding
+            # issues where '+00:00' gets the '+' decoded as a space, breaking the filter
+            normalized_start = start_ist.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            normalized_end = end_ist.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
             print(f"[DEBUG] Date filter: {selected_date} IST -> UTC range: {normalized_start} to {normalized_end}")
         elif start_date:
-            normalized_start = f"{start_date}T00:00:00" if len(start_date) == 10 else start_date
+            normalized_start = f"{start_date}T00:00:00Z" if len(start_date) == 10 else start_date
         if end_date:
-            normalized_end = f"{end_date}T23:59:59.999999" if len(end_date) == 10 else end_date
+            normalized_end = f"{end_date}T23:59:59.999999Z" if len(end_date) == 10 else end_date
 
         # Start with base query - exclude admin's VIEW activities
         query = db.table("activity_logs").select("*")

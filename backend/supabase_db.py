@@ -171,25 +171,28 @@ class SupabaseTable:
 
     def execute(self):
         """Execute the query"""
-        params = {"select": self._select_query}
+        # Use a list of tuples instead of a dict so that multiple filters
+        # on the same column (e.g. created_at gte AND lte) are preserved.
+        # PostgREST supports repeated query parameter keys.
+        params = [("select", self._select_query)]
 
         # Add filters
         for filter_str in self._filters:
             key = filter_str.split("=")[0]
             value = "=".join(filter_str.split("=")[1:])
-            params[key] = value
+            params.append((key, value))
 
         # Add order
         if self._order:
-            params["order"] = self._order
+            params.append(("order", self._order))
 
         # Add limit
         if self._limit:
-            params["limit"] = str(self._limit)
+            params.append(("limit", str(self._limit)))
 
         # Add offset
         if self._offset:
-            params["offset"] = str(self._offset)
+            params.append(("offset", str(self._offset)))
 
         # Prepare headers with count preference if specified
         headers = self.headers.copy()

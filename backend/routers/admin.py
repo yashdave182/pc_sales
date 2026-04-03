@@ -83,21 +83,23 @@ def get_activity_logs(
     Only accessible by admin users
     """
     try:
-        print(f"[DEBUG] Admin activity logs request - limit: {limit}, offset: {offset}")
+        print(f"[DEBUG] Admin activity logs request - limit: {limit}, offset: {offset}, selected_date: {selected_date}")
 
-        normalized_start = start_date
-        normalized_end = end_date
+        normalized_start = None
+        normalized_end = None
         if selected_date:
+            # Convert selected IST date to UTC range for Supabase filtering
             ist = timezone(timedelta(hours=5, minutes=30))
             selected_dt = datetime.strptime(selected_date, "%Y-%m-%d")
             start_ist = selected_dt.replace(tzinfo=ist, hour=0, minute=0, second=0, microsecond=0)
             end_ist = selected_dt.replace(tzinfo=ist, hour=23, minute=59, second=59, microsecond=999999)
-            normalized_start = start_ist.astimezone(timezone.utc).isoformat()
-            normalized_end = end_ist.astimezone(timezone.utc).isoformat()
-        if start_date and len(start_date) == 10:
-            normalized_start = f"{start_date}T00:00:00"
-        if end_date and len(end_date) == 10:
-            normalized_end = f"{end_date}T23:59:59.999999"
+            normalized_start = start_ist.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+            normalized_end = end_ist.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")
+            print(f"[DEBUG] Date filter: {selected_date} IST -> UTC range: {normalized_start} to {normalized_end}")
+        elif start_date:
+            normalized_start = f"{start_date}T00:00:00" if len(start_date) == 10 else start_date
+        if end_date:
+            normalized_end = f"{end_date}T23:59:59.999999" if len(end_date) == 10 else end_date
 
         # Start with base query - exclude admin's VIEW activities
         query = db.table("activity_logs").select("*")

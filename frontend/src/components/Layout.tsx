@@ -832,47 +832,6 @@ export default function Layout({
           </>
         )}
       </List>
-
-      {/* Collapse / Expand toggle */}
-      <Box
-        onClick={toggleSidebar}
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          py: 1,
-          cursor: "pointer",
-          borderTop: `1px solid ${theme.palette.divider}`,
-          borderBottom: `1px solid ${theme.palette.divider}`,
-          "&:hover": {
-            bgcolor: theme.palette.action.hover,
-          },
-          transition: "background-color 0.2s",
-        }}
-      >
-        {sidebarExpanded ? (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <ChevronLeftIcon sx={{ fontSize: 20, color: "text.secondary" }} />
-            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, userSelect: "none" }}>
-              Collapse
-            </Typography>
-          </Box>
-        ) : (
-          <ChevronRightIcon sx={{ fontSize: 20, color: "text.secondary" }} />
-        )}
-      </Box>
-
-      {/* Footer */}
-      {sidebarExpanded && (
-        <Box sx={{ py: 1, px: 2, textAlign: "center" }}>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem" }}>
-            {t("common.version")} 1.0.0
-          </Typography>
-          <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.65rem" }}>
-            {t("common.copyright")}
-          </Typography>
-        </Box>
-      )}
     </Box>
   );
 
@@ -1078,6 +1037,36 @@ export default function Layout({
         >
           {drawer}
         </Drawer>
+
+        {/* Fixed sidebar toggle button - always visible on sidebar edge */}
+        <IconButton
+          onClick={toggleSidebar}
+          sx={{
+            position: "fixed",
+            left: desktopDrawerWidth - 14,
+            top: "50%",
+            transform: "translateY(-50%)",
+            zIndex: 1201,
+            width: 28,
+            height: 28,
+            bgcolor: theme.palette.background.paper,
+            border: `1px solid ${theme.palette.divider}`,
+            boxShadow: theme.shadows[3],
+            "&:hover": {
+              bgcolor: theme.palette.action.hover,
+            },
+            transition: theme.transitions.create(["left"], {
+              duration: theme.transitions.duration.standard,
+            }),
+            display: { xs: "none", md: "flex" },
+          }}
+        >
+          {sidebarExpanded ? (
+            <ChevronLeftIcon sx={{ fontSize: 18 }} />
+          ) : (
+            <ChevronRightIcon sx={{ fontSize: 18 }} />
+          )}
+        </IconButton>
       </Box>
 
       {/* Main content */}

@@ -479,8 +479,15 @@ export default function Layout({
                 <ListItemButton
                   onClick={() => handleNavigation(item.path)}
                   sx={{
-                    borderRadius: 2,
-                    mx: 1,
+                    borderRadius: sidebarExpanded ? 2 : "50%",
+                    mx: sidebarExpanded ? 1 : "auto",
+                    my: sidebarExpanded ? 0 : 0.25,
+                    width: sidebarExpanded ? "auto" : 44,
+                    height: sidebarExpanded ? "auto" : 44,
+                    minHeight: sidebarExpanded ? 48 : 44,
+                    px: sidebarExpanded ? 2 : 0,
+                    py: sidebarExpanded ? 1 : 0,
+                    justifyContent: "center",
                     backgroundColor: active
                       ? theme.palette.mode === "dark"
                         ? "rgba(144, 202, 249, 0.16)"
@@ -497,9 +504,9 @@ export default function Layout({
                   }}
                 >
                   <ListItemIcon
-                  sx={{
+                    sx={{
                       color: active ? theme.palette.primary.main : "inherit",
-                      minWidth: sidebarExpanded ? 40 : "auto",
+                      minWidth: sidebarExpanded ? 40 : 0,
                       justifyContent: "center",
                     }}
                   >
@@ -538,8 +545,15 @@ export default function Layout({
                 <ListItemButton
                   onClick={() => handleNavigation("/call-distribution")}
                   sx={{
-                    borderRadius: 2,
-                    mx: 1,
+                    borderRadius: sidebarExpanded ? 2 : "50%",
+                    mx: sidebarExpanded ? 1 : "auto",
+                    my: sidebarExpanded ? 0 : 0.25,
+                    width: sidebarExpanded ? "auto" : 44,
+                    height: sidebarExpanded ? "auto" : 44,
+                    minHeight: sidebarExpanded ? 48 : 44,
+                    px: sidebarExpanded ? 2 : 0,
+                    py: sidebarExpanded ? 1 : 0,
+                    justifyContent: "center",
                     backgroundColor: isActive("/call-distribution")
                       ? theme.palette.mode === "dark"
                         ? "rgba(244, 67, 54, 0.16)"
@@ -562,7 +576,7 @@ export default function Layout({
                       color: isActive("/call-distribution")
                         ? "error.main"
                         : "inherit",
-                      minWidth: sidebarExpanded ? 40 : "auto",
+                      minWidth: sidebarExpanded ? 40 : 0,
                       justifyContent: "center",
                     }}
                   >
@@ -585,8 +599,15 @@ export default function Layout({
                 <ListItemButton
                   onClick={() => handleNavigation("/admin")}
                   sx={{
-                    borderRadius: 2,
-                    mx: 1,
+                    borderRadius: sidebarExpanded ? 2 : "50%",
+                    mx: sidebarExpanded ? 1 : "auto",
+                    my: sidebarExpanded ? 0 : 0.25,
+                    width: sidebarExpanded ? "auto" : 44,
+                    height: sidebarExpanded ? "auto" : 44,
+                    minHeight: sidebarExpanded ? 48 : 44,
+                    px: sidebarExpanded ? 2 : 0,
+                    py: sidebarExpanded ? 1 : 0,
+                    justifyContent: "center",
                     backgroundColor: isActive("/admin")
                       ? theme.palette.mode === "dark"
                         ? "rgba(244, 67, 54, 0.16)"
@@ -605,7 +626,7 @@ export default function Layout({
                   <ListItemIcon
                     sx={{
                       color: isActive("/admin") ? "error.main" : "inherit",
-                      minWidth: sidebarExpanded ? 40 : "auto",
+                      minWidth: sidebarExpanded ? 40 : 0,
                       justifyContent: "center",
                     }}
                   >
@@ -628,8 +649,15 @@ export default function Layout({
                 <ListItemButton
                   onClick={() => handleNavigation("/user-management")}
                   sx={{
-                    borderRadius: 2,
-                    mx: 1,
+                    borderRadius: sidebarExpanded ? 2 : "50%",
+                    mx: sidebarExpanded ? 1 : "auto",
+                    my: sidebarExpanded ? 0 : 0.25,
+                    width: sidebarExpanded ? "auto" : 44,
+                    height: sidebarExpanded ? "auto" : 44,
+                    minHeight: sidebarExpanded ? 48 : 44,
+                    px: sidebarExpanded ? 2 : 0,
+                    py: sidebarExpanded ? 1 : 0,
+                    justifyContent: "center",
                     backgroundColor: isActive("/user-management")
                       ? theme.palette.mode === "dark"
                         ? "rgba(244, 67, 54, 0.16)"
@@ -652,7 +680,7 @@ export default function Layout({
                       color: isActive("/user-management")
                         ? "error.main"
                         : "inherit",
-                      minWidth: sidebarExpanded ? 40 : "auto",
+                      minWidth: sidebarExpanded ? 40 : 0,
                       justifyContent: "center",
                     }}
                   >
@@ -675,8 +703,15 @@ export default function Layout({
                 <ListItemButton
                   onClick={() => handleNavigation("/product-pricing")}
                   sx={{
-                    borderRadius: 2,
-                    mx: 1,
+                    borderRadius: sidebarExpanded ? 2 : "50%",
+                    mx: sidebarExpanded ? 1 : "auto",
+                    my: sidebarExpanded ? 0 : 0.25,
+                    width: sidebarExpanded ? "auto" : 44,
+                    height: sidebarExpanded ? "auto" : 44,
+                    minHeight: sidebarExpanded ? 48 : 44,
+                    px: sidebarExpanded ? 2 : 0,
+                    py: sidebarExpanded ? 1 : 0,
+                    justifyContent: "center",
                     backgroundColor: isActive("/product-pricing")
                       ? theme.palette.mode === "dark"
                         ? "rgba(244, 67, 54, 0.16)"
@@ -699,7 +734,7 @@ export default function Layout({
                       color: isActive("/product-pricing")
                         ? "error.main"
                         : "inherit",
-                      minWidth: sidebarExpanded ? 40 : "auto",
+                      minWidth: sidebarExpanded ? 40 : 0,
                       justifyContent: "center",
                     }}
                   >
@@ -722,8 +757,15 @@ export default function Layout({
                 <ListItemButton
                   onClick={() => handleNavigation(roleManagementNavItem.path)}
                   sx={{
-                    borderRadius: 2,
-                    mx: 1,
+                    borderRadius: sidebarExpanded ? 2 : "50%",
+                    mx: sidebarExpanded ? 1 : "auto",
+                    my: sidebarExpanded ? 0 : 0.25,
+                    width: sidebarExpanded ? "auto" : 44,
+                    height: sidebarExpanded ? "auto" : 44,
+                    minHeight: sidebarExpanded ? 48 : 44,
+                    px: sidebarExpanded ? 2 : 0,
+                    py: sidebarExpanded ? 1 : 0,
+                    justifyContent: "center",
                     backgroundColor: isActive(roleManagementNavItem.path)
                       ? theme.palette.mode === "dark"
                         ? "rgba(244, 67, 54, 0.16)"
@@ -746,7 +788,7 @@ export default function Layout({
                       color: isActive(roleManagementNavItem.path)
                         ? "error.main"
                         : "inherit",
-                      minWidth: sidebarExpanded ? 40 : "auto",
+                      minWidth: sidebarExpanded ? 40 : 0,
                       justifyContent: "center",
                     }}
                   >
@@ -772,6 +814,32 @@ export default function Layout({
           </>
         )}
       </List>
+
+      <Box
+        sx={{
+          px: 1,
+          pb: 1.5,
+          pt: 0.5,
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
+        <Tooltip title={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}>
+          <IconButton
+            onClick={toggleSidebar}
+            sx={{
+              border: `1px solid ${theme.palette.divider}`,
+              bgcolor: theme.palette.background.paper,
+              boxShadow: theme.shadows[2],
+              "&:hover": {
+                bgcolor: theme.palette.action.hover,
+              },
+            }}
+          >
+            {sidebarExpanded ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+          </IconButton>
+        </Tooltip>
+      </Box>
 
       <Divider />
 
@@ -992,25 +1060,6 @@ export default function Layout({
           open
         >
           {drawer}
-          <Tooltip title={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}>
-            <IconButton
-              onClick={toggleSidebar}
-              sx={{
-                position: "absolute",
-                left: "50%",
-                bottom: 88,
-                transform: "translateX(-50%)",
-                border: `1px solid ${theme.palette.divider}`,
-                bgcolor: theme.palette.background.paper,
-                boxShadow: theme.shadows[2],
-                "&:hover": {
-                  bgcolor: theme.palette.action.hover,
-                },
-              }}
-            >
-              {sidebarExpanded ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-            </IconButton>
-          </Tooltip>
         </Drawer>
       </Box>
 

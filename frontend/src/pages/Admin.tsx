@@ -125,8 +125,7 @@ export default function AdminLogs() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterUserEmail, setFilterUserEmail] = useState("");
   const [filterActionType, setFilterActionType] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [activeTab, setActiveTab] = useState(0);
@@ -140,8 +139,7 @@ export default function AdminLogs() {
       const params: any = { limit: rowsPerPage, offset: page * rowsPerPage };
       if (filterUserEmail) params.user_email = filterUserEmail;
       if (filterActionType) params.action_type = filterActionType;
-      if (startDate) params.start_date = startDate;
-      if (endDate) params.end_date = endDate;
+      if (selectedDate) params.selected_date = selectedDate;
 
       const response = await axios.get(`${API_BASE_URL}/api/admin/activity-logs`, {
         params,
@@ -160,7 +158,7 @@ export default function AdminLogs() {
     if (user && hasPermission(PERMISSIONS.VIEW_ACTIVITY_LOGS)) {
       loadActivities();
     }
-  }, [user, page, rowsPerPage, filterUserEmail, filterActionType, startDate, endDate]);
+  }, [user, page, rowsPerPage, filterUserEmail, filterActionType, selectedDate]);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "-";
@@ -185,9 +183,8 @@ export default function AdminLogs() {
   const uniqueUsers = Array.from(new Set(activities.map(a => a.user_email).filter(Boolean)));
   const uniqueActionTypes = Array.from(new Set(activities.map(a => a.action_type).filter(Boolean)));
 
-  const clearDateFilters = () => {
-    setStartDate("");
-    setEndDate("");
+  const clearDateFilter = () => {
+    setSelectedDate("");
     setPage(0);
   };
 
@@ -258,29 +255,15 @@ export default function AdminLogs() {
               {uniqueActionTypes.map(type => <MenuItem key={type} value={type}>{type}</MenuItem>)}
             </TextField>
           </Grid>
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid item xs={12} sm={6} md={3}>
             <TextField
               fullWidth
               size="small"
               type="date"
-              label={t("reports.from", "From")}
-              value={startDate}
+              label={t("fields.date", "Date")}
+              value={selectedDate}
               onChange={(e) => {
-                setStartDate(e.target.value);
-                setPage(0);
-              }}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={2}>
-            <TextField
-              fullWidth
-              size="small"
-              type="date"
-              label={t("reports.to", "To")}
-              value={endDate}
-              onChange={(e) => {
-                setEndDate(e.target.value);
+                setSelectedDate(e.target.value);
                 setPage(0);
               }}
               InputLabelProps={{ shrink: true }}
@@ -290,8 +273,8 @@ export default function AdminLogs() {
             <Button
               fullWidth
               variant="outlined"
-              onClick={clearDateFilters}
-              disabled={!startDate && !endDate}
+              onClick={clearDateFilter}
+              disabled={!selectedDate}
             >
               {t("common.clear", "Clear")}
             </Button>

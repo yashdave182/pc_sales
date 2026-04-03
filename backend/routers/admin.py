@@ -3,7 +3,7 @@ Admin Router
 Handles admin-only operations including activity logs and user management
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from activity_logger import get_activity_logger
@@ -72,6 +72,7 @@ def get_activity_logs(
     user_email: Optional[str] = None,
     action_type: Optional[str] = None,
     entity_type: Optional[str] = None,
+    selected_date: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     admin_email: Optional[str] = Header(None, alias="x-user-email"),
@@ -86,6 +87,13 @@ def get_activity_logs(
 
         normalized_start = start_date
         normalized_end = end_date
+        if selected_date:
+            ist = timezone(timedelta(hours=5, minutes=30))
+            selected_dt = datetime.strptime(selected_date, "%Y-%m-%d")
+            start_ist = selected_dt.replace(tzinfo=ist, hour=0, minute=0, second=0, microsecond=0)
+            end_ist = selected_dt.replace(tzinfo=ist, hour=23, minute=59, second=59, microsecond=999999)
+            normalized_start = start_ist.astimezone(timezone.utc).isoformat()
+            normalized_end = end_ist.astimezone(timezone.utc).isoformat()
         if start_date and len(start_date) == 10:
             normalized_start = f"{start_date}T00:00:00"
         if end_date and len(end_date) == 10:

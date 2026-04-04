@@ -58,6 +58,7 @@ import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   ArrowBack as ArrowBackIcon,
+  TrendingUp as TrendingUpIcon,
 } from "@mui/icons-material";
 
 import { useTranslation } from "../hooks/useTranslation";
@@ -92,6 +93,7 @@ const TOP_LEVEL_ROUTES = new Set([
   "/algorithm",
   "/notifications",
   "/chat",
+  "/forecasting",
 ]);
 
 interface LayoutProps {
@@ -172,6 +174,13 @@ const navigationItems: NavItem[] = [
     icon: <PhoneInTalkIcon />,
     path: "/calling-list",
     permission: PERMISSIONS.VIEW_CALLING_LIST,
+  },
+  {
+    id: "forecasting",
+    labelKey: "nav.forecasting",
+    icon: <TrendingUpIcon />,
+    path: "/forecasting",
+    permission: PERMISSIONS.RUN_FORECASTING,
   },
   {
     id: "import",

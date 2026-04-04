@@ -53,6 +53,7 @@ export const PERMISSIONS = {
     // Reports
     VIEW_REPORTS: "view_reports",
     EXPORT_REPORTS: "export_reports",
+    RUN_FORECASTING: "run_forecasting",
 
     // Calling List
     VIEW_CALLING_LIST: "view_calling_list",

@@ -1,6 +1,7 @@
 {
   "nav": {
     "dashboard": "Dashboard",
+    "forecasting": "Forecasting",
     "customers": "Sabhasad",
     "sales": "Sales",
     "payments": "Payments",

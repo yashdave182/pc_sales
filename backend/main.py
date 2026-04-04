@@ -20,6 +20,7 @@ from routers import (
     sales,
     rbac,
     sessions,
+    forecasting,
 )
 from scheduler import start_scheduler
 
@@ -76,3 +77,4 @@ app.include_router(automation, prefix="/api/automation")
 app.include_router(notifications, prefix="/api/notifications")
 app.include_router(rbac, prefix="/api/rbac")
 app.include_router(sessions, prefix="/api/user-sessions")
+app.include_router(forecasting, prefix="/api/forecasting")

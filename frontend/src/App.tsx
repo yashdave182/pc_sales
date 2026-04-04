@@ -21,6 +21,7 @@ import Payments from "./pages/Payments";
 import Demos from "./pages/Demos";
 import Distributors from "./pages/Distributors";
 import Reports from "./pages/Reports";
+import Forecasting from "./pages/Forecasting";
 import DataImport from "./pages/DataImport";
 import CallingList from "./pages/CallingList";
 import OrderManagement from "./pages/OrderManagement";
@@ -146,6 +147,17 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_REPORTS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Reports />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/forecasting"
+                  element={
+                    <ProtectedRoute requiredPermission={PERMISSIONS.RUN_FORECASTING}>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <Forecasting />
                         <QuickActions />
                       </Layout>
                     </ProtectedRoute>

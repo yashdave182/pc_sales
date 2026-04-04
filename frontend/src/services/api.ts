@@ -312,6 +312,22 @@ export const reportsAPI = {
   },
 };
 
+// Forecasting API
+export const forecastingAPI = {
+  getMonthly: async (params?: { history_months?: number; forecast_months?: number; district?: string; village?: string; }) => {
+    const response = await apiClient.get("/api/forecasting/monthly", { params });
+    return response.data;
+  },
+  getDistrict: async (params?: { forecast_month?: string; }) => {
+    const response = await apiClient.get("/api/forecasting/district", { params });
+    return response.data;
+  },
+  getVillage: async (params?: { forecast_month?: string; district?: string; }) => {
+    const response = await apiClient.get("/api/forecasting/village", { params });
+    return response.data;
+  },
+};
+
 // Distributor API
 export const distributorAPI = {
   getAll: async (params?: any) => {

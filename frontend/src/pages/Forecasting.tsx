@@ -353,7 +353,7 @@ export default function Forecasting() {
                               {row.rank}
                             </Box>
                           </TableCell>
-                          <TableCell fontWeight="medium">{row.district}</TableCell>
+                          <TableCell sx={{ fontWeight: 'medium' }}>{row.district}</TableCell>
                           <TableCell align="right" sx={{ color: 'text.secondary' }}>₹{row.avg_monthly_revenue_6m.toLocaleString()}</TableCell>
                           <TableCell align="right">{row.forecast_liters.toLocaleString()} L</TableCell>
                           <TableCell align="right" sx={{ fontWeight: 'bold', color: 'primary.main' }}>₹{row.forecast_revenue.toLocaleString()}</TableCell>

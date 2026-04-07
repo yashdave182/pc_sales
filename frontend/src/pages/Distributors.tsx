@@ -60,6 +60,7 @@ export default function Distributors() {
     localStorage.setItem("distributorColumnNames", JSON.stringify(columnNames));
   }, [columnNames]);
 
+  const [submitting, setSubmitting] = useState(false);
   const [renameField, setRenameField] = useState<string | null>(null);
   const [newColumnName, setNewColumnName] = useState("");
 
@@ -178,9 +179,12 @@ export default function Distributors() {
   };
 
   const handleSubmit = async () => {
+    if (submitting) return;
+    setSubmitting(true);
     try {
       if (!formData.village || !formData.taluka || !formData.mantri_name) {
         setError("Village, Taluka and Mantri Name are required");
+        setSubmitting(false);
         return;
       }
 
@@ -197,13 +201,19 @@ export default function Distributors() {
       handleCloseDialog();
       loadDistributors();
       setError(null);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : t("distributors.saveError", "Failed to save Mantri"),
-      );
+    } catch (err: any) {
+      if (err?.isNetworkError || err?.response?.status >= 500) {
+        setError("Network error or server error. Please check if distributor was saved before trying again.");
+      } else {
+        setError(
+          err instanceof Error
+            ? err.message
+            : t("distributors.saveError", "Failed to save Mantri"),
+        );
+      }
       console.error("Error saving distributor:", err);
+    } finally {
+      setSubmitting(false);
     }
   };
 

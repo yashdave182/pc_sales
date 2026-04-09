@@ -46,6 +46,7 @@ export default function Distributors() {
   const { t, tf } = useTranslation();
   const [distributors, setDistributors] = useState<Distributor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitLoading, setSubmitLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingDistributor, setEditingDistributor] =
@@ -91,22 +92,22 @@ export default function Distributors() {
     state: "Gujarat",
     mantri_name: "",
     mantri_mobile: "",
-    sabhasad_morning: 0,
-    sabhasad_evening: 0,
-    sabhasad_count: 0,
-    contact_in_group: 0,
+    sabhasad_morning: undefined,
+    sabhasad_evening: undefined,
+    sabhasad_count: undefined,
+    contact_in_group: undefined,
     status: "Active",
     record_date: new Date().toISOString().split('T')[0],
     dairy_type: "",
     dairy_time_morning: "",
     dairy_time_evening: "",
-    milk_collection_morning: 0,
-    milk_collection_evening: 0,
+    milk_collection_morning: undefined,
+    milk_collection_evening: undefined,
     nature_of_sabhasad: "",
     support: "",
     animal_delivery_period: "",
-    payment_recovery_demo: 0,
-    payment_recovery_dispatch: 0,
+    payment_recovery_demo: undefined,
+    payment_recovery_dispatch: undefined,
     decision_maker_availability_morning: "",
     decision_maker_availability_evening: "",
     high_holder_to_low_holder_villages: "",
@@ -148,22 +149,22 @@ export default function Distributors() {
         state: "Gujarat",
         mantri_name: "",
         mantri_mobile: "",
-        sabhasad_morning: 0,
-        sabhasad_evening: 0,
-        sabhasad_count: 0,
-        contact_in_group: 0,
+        sabhasad_morning: undefined,
+        sabhasad_evening: undefined,
+        sabhasad_count: undefined,
+        contact_in_group: undefined,
         status: "Active",
         record_date: new Date().toISOString().split('T')[0],
         dairy_type: "",
         dairy_time_morning: "",
         dairy_time_evening: "",
-        milk_collection_morning: 0,
-        milk_collection_evening: 0,
+        milk_collection_morning: undefined,
+        milk_collection_evening: undefined,
         nature_of_sabhasad: "",
         support: "",
         animal_delivery_period: "",
-        payment_recovery_demo: 0,
-        payment_recovery_dispatch: 0,
+        payment_recovery_demo: undefined,
+        payment_recovery_dispatch: undefined,
         decision_maker_availability_morning: "",
         decision_maker_availability_evening: "",
         high_holder_to_low_holder_villages: "",
@@ -179,9 +180,11 @@ export default function Distributors() {
   };
 
   const handleSubmit = async () => {
+    if (submitLoading) return;
     if (submitting) return;
     setSubmitting(true);
     try {
+      setSubmitLoading(true);
       if (!formData.village || !formData.taluka || !formData.mantri_name) {
         setError("Village, Taluka and Mantri Name are required");
         setSubmitting(false);
@@ -213,6 +216,7 @@ export default function Distributors() {
       }
       console.error("Error saving distributor:", err);
     } finally {
+      setSubmitLoading(false);
       setSubmitting(false);
     }
   };
@@ -946,13 +950,16 @@ export default function Distributors() {
                 fullWidth
                 type="number"
                 label={t("distributors.sabhasadMorning", "Sabhasad Morning")}
-                value={formData.sabhasad_morning}
-                onChange={(e) =>
+                value={formData.sabhasad_morning ?? ""}
+                placeholder="Enter value"
+                inputProps={{ min: 0 }}
+                onChange={(e) => {
+                  const val = e.target.value;
                   setFormData({
                     ...formData,
-                    sabhasad_morning: Number(e.target.value) || 0,
-                  })
-                }
+                    sabhasad_morning: val === "" ? undefined : Number(val),
+                  });
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={4}>
@@ -960,13 +967,16 @@ export default function Distributors() {
                 fullWidth
                 type="number"
                 label={t("distributors.sabhasadEvening", "Sabhasad Evening")}
-                value={formData.sabhasad_evening}
-                onChange={(e) =>
+                value={formData.sabhasad_evening ?? ""}
+                placeholder="Enter value"
+                inputProps={{ min: 0 }}
+                onChange={(e) => {
+                  const val = e.target.value;
                   setFormData({
                     ...formData,
-                    sabhasad_evening: Number(e.target.value) || 0,
-                  })
-                }
+                    sabhasad_evening: val === "" ? undefined : Number(val),
+                  });
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={4}>
@@ -974,13 +984,16 @@ export default function Distributors() {
                 fullWidth
                 type="number"
                 label={t("distributors.sabhasadCount", "Total Sabhasad")}
-                value={formData.sabhasad_count || 0}
-                onChange={(e) =>
+                value={formData.sabhasad_count ?? ""}
+                placeholder="Enter value"
+                inputProps={{ min: 0 }}
+                onChange={(e) => {
+                  const val = e.target.value;
                   setFormData({
                     ...formData,
-                    sabhasad_count: Number(e.target.value) || 0,
-                  })
-                }
+                    sabhasad_count: val === "" ? undefined : Number(val),
+                  });
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -988,13 +1001,16 @@ export default function Distributors() {
                 fullWidth
                 type="number"
                 label={t("distributors.contactInGroup", "Contact in Group")}
-                value={formData.contact_in_group}
-                onChange={(e) =>
+                value={formData.contact_in_group ?? ""}
+                placeholder="Enter value"
+                inputProps={{ min: 0 }}
+                onChange={(e) => {
+                  const val = e.target.value;
                   setFormData({
                     ...formData,
-                    contact_in_group: Number(e.target.value) || 0,
-                  })
-                }
+                    contact_in_group: val === "" ? undefined : Number(val),
+                  });
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1034,12 +1050,16 @@ export default function Distributors() {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
+                select
                 label={t("distributors.nature", "Nature of Sabhasad")}
                 value={formData.nature_of_sabhasad || ""}
                 onChange={(e) =>
                   setFormData({ ...formData, nature_of_sabhasad: e.target.value })
                 }
-              />
+              >
+                <MenuItem value="AWARE">AWARE</MenuItem>
+                <MenuItem value="NOT AWARE">NOT AWARE</MenuItem>
+              </TextField>
             </Grid>
             <Grid item xs={12} sm={3}>
               <TextField
@@ -1070,10 +1090,16 @@ export default function Distributors() {
                 fullWidth
                 type="number"
                 label={t("distributors.milkM", "Milk (M)")}
-                value={formData.milk_collection_morning || 0}
-                onChange={(e) =>
-                  setFormData({ ...formData, milk_collection_morning: Number(e.target.value) || 0 })
-                }
+                value={formData.milk_collection_morning ?? ""}
+                placeholder="Enter value"
+                inputProps={{ min: 0 }}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFormData({
+                    ...formData,
+                    milk_collection_morning: val === "" ? undefined : Number(val),
+                  });
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={3}>
@@ -1081,10 +1107,16 @@ export default function Distributors() {
                 fullWidth
                 type="number"
                 label={t("distributors.milkE", "Milk (E)")}
-                value={formData.milk_collection_evening || 0}
-                onChange={(e) =>
-                  setFormData({ ...formData, milk_collection_evening: Number(e.target.value) || 0 })
-                }
+                value={formData.milk_collection_evening ?? ""}
+                placeholder="Enter value"
+                inputProps={{ min: 0 }}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFormData({
+                    ...formData,
+                    milk_collection_evening: val === "" ? undefined : Number(val),
+                  });
+                }}
               />
             </Grid>
 
@@ -1100,10 +1132,16 @@ export default function Distributors() {
                 fullWidth
                 type="number"
                 label={t("distributors.recoveryDemo", "Recovery Days (Demo)")}
-                value={formData.payment_recovery_demo || 0}
-                onChange={(e) =>
-                  setFormData({ ...formData, payment_recovery_demo: Number(e.target.value) || 0 })
-                }
+                value={formData.payment_recovery_demo ?? ""}
+                placeholder="Enter value"
+                inputProps={{ min: 0 }}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFormData({
+                    ...formData,
+                    payment_recovery_demo: val === "" ? undefined : Number(val),
+                  });
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1111,65 +1149,90 @@ export default function Distributors() {
                 fullWidth
                 type="number"
                 label={t("distributors.recoveryDispatch", "Recovery Days (Dispatch)")}
-                value={formData.payment_recovery_dispatch || 0}
-                onChange={(e) =>
-                  setFormData({ ...formData, payment_recovery_dispatch: Number(e.target.value) || 0 })
-                }
+                value={formData.payment_recovery_dispatch ?? ""}
+                placeholder="Enter value"
+                inputProps={{ min: 0 }}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFormData({
+                    ...formData,
+                    payment_recovery_dispatch: val === "" ? undefined : Number(val),
+                  });
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
+                select
                 label={t("distributors.dmAvailM", "DM Avail (M)")}
                 value={formData.decision_maker_availability_morning || ""}
                 onChange={(e) =>
                   setFormData({ ...formData, decision_maker_availability_morning: e.target.value })
                 }
-              />
+              >
+                <MenuItem value="Y">Y</MenuItem>
+                <MenuItem value="N">N</MenuItem>
+              </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
+                select
                 label={t("distributors.dmAvailE", "DM Avail (E)")}
                 value={formData.decision_maker_availability_evening || ""}
                 onChange={(e) =>
                   setFormData({ ...formData, decision_maker_availability_evening: e.target.value })
                 }
-              />
+              >
+                <MenuItem value="Y">Y</MenuItem>
+                <MenuItem value="N">N</MenuItem>
+              </TextField>
             </Grid>
             <Grid item xs={12}>
               <TextField
                 fullWidth
+                select
                 label={t("distributors.support", "Support Level")}
                 value={formData.support || ""}
                 onChange={(e) =>
                   setFormData({ ...formData, support: e.target.value })
                 }
-              />
+              >
+                <MenuItem value="HIGH">HIGH</MenuItem>
+                <MenuItem value="MEDIUM">MEDIUM</MenuItem>
+                <MenuItem value="LOW">LOW</MenuItem>
+              </TextField>
             </Grid>
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                multiline
-                rows={2}
+                select
                 label={t("distributors.highLowVillages", "High to Low Holder Villages")}
                 value={formData.high_holder_to_low_holder_villages || ""}
                 onChange={(e) =>
                   setFormData({ ...formData, high_holder_to_low_holder_villages: e.target.value })
                 }
-              />
+              >
+                <MenuItem value="HIGH">HIGH</MenuItem>
+                <MenuItem value="MEDIUM">MEDIUM</MenuItem>
+                <MenuItem value="LOW">LOW</MenuItem>
+              </TextField>
             </Grid>
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                multiline
-                rows={2}
+                select
                 label={t("distributors.businessStatus", "Current Status of Business")}
                 value={formData.current_status_of_business || ""}
                 onChange={(e) =>
                   setFormData({ ...formData, current_status_of_business: e.target.value })
                 }
-              />
+              >
+                <MenuItem value="YES">YES</MenuItem>
+                <MenuItem value="MIDDLE STAGE">MIDDLE STAGE</MenuItem>
+                <MenuItem value="NO">NO</MenuItem>
+              </TextField>
             </Grid>
           </Grid>
         </DialogContent>

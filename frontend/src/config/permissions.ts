@@ -50,6 +50,16 @@ export const PERMISSIONS = {
     CREATE_DISTRIBUTOR: "create_distributor",
     EDIT_DISTRIBUTOR: "edit_distributor",
 
+    // Shopkeepers
+    VIEW_SHOPKEEPERS: "view_shopkeepers",
+    CREATE_SHOPKEEPER: "create_shopkeeper",
+    EDIT_SHOPKEEPER: "edit_shopkeeper",
+
+    // Doctors
+    VIEW_DOCTORS: "view_doctors",
+    CREATE_DOCTOR: "create_doctor",
+    EDIT_DOCTOR: "edit_doctor",
+
     // Reports
     VIEW_REPORTS: "view_reports",
     EXPORT_REPORTS: "export_reports",

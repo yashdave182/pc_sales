@@ -19,7 +19,9 @@
     "pricing": "मूल्य प्रबंधन",
     "callDistribution": "कॉल वितरण",
     "userManagement": "उपयोगकर्ता प्रबंधन",
-    "customerReport": "सभासद रिपोर्ट"
+    "customerReport": "सभासद रिपोर्ट",
+    "shopkeepers": "दुकानदार",
+    "doctors": "डॉक्टर"
   },
   "common": {
     "add": "जोड़ें",
@@ -527,5 +529,39 @@
     "read": "पढ़ा हुआ",
     "unread": "अपठित",
     "created": "बनाया गया"
+  },
+  "shopkeepers": {
+    "title": "मंत्री",
+    "addDistributor": "मंत्री जोड़ें",
+    "editDistributor": "मंत्री संपादित करें",
+    "deleteDistributor": "मंत्री हटाएँ",
+    "contactPerson": "संपर्क व्यक्ति",
+    "mobile": "मोबाइल",
+    "area": "क्षेत्र",
+    "status": "स्थिति",
+    "active": "सक्रिय",
+    "inactive": "निष्क्रिय",
+    "confirmDelete": "क्या आप वाकई इस मंत्री को हटाना चाहते हैं?",
+    "deletedSuccessfully": "मंत्री सफलतापूर्वक हटाया गया",
+    "savedSuccessfully": "मंत्री सफलतापूर्वक सहेजा गया",
+    "deleteError": "मंत्री हटाने में विफल",
+    "noDistributors": "कोई मंत्री नहीं मिला"
+  },
+  "doctors": {
+    "title": "मंत्री",
+    "addDistributor": "मंत्री जोड़ें",
+    "editDistributor": "मंत्री संपादित करें",
+    "deleteDistributor": "मंत्री हटाएँ",
+    "contactPerson": "संपर्क व्यक्ति",
+    "mobile": "मोबाइल",
+    "area": "क्षेत्र",
+    "status": "स्थिति",
+    "active": "सक्रिय",
+    "inactive": "निष्क्रिय",
+    "confirmDelete": "क्या आप वाकई इस मंत्री को हटाना चाहते हैं?",
+    "deletedSuccessfully": "मंत्री सफलतापूर्वक हटाया गया",
+    "savedSuccessfully": "मंत्री सफलतापूर्वक सहेजा गया",
+    "deleteError": "मंत्री हटाने में विफल",
+    "noDistributors": "कोई मंत्री नहीं मिला"
   }
 }

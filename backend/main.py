@@ -21,6 +21,8 @@ from routers import (
     rbac,
     sessions,
     forecasting,
+    shopkeepers,
+    doctors,
 )
 from scheduler import start_scheduler
 
@@ -67,6 +69,8 @@ app.include_router(sales, prefix="/api/sales")
 app.include_router(payments, prefix="/api/payments")
 app.include_router(demos, prefix="/api/demos")
 app.include_router(distributors, prefix="/api/distributors")
+app.include_router(shopkeepers, prefix="/api/shopkeepers")
+app.include_router(doctors, prefix="/api/doctors")
 app.include_router(dashboard, prefix="/api/dashboard")
 app.include_router(reports, prefix="/api/reports")
 app.include_router(analytics, prefix="/api/analytics")

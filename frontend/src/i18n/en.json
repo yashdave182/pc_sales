@@ -18,7 +18,9 @@
     "roleManagement": "Role Management",
     "pricing": "Product Pricing",
     "callDistribution": "Call Distribution",
-    "userManagement": "User Management"
+    "userManagement": "User Management",
+    "shopkeepers": "Shopkeepers",
+    "doctors": "Doctors"
   },
   "common": {
     "add": "Add",
@@ -281,7 +283,6 @@
     "adharNo": "Aadhar Number",
     "rate": "Rate"
   },
-
   "activity": {
     "title": "My Activity",
     "todayLog": "Today's activity log",
@@ -541,5 +542,39 @@
     "read": "Read",
     "unread": "Unread",
     "created": "Created"
+  },
+  "shopkeepers": {
+    "title": "Shopkeeper",
+    "addShopkeeper": "Add Shopkeeper",
+    "editShopkeeper": "Edit Shopkeeper",
+    "deleteShopkeeper": "Delete Shopkeeper",
+    "contactPerson": "Contact Person",
+    "mobile": "Mobile",
+    "area": "Area",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "confirmDelete": "Are you sure you want to delete this Shopkeeper?",
+    "deletedSuccessfully": "Shopkeeper deleted successfully",
+    "savedSuccessfully": "Shopkeeper saved successfully",
+    "deleteError": "Failed to delete Shopkeeper",
+    "noShopkeepers": "No Shopkeeper found"
+  },
+  "doctors": {
+    "title": "Doctor",
+    "addDoctor": "Add Doctor",
+    "editDoctor": "Edit Doctor",
+    "deleteDoctor": "Delete Doctor",
+    "contactPerson": "Contact Person",
+    "mobile": "Mobile",
+    "area": "Area",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "confirmDelete": "Are you sure you want to delete this Doctor?",
+    "deletedSuccessfully": "Doctor deleted successfully",
+    "savedSuccessfully": "Doctor saved successfully",
+    "deleteError": "Failed to delete Doctor",
+    "noDoctors": "No Doctor found"
   }
 }

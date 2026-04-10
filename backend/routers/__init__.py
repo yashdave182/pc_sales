@@ -15,3 +15,5 @@ from .reports import router as reports
 from .sales import router as sales
 from .sessions import router as sessions
 from .forecasting import router as forecasting
+from .shopkeepers import router as shopkeepers
+from .doctors import router as doctors

@@ -20,6 +20,8 @@ import Sales from "./pages/Sales";
 import Payments from "./pages/Payments";
 import Demos from "./pages/Demos";
 import Distributors from "./pages/Distributors";
+import Shopkeepers from "./pages/Shopkeepers";
+import Doctors from "./pages/Doctors";
 import Reports from "./pages/Reports";
 import Forecasting from "./pages/Forecasting";
 import DataImport from "./pages/DataImport";
@@ -136,6 +138,28 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_DISTRIBUTORS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Distributors />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/shopkeepers"
+                  element={
+                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_SHOPKEEPERS}>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <Shopkeepers />
+                        <QuickActions />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/doctors"
+                  element={
+                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_DOCTORS}>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <Doctors />
                         <QuickActions />
                       </Layout>
                     </ProtectedRoute>

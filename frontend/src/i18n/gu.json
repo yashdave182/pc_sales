@@ -18,7 +18,9 @@
     "roleManagement": "ભૂમિકા વ્યવસ્થાપન",
     "pricing": "ભાવ વ્યવસ્થાપન",
     "callDistribution": "કૉલ વિતરણ",
-    "userManagement": "વપરાશકર્તા વ્યવસ્થાપન"
+    "userManagement": "વપરાશકર્તા વ્યવસ્થાપન",
+    "shopkeepers": "દુકાનદાર",
+    "doctors": "ડોક્ટર"
   },
   "common": {
     "add": "ઉમેરો",
@@ -527,5 +529,39 @@
     "read": "વાંચેલ",
     "unread": "અવાંચિત",
     "created": "બનાવેલ"
+  },
+  "shopkeepers": {
+    "title": "મંત્રી",
+    "addDistributor": "મંત્રી ઉમેરો",
+    "editDistributor": "મંત્રી સંપાદિત કરો",
+    "deleteDistributor": "મંત્રી કાઢી નાખો",
+    "contactPerson": "સંપર્ક વ્યક્તિ",
+    "mobile": "મોબાઈલ",
+    "area": "વિસ્તાર",
+    "status": "સ્થિતિ",
+    "active": "સક્રિય",
+    "inactive": "નિષ્ક્રિય",
+    "confirmDelete": "શું તમે ખરેખર આ મંત્રીને કાઢી નાખવા માંગો છો?",
+    "deletedSuccessfully": "મંત્રી સફળતાપૂર્વક કાઢી નાખવામાં આવ્યા",
+    "savedSuccessfully": "મંત્રી સફળતાપૂર્વક સંગ્રહિત",
+    "deleteError": "મંત્રી કાઢી નાખવામાં નિષ્ફળ",
+    "noDistributors": "કોઈ મંત્રી મળ્યાં નથી"
+  },
+  "doctors": {
+    "title": "મંત્રી",
+    "addDistributor": "મંત્રી ઉમેરો",
+    "editDistributor": "મંત્રી સંપાદિત કરો",
+    "deleteDistributor": "મંત્રી કાઢી નાખો",
+    "contactPerson": "સંપર્ક વ્યક્તિ",
+    "mobile": "મોબાઈલ",
+    "area": "વિસ્તાર",
+    "status": "સ્થિતિ",
+    "active": "સક્રિય",
+    "inactive": "નિષ્ક્રિય",
+    "confirmDelete": "શું તમે ખરેખર આ મંત્રીને કાઢી નાખવા માંગો છો?",
+    "deletedSuccessfully": "મંત્રી સફળતાપૂર્વક કાઢી નાખવામાં આવ્યા",
+    "savedSuccessfully": "મંત્રી સફળતાપૂર્વક સંગ્રહિત",
+    "deleteError": "મંત્રી કાઢી નાખવામાં નિષ્ફળ",
+    "noDistributors": "કોઈ મંત્રી મળ્યાં નથી"
   }
 }

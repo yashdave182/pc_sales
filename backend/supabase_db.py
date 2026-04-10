@@ -489,6 +489,76 @@ def init_supabase_db():
     );
 
     -- ===================================
+    -- Shopkeepers Table
+    -- ===================================
+    CREATE TABLE IF NOT EXISTS shopkeepers (
+        shopkeeper_id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        village TEXT,
+        taluka TEXT,
+        district TEXT,
+        mantri_name TEXT,
+        mantri_mobile TEXT,
+        sabhasad_count INTEGER DEFAULT 0,
+        sabhasad_morning INTEGER DEFAULT 0,
+        sabhasad_evening INTEGER DEFAULT 0,
+        contact_in_group INTEGER DEFAULT 0,
+        status TEXT DEFAULT 'Active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        state TEXT,
+        dairy_type TEXT,
+        dairy_time_morning TEXT,
+        dairy_time_evening TEXT,
+        milk_collection_morning INTEGER,
+        milk_collection_evening INTEGER,
+        nature_of_sabhasad TEXT,
+        support TEXT,
+        animal_delivery_period TEXT,
+        payment_recovery_demo INTEGER,
+        payment_recovery_dispatch INTEGER,
+        decision_maker_availability_morning TEXT,
+        decision_maker_availability_evening TEXT,
+        high_holder_to_low_holder_villages TEXT,
+        current_status_of_business TEXT,
+        record_date TEXT
+    );
+
+    -- ===================================
+    -- Doctors Table
+    -- ===================================
+    CREATE TABLE IF NOT EXISTS doctors (
+        doctor_id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        village TEXT,
+        taluka TEXT,
+        district TEXT,
+        mantri_name TEXT,
+        mantri_mobile TEXT,
+        sabhasad_count INTEGER DEFAULT 0,
+        sabhasad_morning INTEGER DEFAULT 0,
+        sabhasad_evening INTEGER DEFAULT 0,
+        contact_in_group INTEGER DEFAULT 0,
+        status TEXT DEFAULT 'Active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        state TEXT,
+        dairy_type TEXT,
+        dairy_time_morning TEXT,
+        dairy_time_evening TEXT,
+        milk_collection_morning INTEGER,
+        milk_collection_evening INTEGER,
+        nature_of_sabhasad TEXT,
+        support TEXT,
+        animal_delivery_period TEXT,
+        payment_recovery_demo INTEGER,
+        payment_recovery_dispatch INTEGER,
+        decision_maker_availability_morning TEXT,
+        decision_maker_availability_evening TEXT,
+        high_holder_to_low_holder_villages TEXT,
+        current_status_of_business TEXT,
+        record_date TEXT
+    );
+
+    -- ===================================
     -- Notifications Table
     -- ===================================
     CREATE TABLE IF NOT EXISTS notifications (

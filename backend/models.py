@@ -171,6 +171,82 @@ class Distributor(BaseModel):
 
 
 # ======================
+# Shopkeepers
+# ======================
+
+
+class Shopkeeper(BaseModel):
+    shopkeeper_id: Optional[int] = None
+    record_date: Optional[str] = None
+    state: Optional[str] = None
+    village: Optional[str] = None
+    taluka: Optional[str] = None
+    district: Optional[str] = None
+    name: Optional[str] = None
+    mantri_name: Optional[str] = None
+    mantri_mobile: Optional[str] = None
+    sabhasad_count: Optional[int] = 0
+    sabhasad_morning: Optional[int] = 0
+    sabhasad_evening: Optional[int] = 0
+    contact_in_group: Optional[int] = 0
+    status: str = "Active"
+
+    # New Fields
+    dairy_type: Optional[str] = None
+    dairy_time_morning: Optional[str] = None
+    dairy_time_evening: Optional[str] = None
+    milk_collection_morning: Optional[int] = None
+    milk_collection_evening: Optional[int] = None
+    nature_of_sabhasad: Optional[str] = None
+    support: Optional[str] = None
+    animal_delivery_period: Optional[str] = None
+    payment_recovery_demo: Optional[int] = None
+    payment_recovery_dispatch: Optional[int] = None
+    decision_maker_availability_morning: Optional[str] = None
+    decision_maker_availability_evening: Optional[str] = None
+    high_holder_to_low_holder_villages: Optional[str] = None
+    current_status_of_business: Optional[str] = None
+
+
+# ======================
+# Doctors
+# ======================
+
+
+class Doctor(BaseModel):
+    doctor_id: Optional[int] = None
+    record_date: Optional[str] = None
+    state: Optional[str] = None
+    village: Optional[str] = None
+    taluka: Optional[str] = None
+    district: Optional[str] = None
+    name: Optional[str] = None
+    mantri_name: Optional[str] = None
+    mantri_mobile: Optional[str] = None
+    sabhasad_count: Optional[int] = 0
+    sabhasad_morning: Optional[int] = 0
+    sabhasad_evening: Optional[int] = 0
+    contact_in_group: Optional[int] = 0
+    status: str = "Active"
+
+    # New Fields
+    dairy_type: Optional[str] = None
+    dairy_time_morning: Optional[str] = None
+    dairy_time_evening: Optional[str] = None
+    milk_collection_morning: Optional[int] = None
+    milk_collection_evening: Optional[int] = None
+    nature_of_sabhasad: Optional[str] = None
+    support: Optional[str] = None
+    animal_delivery_period: Optional[str] = None
+    payment_recovery_demo: Optional[int] = None
+    payment_recovery_dispatch: Optional[int] = None
+    decision_maker_availability_morning: Optional[str] = None
+    decision_maker_availability_evening: Optional[str] = None
+    high_holder_to_low_holder_villages: Optional[str] = None
+    current_status_of_business: Optional[str] = None
+
+
+# ======================
 # Notifications
 # ======================
 

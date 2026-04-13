@@ -44,6 +44,7 @@ import { PERMISSIONS } from "../config/permissions";
 export default function Distributors() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isDarkMode = theme.palette.mode === "dark";
   const { t, tf } = useTranslation();
   const [distributors, setDistributors] = useState<Distributor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -280,16 +281,23 @@ export default function Distributors() {
   const StatusDot = ({ color }: { color: string }) => (
     <Box
       sx={{
-        width: 8,
-        height: 8,
+        width: isDarkMode ? 8 : 8,
+        height: isDarkMode ? 8 : 8,
         borderRadius: "50%",
         backgroundColor:
           color === "green"
             ? "#16a34a"
             : color === "orange"
-              ? "#ea580c"
+              ? (isDarkMode ? "#fb923c" : "#ea580c")
               : "#ef4444",
         flexShrink: 0,
+        boxShadow: isDarkMode ? "0 0 6px currentColor" : "none",
+        color:
+          color === "green"
+            ? "#16a34a"
+            : color === "orange"
+              ? (isDarkMode ? "#fb923c" : "#ea580c")
+              : "#ef4444",
       }}
     />
   );
@@ -320,16 +328,21 @@ export default function Distributors() {
     return (
       <span
         style={{
-          backgroundColor: bgColor,
+          background: isDarkMode 
+            ? "linear-gradient(135deg, #2563eb, #3b82f6)" 
+            : bgColor,
+          backgroundColor: isDarkMode ? undefined : bgColor,
           color: "white",
-          borderRadius: "999px",
+          borderRadius: isDarkMode ? "8px" : "999px",
           padding: "4px 10px",
           fontSize: "12px",
-          fontWeight: 500,
+          fontWeight: isDarkMode ? 600 : 500,
           display: "inline-block",
           minWidth: "28px",
           textAlign: "center",
-          boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
+          boxShadow: isDarkMode 
+            ? "0 2px 4px rgba(0,0,0,0.3)" 
+            : "0 1px 2px rgba(0,0,0,0.2)",
         }}
       >
         {value}
@@ -352,7 +365,10 @@ export default function Distributors() {
             <IconButton
               size="small"
               onClick={() => handleOpenDialog(params.row)}
-              color="primary"
+              sx={{ 
+                color: isDarkMode ? "#60A5FA" : "primary.main",
+                "&:hover": { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : undefined }
+              }}
             >
               <EditIcon fontSize="small" />
             </IconButton>
@@ -360,8 +376,11 @@ export default function Distributors() {
           <PermissionGate permission={PERMISSIONS.EDIT_DISTRIBUTOR}>
             <IconButton
               size="small"
-              color="error"
               onClick={() => handleDeleteClick(params.row)}
+              sx={{ 
+                color: isDarkMode ? "#F87171" : "error.main",
+                "&:hover": { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : undefined }
+              }}
             >
               <DeleteIcon fontSize="small" />
             </IconButton>
@@ -378,24 +397,30 @@ export default function Distributors() {
       headerAlign: "center",
       align: "center",
       headerClassName: "multi-line-header",
-      renderCell: (params) => (
-        <Box sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          width: '100%',
-          overflow: 'hidden'
-        }}>
-          <StatusDot color={getRowColor(params.row)} />
-          <span style={{
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis'
+      renderCell: (params) => {
+        const rowColor = getRowColor(params.row);
+        
+        return (
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            width: '100%',
+            overflow: 'hidden'
           }}>
-            {displayValue(params.value)}
-          </span>
-        </Box>
-      ),
+            <StatusDot color={rowColor} />
+            <span style={{
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              fontWeight: (rowColor === 'red' || rowColor === 'orange') && isDarkMode ? 700 : 500,
+              color: isDarkMode && (rowColor === 'red' || rowColor === 'orange') ? "inherit" : undefined
+            }}>
+              {displayValue(params.value)}
+            </span>
+          </Box>
+        );
+      },
     },
     {
       field: "mantri_mobile",
@@ -723,14 +748,23 @@ export default function Distributors() {
   );
 
   return (
-    <Box>
+    <Box sx={{ 
+      backgroundColor: isDarkMode ? "#0B1220" : "transparent",
+      minHeight: "100vh",
+      p: { xs: 2, md: 3 },
+      transition: "background-color 0.3s ease"
+    }}>
       {/* Header */}
       <Box sx={{ mb: { xs: 2, md: 4 } }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+        <Typography variant="h4" sx={{ 
+          fontWeight: 700, 
+          mb: 0.5,
+          color: isDarkMode ? "#E5E7EB" : "text.primary"
+        }}>
           <GroupIcon sx={{ mr: 1, verticalAlign: "middle" }} />
           {t("distributors.title")}
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body1" sx={{ color: isDarkMode ? "#9CA3AF" : "text.secondary" }}>
           {t("distributors.subtitle", "Manage your distributor network")}
         </Typography>
       </Box>
@@ -742,7 +776,13 @@ export default function Distributors() {
       )}
 
       {/* Actions Bar */}
-      <Card sx={{ mb: 3 }}>
+      <Card sx={{ 
+        mb: 3,
+        backgroundColor: isDarkMode ? "#111827" : "background.paper",
+        borderRadius: isDarkMode ? "12px" : "16px",
+        boxShadow: isDarkMode ? "0 8px 30px rgba(0,0,0,0.5)" : undefined,
+        border: isDarkMode ? "1px solid rgba(255,255,255,0.05)" : "none"
+      }}>
         <CardContent>
           <Box
             sx={{
@@ -783,7 +823,12 @@ export default function Distributors() {
       </Card>
 
       {/* Data Grid */}
-      <Card>
+      <Card sx={{ 
+        backgroundColor: isDarkMode ? "#111827" : "background.paper",
+        borderRadius: isDarkMode ? "12px" : "16px",
+        boxShadow: isDarkMode ? "0 8px 30px rgba(0,0,0,0.5)" : undefined,
+        border: isDarkMode ? "1px solid rgba(255,255,255,0.05)" : "none"
+      }}>
         <CardContent>
           <Box sx={{ height: 600, width: "100%", overflowX: "auto" }}>
             {loading ? (
@@ -797,7 +842,7 @@ export default function Distributors() {
                 pageSizeOptions={[10, 25, 50]}
                 disableRowSelectionOnClick
                 scrollbarSize={8}
-                rowHeight={48}
+                rowHeight={isDarkMode ? 60 : 48}
                 localeText={{
                   noRowsLabel: "No distributor data available",
                 }}
@@ -822,30 +867,38 @@ export default function Distributors() {
                     borderRadius: "6px",
                     marginBottom: "6px",
                     transition: "all 0.2s ease",
-                    bgcolor: "#fff",
+                    backgroundColor: isDarkMode ? "transparent" : "#fff",
+                    color: isDarkMode ? "#E5E7EB" : "inherit",
                     "&:hover": {
                       cursor: "pointer",
+                      backgroundColor: isDarkMode ? "rgba(255,255,255,0.05) !important" : undefined,
+                      transform: isDarkMode ? "scale(1.002)" : "none",
                     },
                   },
                   "& .row-green": {
-                    backgroundColor: "#d1fae5 !important",
-                    borderLeft: "5px solid #16a34a !important",
+                    backgroundColor: isDarkMode ? "rgba(34, 197, 94, 0.2) !important" : "#d1fae5 !important",
+                    borderLeft: isDarkMode ? "5px solid #22c55e !important" : "5px solid #16a34a !important",
+                    color: isDarkMode ? "#d1fae5 !important" : "inherit",
                     "&:hover": {
-                      backgroundColor: "#bbf7d0 !important",
+                      backgroundColor: isDarkMode ? "rgba(34, 197, 94, 0.3) !important" : "#bbf7d0 !important",
                     },
                   },
                   "& .row-orange": {
-                    backgroundColor: "#ffedd5 !important",
-                    borderLeft: "5px solid #ea580c !important",
+                    backgroundColor: isDarkMode ? "rgba(251, 146, 60, 0.25) !important" : "#ffedd5 !important",
+                    borderLeft: isDarkMode ? "5px solid #fb923c !important" : "5px solid #ea580c !important",
+                    color: isDarkMode ? "#ffedd5 !important" : "inherit",
+                    boxShadow: isDarkMode ? "inset 0 0 12px rgba(251, 146, 60, 0.2)" : "none",
                     "&:hover": {
-                      backgroundColor: "#fed7aa !important",
+                      backgroundColor: isDarkMode ? "rgba(251, 146, 60, 0.35) !important" : "#fed7aa !important",
                     },
                   },
                   "& .row-red": {
-                    backgroundColor: "#fee2e2 !important",
-                    borderLeft: "5px solid #dc2626 !important",
+                    backgroundColor: isDarkMode ? "rgba(239, 68, 68, 0.25) !important" : "#fee2e2 !important",
+                    borderLeft: isDarkMode ? "5px solid #ef4444 !important" : "5px solid #dc2626 !important",
+                    color: isDarkMode ? "#fecaca !important" : "inherit",
+                    boxShadow: isDarkMode ? "inset 0 0 12px rgba(239, 68, 68, 0.2)" : "none",
                     "&:hover": {
-                      backgroundColor: "#fecaca !important",
+                      backgroundColor: isDarkMode ? "rgba(239, 68, 68, 0.35) !important" : "#fecaca !important",
                     },
                   },
                   "& .MuiDataGrid-cell": {
@@ -856,14 +909,22 @@ export default function Distributors() {
                     fontSize: "14px",
                     px: 2,
                     whiteSpace: "nowrap",
+                    color: isDarkMode ? "#E5E7EB" : "inherit",
                   },
                   "& .MuiDataGrid-columnHeaders": {
-                    bgcolor: "rgba(0,0,0,0.01)",
+                    backgroundColor: isDarkMode ? "#1F2937 !important" : "rgba(0,0,0,0.01)",
                     borderRadius: 0,
-                    borderBottom: "1px solid rgba(0,0,0,0.08)",
-                    color: "#111827",
+                    borderBottom: isDarkMode ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.08)",
+                    color: isDarkMode ? "#F9FAFB" : "#111827",
                     fontWeight: 600,
                     fontSize: "14px",
+                  },
+                  "& .MuiDataGrid-footerContainer": {
+                    borderTop: isDarkMode ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.08)",
+                    color: isDarkMode ? "#9CA3AF" : "inherit",
+                  },
+                  "& .MuiTablePagination-root": {
+                    color: isDarkMode ? "#9CA3AF" : "inherit",
                   },
                 }}
               />

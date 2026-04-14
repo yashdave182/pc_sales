@@ -86,6 +86,18 @@ def create_distributor(
         if not response.data:
             raise HTTPException(status_code=400, detail="Failed to create distributor")
 
+        if user_email:
+            try:
+                logger = get_activity_logger(db)
+                logger.log_create(
+                    user_email=user_email,
+                    entity_type="distributor",
+                    entity_name=f"{distributor.village} - {distributor.taluka}",
+                    new_state=response.data[0] if response.data else None,
+                )
+            except Exception:
+                pass
+
         return {
             "message": "Distributor created successfully",
             "distributor": response.data[0],
@@ -96,17 +108,7 @@ def create_distributor(
         raise HTTPException(
             status_code=500, detail=f"Error creating distributor: {str(e)}"
         )
-    finally:
-        if user_email:
-            try:
-                logger = get_activity_logger(db)
-                logger.log_create(
-                    user_email=user_email,
-                    entity_type="distributor",
-                    entity_name=f"{distributor.village} - {distributor.taluka}",
-                )
-            except Exception:
-                pass
+
 
 
 @router.put("/{distributor_id}", dependencies=[Depends(verify_permission("edit_distributor"))])
@@ -124,6 +126,10 @@ async def update_distributor(
         print("🔥 RAW REQUEST BODY:", raw_body)
         print("📦 PARSED DATA:", distributor.model_dump())
         print("🧠 MODEL FIELDS:", Distributor.model_fields.keys())
+
+        # Fetch current record BEFORE updating so we can log the diff
+        before_resp = db.table("distributors").select("*").eq("distributor_id", distributor_id).execute()
+        before_data = before_resp.data[0] if before_resp.data else {}
         
         # Prepare data for update
         update_data = {
@@ -191,12 +197,18 @@ async def update_distributor(
     finally:
         if user_email:
             try:
+                # Fetch updated record for the diff
+                after_resp = db.table("distributors").select("*").eq("distributor_id", distributor_id).execute()
+                after_data = after_resp.data[0] if after_resp.data else {}
                 logger = get_activity_logger(db)
-                logger.log_update(
+                logger.log_update_with_diff(
                     user_email=user_email,
                     entity_type="distributor",
                     entity_name=f"{distributor.village} - {distributor.taluka}",
                     entity_id=distributor_id,
+                    before=before_data,
+                    after=after_data,
+                    skip_fields=["distributor_id", "created_at"],
                 )
             except Exception:
                 pass

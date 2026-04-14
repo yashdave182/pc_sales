@@ -92,6 +92,58 @@ const ENTITY_ICON: Record<string, React.ReactElement> = {
   customer: <PersonIcon sx={{ fontSize: 14 }} />,
 };
 
+// ── Field label prettifier ─────────────────────────────────────
+function prettyField(field: string): string {
+  return field
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// ── Render before→after diff chips ────────────────────────────
+function ChangeDiff({ changes }: { changes: { field: string; from: any; to: any }[] }) {
+  if (!changes || changes.length === 0) return null;
+  return (
+    <Box sx={{ mt: 0.75, display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+      {changes.map((c, i) => (
+        <Box
+          key={i}
+          sx={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 0.4,
+            bgcolor: "#f1f5f9",
+            border: "1px solid #e2e8f0",
+            borderRadius: 1.5,
+            px: 0.9,
+            py: 0.3,
+            fontSize: "11px",
+            fontFamily: "'JetBrains Mono','Fira Code',monospace",
+            lineHeight: 1.4,
+          }}
+        >
+          <Box component="span" sx={{ color: "#64748b", fontWeight: 600 }}>
+            {prettyField(c.field)}:
+          </Box>
+          <Box
+            component="span"
+            sx={{
+              color: "#dc2626",
+              textDecoration: "line-through",
+              opacity: 0.75,
+            }}
+          >
+            {String(c.from ?? "—")}
+          </Box>
+          <Box component="span" sx={{ color: "#64748b" }}>→</Box>
+          <Box component="span" sx={{ color: "#16a34a", fontWeight: 600 }}>
+            {String(c.to ?? "—")}
+          </Box>
+        </Box>
+      ))}
+    </Box>
+  );
+}
+
 function parseDate(dateStr: string): Date {
   if (!dateStr) return new Date();
   const isAware = dateStr.endsWith("Z") || dateStr.match(/[+-]\d{2}:\d{2}$/);
@@ -429,6 +481,10 @@ export default function Activity() {
                             {log.action_description ||
                               `${log.action_type} ${log.entity_type || ""}`}
                           </Typography>
+                          {/* Show before/after diff if present */}
+                          {log.metadata?.changes && (
+                            <ChangeDiff changes={log.metadata.changes} />
+                          )}
                           <Stack
                             direction="row"
                             spacing={1}

@@ -141,6 +141,10 @@ def update_customer(
 ):
     """Update an existing customer"""
     try:
+        # Fetch current record BEFORE updating so we can log the diff
+        before_resp = db.table("customers").select("*").eq("customer_id", customer_id).execute()
+        before_data = before_resp.data[0] if before_resp.data else {}
+
         customer_data = {
             "name": customer.name,
             "mobile": customer.mobile,
@@ -167,19 +171,17 @@ def update_customer(
 
         updated_customer = response.data[0]
 
-        # Log activity
+        # Log activity with before/after diff
         if user_email:
             logger = get_activity_logger(db)
-            logger.log_update(
+            logger.log_update_with_diff(
                 user_email=user_email,
                 entity_type="customer",
                 entity_name=customer.name,
                 entity_id=customer_id,
-                metadata={
-                    "customer_code": customer.customer_code,
-                    "mobile": customer.mobile,
-                    "village": customer.village,
-                },
+                before=before_data,
+                after=updated_customer,
+                skip_fields=["customer_id", "customer_code", "created_at"],
             )
 
         return {"message": "Customer updated", "data": updated_customer}

@@ -127,6 +127,10 @@ async def update_shopkeeper(
         print("🔥 RAW REQUEST BODY:", raw_body)
         print("📦 PARSED DATA:", shopkeeper.model_dump())
         print("🧠 MODEL FIELDS:", Shopkeeper.model_fields.keys())
+
+        # Fetch current record BEFORE updating so we can log the diff
+        before_resp = db.table("shopkeepers").select("*").eq("shopkeeper_id", shopkeeper_id).execute()
+        before_data = before_resp.data[0] if before_resp.data else {}
         
         # Prepare data for update
         update_data = {
@@ -194,12 +198,17 @@ async def update_shopkeeper(
     finally:
         if user_email:
             try:
+                after_resp = db.table("shopkeepers").select("*").eq("shopkeeper_id", shopkeeper_id).execute()
+                after_data = after_resp.data[0] if after_resp.data else {}
                 logger = get_activity_logger(db)
-                logger.log_update(
+                logger.log_update_with_diff(
                     user_email=user_email,
                     entity_type="shopkeeper",
                     entity_name=f"{shopkeeper.village} - {shopkeeper.taluka}",
                     entity_id=shopkeeper_id,
+                    before=before_data,
+                    after=after_data,
+                    skip_fields=["shopkeeper_id", "created_at"],
                 )
             except Exception:
                 pass

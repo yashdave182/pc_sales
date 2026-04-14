@@ -522,6 +522,10 @@ def update_sale(
 ):
     """Update a sale with items"""
     try:
+        # Fetch current record BEFORE updating so we can log the diff
+        before_resp = db.table("sales").select("*").eq("sale_id", sale_id).execute()
+        before_data = before_resp.data[0] if before_resp.data else {}
+
         # Sanitize payload
         clean_data = sale_data.copy()
         
@@ -615,12 +619,18 @@ def update_sale(
     finally:
         if user_email:
             try:
+                # Fetch updated record for the diff
+                after_resp = db.table("sales").select("*").eq("sale_id", sale_id).execute()
+                after_data = after_resp.data[0] if after_resp.data else {}
                 logger = get_activity_logger(db)
-                logger.log_update(
+                logger.log_update_with_diff(
                     user_email=user_email,
                     entity_type="sale",
                     entity_name=f"Sale #{sale_id}",
                     entity_id=sale_id,
+                    before=before_data,
+                    after=after_data,
+                    skip_fields=["sale_id", "created_at", "invoice_no"],
                 )
             except Exception:
                 pass

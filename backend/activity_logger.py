@@ -4,7 +4,7 @@ Tracks all user activities and actions in the system
 """
 
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from supabase_db import SupabaseClient
 
@@ -67,6 +67,44 @@ class ActivityLogger:
             print(f"Error logging activity: {str(e)}")
             return False
 
+    def _compute_diff(
+        self,
+        before: Dict[str, Any],
+        after: Dict[str, Any],
+        skip_fields: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Compute a list of changed fields between two snapshots.
+
+        Returns a list of dicts: [{field, from, to}]
+        Ignores fields in skip_fields and internal DB fields.
+        """
+        skip = set(skip_fields or [])
+        skip.update({"created_at", "updated_at", "id"})
+
+        changes = []
+        all_keys = set(before.keys()) | set(after.keys())
+        for key in sorted(all_keys):
+            if key in skip:
+                continue
+            old_val = before.get(key)
+            new_val = after.get(key)
+
+            if old_val == new_val:
+                continue
+
+            # Skip when both are falsy (None vs "")
+            if not old_val and not new_val:
+                continue
+
+            changes.append({
+                "field": key,
+                "from": old_val,
+                "to": new_val,
+            })
+
+        return changes
+
     def log_create(
         self,
         user_email: str,
@@ -94,7 +132,7 @@ class ActivityLogger:
         entity_id: Optional[int] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ):
-        """Log an UPDATE action"""
+        """Log an UPDATE action (no diff)"""
         self.log_activity(
             user_email=user_email,
             action_type="UPDATE",
@@ -103,6 +141,39 @@ class ActivityLogger:
             entity_id=entity_id,
             entity_name=entity_name,
             metadata=metadata,
+        )
+
+    def log_update_with_diff(
+        self,
+        user_email: str,
+        entity_type: str,
+        entity_name: str,
+        before: Dict[str, Any],
+        after: Dict[str, Any],
+        entity_id: Optional[int] = None,
+        skip_fields: Optional[List[str]] = None,
+        extra_metadata: Optional[Dict[str, Any]] = None,
+    ):
+        """
+        Log an UPDATE action including a before/after diff in metadata.
+
+        Changes are stored as metadata.changes = [{field, from, to}, ...]
+        so the frontend can render them as e.g. "price: 340 → 380".
+        """
+        changes = self._compute_diff(before, after, skip_fields=skip_fields)
+
+        meta: Dict[str, Any] = extra_metadata.copy() if extra_metadata else {}
+        if changes:
+            meta["changes"] = changes
+
+        self.log_activity(
+            user_email=user_email,
+            action_type="UPDATE",
+            action_description=f"Updated {entity_type}: {entity_name}",
+            entity_type=entity_type,
+            entity_id=entity_id,
+            entity_name=entity_name,
+            metadata=meta if meta else None,
         )
 
     def log_delete(
@@ -163,7 +234,7 @@ class ActivityLogger:
         self.log_activity(
             user_email=user_email,
             action_type="LOGIN",
-            action_description=f"User logged in",
+            action_description="User logged in",
             entity_type="auth",
             ip_address=ip_address,
         )
@@ -173,7 +244,7 @@ class ActivityLogger:
         self.log_activity(
             user_email=user_email,
             action_type="LOGOUT",
-            action_description=f"User logged out",
+            action_description="User logged out",
             entity_type="auth",
         )
 

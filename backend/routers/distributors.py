@@ -123,6 +123,10 @@ async def update_distributor(
         print("🔥 RAW REQUEST BODY:", raw_body)
         print("📦 PARSED DATA:", distributor.model_dump())
         print("🧠 MODEL FIELDS:", Distributor.model_fields.keys())
+
+        # Fetch current record BEFORE updating so we can log the diff
+        before_resp = db.table("distributors").select("*").eq("distributor_id", distributor_id).execute()
+        before_data = before_resp.data[0] if before_resp.data else {}
         
         # Prepare data for update
         update_data = {
@@ -190,12 +194,18 @@ async def update_distributor(
     finally:
         if user_email:
             try:
+                # Fetch updated record for the diff
+                after_resp = db.table("distributors").select("*").eq("distributor_id", distributor_id).execute()
+                after_data = after_resp.data[0] if after_resp.data else {}
                 logger = get_activity_logger(db)
-                logger.log_update(
+                logger.log_update_with_diff(
                     user_email=user_email,
                     entity_type="distributor",
                     entity_name=f"{distributor.village} - {distributor.taluka}",
                     entity_id=distributor_id,
+                    before=before_data,
+                    after=after_data,
+                    skip_fields=["distributor_id", "created_at"],
                 )
             except Exception:
                 pass

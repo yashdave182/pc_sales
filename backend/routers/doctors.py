@@ -130,6 +130,7 @@ async def update_doctor(
         
         # Prepare data for update
         update_data = {
+            "name": doctor.name,
             "village": doctor.village,
             "taluka": doctor.taluka,
             "district": doctor.district,

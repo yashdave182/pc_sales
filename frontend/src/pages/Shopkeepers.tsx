@@ -86,6 +86,7 @@ export default function Shopkeepers() {
   };
   
   const [formData, setFormData] = useState<Partial<Shopkeeper>>({
+    name: "",
     village: "",
     taluka: "",
     district: "",
@@ -143,6 +144,7 @@ export default function Shopkeepers() {
     } else {
       setEditingShopkeeper(null);
       setFormData({
+        name: "",
         village: "",
         taluka: "",
         district: "",
@@ -185,9 +187,10 @@ export default function Shopkeepers() {
     setSubmitting(true);
     try {
       setSubmitLoading(true);
-      if (!formData.village || !formData.taluka || !formData.mantri_name) {
-        setError("Village, Taluka and Mantri Name are required");
+      if (!formData.name || !formData.village) {
+        setError("Shopkeeper Name and Village are required");
         setSubmitting(false);
+        setSubmitLoading(false);
         return;
       }
 
@@ -863,18 +866,19 @@ export default function Shopkeepers() {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label={t("shopkeepers.mantriName", "Mantri Name")}
-                value={formData.mantri_name}
+                required
+                label={t("shopkeepers.shopkeeperName", "Shopkeeper Name")}
+                value={formData.name || ""}
                 onChange={(e) =>
-                  setFormData({ ...formData, mantri_name: e.target.value })
+                  setFormData({ ...formData, name: e.target.value })
                 }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label={t("shopkeepers.mantriMobile", "Mantri Mobile")}
-                value={formData.mantri_mobile}
+                label={t("shopkeepers.shopkeeperMobile", "Shopkeeper Mobile")}
+                value={formData.mantri_mobile || ""}
                 onChange={(e) =>
                   setFormData({ ...formData, mantri_mobile: e.target.value })
                 }

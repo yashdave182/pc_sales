@@ -86,6 +86,7 @@ export default function Doctors() {
   };
   
   const [formData, setFormData] = useState<Partial<Doctor>>({
+    name: "",
     village: "",
     taluka: "",
     district: "",
@@ -143,6 +144,7 @@ export default function Doctors() {
     } else {
       setEditingDoctor(null);
       setFormData({
+        name: "",
         village: "",
         taluka: "",
         district: "",
@@ -185,9 +187,10 @@ export default function Doctors() {
     setSubmitting(true);
     try {
       setSubmitLoading(true);
-      if (!formData.village || !formData.taluka || !formData.mantri_name) {
-        setError("Village, Taluka and Mantri Name are required");
+      if (!formData.name || !formData.village) {
+        setError("Doctor Name and Village are required");
         setSubmitting(false);
+        setSubmitLoading(false);
         return;
       }
 
@@ -863,18 +866,19 @@ export default function Doctors() {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label={t("doctors.mantriName", "Mantri Name")}
-                value={formData.mantri_name}
+                required
+                label={t("doctors.doctorName", "Doctor Name")}
+                value={formData.name || ""}
                 onChange={(e) =>
-                  setFormData({ ...formData, mantri_name: e.target.value })
+                  setFormData({ ...formData, name: e.target.value })
                 }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label={t("doctors.mantriMobile", "Mantri Mobile")}
-                value={formData.mantri_mobile}
+                label={t("doctors.doctorMobile", "Doctor Mobile")}
+                value={formData.mantri_mobile || ""}
                 onChange={(e) =>
                   setFormData({ ...formData, mantri_mobile: e.target.value })
                 }

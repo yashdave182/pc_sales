@@ -134,6 +134,7 @@ async def update_shopkeeper(
         
         # Prepare data for update
         update_data = {
+            "name": shopkeeper.name,
             "village": shopkeeper.village,
             "taluka": shopkeeper.taluka,
             "district": shopkeeper.district,

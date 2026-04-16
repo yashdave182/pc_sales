@@ -90,26 +90,6 @@ export default function Distributors() {
   const [submitting, setSubmitting] = useState(false);
   const [renameField, setRenameField] = useState<string | null>(null);
   const [newColumnName, setNewColumnName] = useState("");
-
-  const handleRenameClick = (field: string) => {
-    setRenameField(field);
-    setNewColumnName(columnNames[field] || "");
-  };
-
-  const handleSaveRename = () => {
-    if (renameField) {
-      setColumnNames((prev) => ({
-        ...prev,
-        [renameField]: newColumnName,
-      }));
-      setRenameField(null);
-    }
-  };
-
-  const handleCloseRename = () => {
-    setRenameField(null);
-    setNewColumnName("");
-  };
   
   const [formData, setFormData] = useState<Partial<Distributor>>({
     village: "",
@@ -717,6 +697,28 @@ export default function Distributors() {
       ),
     },
   ];
+
+  const handleRenameClick = (field: string) => {
+    const baseColumn = baseColumns.find((col) => col.field === field);
+    const currentName = columnNames[field] || baseColumn?.headerName || "";
+    setRenameField(field);
+    setNewColumnName(currentName);
+  };
+
+  const handleSaveRename = () => {
+    if (renameField && newColumnName.trim()) {
+      setColumnNames((prev) => ({
+        ...prev,
+        [renameField]: newColumnName.trim(),
+      }));
+      setRenameField(null);
+    }
+  };
+
+  const handleCloseRename = () => {
+    setRenameField(null);
+    setNewColumnName("");
+  };
 
   const columns: GridColDef[] = baseColumns.map((col) => ({
     ...col,
@@ -1356,15 +1358,30 @@ export default function Distributors() {
               label={t("common.newColumnName", "New Column Name")}
               value={newColumnName}
               onChange={(e) => setNewColumnName(e.target.value)}
+              helperText={
+                !newColumnName || !newColumnName.trim()
+                  ? "Column name cannot be empty"
+                  : ""
+              }
+              error={!newColumnName || !newColumnName.trim()}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSaveRename();
+                if (e.key === 'Enter' && newColumnName.trim()) handleSaveRename();
               }}
             />
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseRename}>{t("common.cancel", "Cancel")}</Button>
-          <Button onClick={handleSaveRename} variant="contained" color="primary">
+          <Button 
+            onClick={handleSaveRename} 
+            variant="contained" 
+            color="primary"
+            disabled={
+              !newColumnName || 
+              !newColumnName.trim() || 
+              newColumnName.trim() === (columnNames[renameField!] || baseColumns.find(c => c.field === renameField)?.headerName)
+            }
+          >
             {t("common.save", "Save")}
           </Button>
         </DialogActions>

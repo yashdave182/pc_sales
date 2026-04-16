@@ -64,7 +64,7 @@ def get_demos(
         )
 
         distributors_response = (
-            db.table("distributors").select("distributor_id, name").execute()
+            db.table("distributors").select("distributor_id, mantri_name").execute()
         )
 
         distributors_dict = (
@@ -92,11 +92,15 @@ def get_demos(
                     "customer_mobile": customer.get("mobile"),
                     "village": customer.get("village"),
                     "product_name": product.get("product_name"),
-                    "distributor_name": distributor.get("name"),
+                    "distributor_name": distributor.get("mantri_name"),
                 }
             )
 
         return result
+    except requests.HTTPError as e:
+        print(f"Warning: Supabase HTTP error in get_demos: {e}")
+        # Return empty list if table doesn't exist
+        return []
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching demos: {str(e)}")
 

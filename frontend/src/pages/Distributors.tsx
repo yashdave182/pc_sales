@@ -362,6 +362,14 @@ export default function Distributors() {
 
   const baseColumns: GridColDef[] = [
     {
+      field: "serial_id",
+      headerName: "ID",
+      width: 80,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+    },
+    {
       field: "actions",
       headerName: t("common.actions"),
       width: 100,

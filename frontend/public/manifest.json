@@ -4,7 +4,7 @@
   "description": "Modern web interface for managing sales, customers, payments, and demos",
   "icons": [
     {
-      "src": "/logo.jpg",
+      "src": "/logo.png",
       "type": "image/jpeg",
       "sizes": "192x192"
     },

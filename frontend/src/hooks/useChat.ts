@@ -339,7 +339,7 @@ export function useChat(currentUserEmail: string | null | undefined) {
             const title = isMentioned ? `${senderName} mentioned you` : `New message from ${senderName}`;
             new Notification(title, {
               body: newMsg.content.substring(0, 50) + (newMsg.content.length > 50 ? '...' : ''),
-              icon: '/logo.jpg'
+              icon: '/logo.png'
             });
           }
 

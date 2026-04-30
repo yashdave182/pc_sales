@@ -12,7 +12,6 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
-import QuickActions from "./components/QuickActions";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Customers from "./pages/Customers";
@@ -83,7 +82,6 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_DASHBOARD}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Dashboard />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }
@@ -94,7 +92,6 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_CUSTOMERS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Customers />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }
@@ -105,7 +102,6 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_SALES}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Sales />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }
@@ -116,7 +112,6 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_PAYMENTS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Payments />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }
@@ -127,7 +122,6 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_DEMOS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Demos />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }
@@ -138,7 +132,6 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_DISTRIBUTORS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Distributors />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }
@@ -149,7 +142,6 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_SHOPKEEPERS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Shopkeepers />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }
@@ -160,7 +152,6 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_DOCTORS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Doctors />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }
@@ -171,7 +162,6 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_REPORTS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Reports />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }
@@ -182,7 +172,6 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.RUN_FORECASTING}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Forecasting />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }
@@ -193,7 +182,6 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.IMPORT_DATA}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <DataImport />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }
@@ -204,7 +192,6 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_CALLING_LIST}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <CallingList />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }
@@ -215,7 +202,6 @@ function App() {
                     <ProtectedRoute>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Activity />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }
@@ -226,7 +212,6 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_ORDERS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <OrderManagement />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }
@@ -237,7 +222,6 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_ACTIVITY_LOGS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Admin />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }
@@ -248,7 +232,6 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.RUN_CALL_DISTRIBUTION}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <CallDistribution />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }
@@ -259,7 +242,6 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_USERS}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <UserManagement />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }
@@ -271,7 +253,6 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.MANAGE_PRICING}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <ProductPricing />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }
@@ -282,7 +263,6 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.MANAGE_ROLES}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <RoleManagement />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }
@@ -293,7 +273,6 @@ function App() {
                     <ProtectedRoute requiredPermission={PERMISSIONS.RUN_ALGORITHM}>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Algorithm />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }
@@ -304,7 +283,6 @@ function App() {
                     <ProtectedRoute>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Notifications />
-                        <QuickActions />
                       </Layout>
                     </ProtectedRoute>
                   }

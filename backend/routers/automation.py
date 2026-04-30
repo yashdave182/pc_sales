@@ -336,7 +336,7 @@ def debug_state(db: SupabaseClient = Depends(get_db)):
         cust_count_res = db.table("distributors").select("distributor_id").execute()
         cust_total = len(cust_count_res.data or [])
         
-        scored_res = db.table("distributors").select("distributor_id").not_.is_("priority_score", "null").limit(1).execute()
+        scored_res = db.table("distributors").select("distributor_id").gte("priority_score", 0).limit(1).execute()
         has_scored = len(scored_res.data or []) > 0
     except Exception as e:
         cust_sample = []

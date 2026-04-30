@@ -430,11 +430,24 @@ def get_my_assignments(
         logger.info(f"[MY-ASSIGN] Enriching {len(cust_ids)} customer IDs: {cust_ids[:10]}")
         customers_map = {}
         if cust_ids:
-            cust_res = db.table("customers") \
-                .select("customer_id, name, village, taluka, district, mobile, priority_score, priority_label") \
-                .in_("customer_id", cust_ids) \
-                .execute()
-            customers_map = {c["customer_id"]: c for c in (cust_res.data or [])}
+            try:
+                cust_res = db.table("customers") \
+                    .select("customer_id, name, village, taluka, district, mobile, priority_score, priority_label") \
+                    .in_("customer_id", cust_ids) \
+                    .execute()
+                customers_map = {c["customer_id"]: c for c in (cust_res.data or [])}
+            except Exception as e:
+                logger.warning(f"[MY-ASSIGN] Customer enrichment columns missing ({e}), falling back...")
+                try:
+                    # Fallback for old schema
+                    cust_res = db.table("customers") \
+                        .select("customer_id, name, village, mobile") \
+                        .in_("customer_id", cust_ids) \
+                        .execute()
+                    customers_map = {c["customer_id"]: c for c in (cust_res.data or [])}
+                except Exception as e2:
+                    logger.error(f"[MY-ASSIGN] ❌ Fallback customer enrichment failed: {e2}")
+            
             logger.info(f"[MY-ASSIGN] Customer lookup returned {len(customers_map)} matches out of {len(cust_ids)} IDs")
             if len(customers_map) < len(cust_ids):
                 missing = set(cust_ids) - set(customers_map.keys())

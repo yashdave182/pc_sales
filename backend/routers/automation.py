@@ -181,21 +181,33 @@ def distribute_calls(db: SupabaseClient, admin_email: str = "system", force: boo
 
     emails = valid_emails  # Already fetched above
 
-    # 3. Get customers to call (top 150 by priority_score)
+    # 3. Get customers to call (top 150, ordered by priority_score if available)
     # NOTE: calling_assignments.customer_id references customers.customer_id
+    customers_to_call = []
     try:
+        # Try with priority columns first
         cust_res = db.table("customers") \
             .select("customer_id, name, mobile, village, priority_score, priority_label") \
             .order("priority_score", desc=True) \
             .limit(150) \
             .execute()
         customers_to_call = cust_res.data or []
-        logger.info(f"[DIST] Fetched {len(customers_to_call)} customers from DB (top 150 by priority_score)")
-        if customers_to_call:
-            logger.info(f"[DIST] Sample customer IDs: {[c['customer_id'] for c in customers_to_call[:5]]}")
+        logger.info(f"[DIST] Fetched {len(customers_to_call)} customers with priority cols (top 150 by priority_score)")
     except Exception as e:
-        logger.error(f"[DIST] ❌ Failed to fetch customers: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to fetch customers: {e}")
+        logger.warning(f"[DIST] priority_score/priority_label columns not available ({e}), falling back to basic fetch")
+        try:
+            # Fallback: fetch without score columns (schema may not have them yet)
+            cust_res = db.table("customers") \
+                .select("customer_id, name, mobile, village") \
+                .limit(150) \
+                .execute()
+            customers_to_call = cust_res.data or []
+            logger.info(f"[DIST] Fallback fetched {len(customers_to_call)} customers without priority cols")
+        except Exception as e2:
+            logger.error(f"[DIST] ❌ Failed to fetch customers even with fallback: {e2}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed to fetch customers: {e2}")
+    if customers_to_call:
+        logger.info(f"[DIST] Sample customer IDs: {[c['customer_id'] for c in customers_to_call[:5]]}")
 
     if not customers_to_call:
         logger.warning("[DIST] ❌ No customers found to distribute — check customers table has rows.")

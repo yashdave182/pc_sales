@@ -8,31 +8,34 @@ from supabase_db import get_supabase
 logger = logging.getLogger(__name__)
 
 def distribute_calls_job():
-    """Daily 10 AM IST job: idempotent call distribution."""
+    """Daily 10:00 AM IST job: idempotent call distribution."""
     try:
-        logger.info("⏰ Auto-distribution triggered by scheduler (10 AM IST)")
+        logger.info("[SCHEDULER] ===== distribute_calls_job TRIGGERED (10:00 AM IST) =====")
         from routers.automation import distribute_calls
         db = get_supabase()
+        logger.info("[SCHEDULER] DB connection obtained, calling distribute_calls...")
         result = distribute_calls(db, admin_email="system_scheduler")
-        logger.info(f"Auto-distribution result: {result}")
+        logger.info(f"[SCHEDULER] distribute_calls result: {result}")
     except Exception as e:
-        logger.error(f"Auto-distribution failed: {e}")
+        logger.error(f"[SCHEDULER] ❌ distribute_calls_job FAILED: {e}", exc_info=True)
 
 def midnight_refresh_job():
     """Midnight IST job: clear pending assignments so new day starts fresh."""
     try:
-        logger.info("🌙 Midnight refresh — clearing yesterday's pending assignments")
-        from datetime import date, timedelta
+        logger.info("[SCHEDULER] 🌙 midnight_refresh_job TRIGGERED")
+        from datetime import date
         db = get_supabase()
-        yesterday = (date.today() - timedelta(days=1)).isoformat()
-        # Delete yesterday's pending (uncalled) assignments
-        db.table("calling_assignments") \
-            .eq("assigned_date", yesterday) \
+        today = date.today().isoformat()
+        logger.info(f"[SCHEDULER] Deleting pending assignments older than {today}...")
+        res = db.table("calling_assignments") \
+            .lt("assigned_date", today) \
             .eq("status", "Pending") \
-            .delete()
-        logger.info(f"Cleared pending assignments from {yesterday}")
+            .delete() \
+            .execute()
+        deleted = len(res.data or [])
+        logger.info(f"[SCHEDULER] Cleared {deleted} old pending assignments.")
     except Exception as e:
-        logger.error(f"Midnight refresh failed: {e}")
+        logger.error(f"[SCHEDULER] ❌ midnight_refresh_job FAILED: {e}", exc_info=True)
 
 def run_nightly_scoring():
     """11:45 PM IST job: re-score all active distributors and bulk-update the DB."""
@@ -147,7 +150,7 @@ def start_scheduler():
             distribute_calls_job,
             trigger=CronTrigger(hour=10, minute=0, timezone=ist),
             id="daily_calling_distribution",
-            name="Auto-Distribute at 10 AM IST",
+            name="Auto-Distribute at 10:00 AM IST",
             replace_existing=True
         )
         # 12:00 AM IST (midnight)
@@ -167,7 +170,7 @@ def start_scheduler():
             replace_existing=True
         )
         scheduler.start()
-        logger.info("✅ Scheduler ENABLED — midnight refresh + 10 AM distribution + 11:45 PM scoring")
+        logger.info("✅ Scheduler ENABLED — midnight refresh + 10:00 AM distribution + 11:45 PM scoring")
     else:
         logger.info("⏸️ Scheduler DISABLED — set SCHEDULER_ENABLED=1 to enable")
 

@@ -384,7 +384,7 @@ export default function Layout({
             if (newNotif && newNotif.title) {
               new Notification(newNotif.title, {
                 body: newNotif.message || "",
-                icon: "/logo.jpg"
+                icon: "/logo.png"
               });
             }
           }
@@ -474,7 +474,7 @@ export default function Layout({
         }}
       >
         <Avatar
-          src="/logo.jpg"
+          src="/logo.png"
           alt="Sales Management Logo"
           sx={{
             width: 40,

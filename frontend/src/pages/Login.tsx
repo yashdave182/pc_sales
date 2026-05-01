@@ -129,16 +129,16 @@ export default function Login() {
                 boxShadow: "0 8px 16px rgba(102, 126, 234, 0.3)",
               }}
             >
-              <Typography
-                variant="h3"
-                sx={{
-                  color: "white",
-                  fontWeight: 700,
-                  fontSize: "2.5rem",
+              <img
+                src="/logo.png"
+                alt="Logo"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: "50%",
+                  objectFit: "cover",
                 }}
-              >
-                PC
-              </Typography>
+              />
             </Box>
 
             <Typography

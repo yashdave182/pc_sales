@@ -7,7 +7,7 @@ echo.
 cd /d "%~dp0"
 
 echo [1/4] Adding changes...
-git add frontend/public/logo.jpg
+git add frontend/public/logo.png
 git add frontend/src/components/Layout.tsx
 echo.
 

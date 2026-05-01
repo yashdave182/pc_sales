@@ -145,12 +145,12 @@ def start_scheduler():
         import pytz
         ist = pytz.timezone("Asia/Kolkata")
         
-        # ⚠️ TEST MODE: 3:10 PM IST — revert to hour=10, minute=0 after testing
+        # 10:00 AM IST
         scheduler.add_job(
             distribute_calls_job,
-            trigger=CronTrigger(hour=15, minute=10, timezone=ist),
+            trigger=CronTrigger(hour=10, minute=0, timezone=ist),
             id="daily_calling_distribution",
-            name="Auto-Distribute at 3:10 PM IST (TEST)",
+            name="Auto-Distribute at 10:00 AM IST",
             replace_existing=True
         )
         # 12:00 AM IST (midnight)
@@ -170,7 +170,7 @@ def start_scheduler():
             replace_existing=True
         )
         scheduler.start()
-        logger.info("✅ Scheduler ENABLED — midnight refresh + 3:10 PM distribution (TEST) + 11:45 PM scoring")
+        logger.info("✅ Scheduler ENABLED — midnight refresh + 10:00 AM distribution + 11:45 PM scoring")
     else:
         logger.info("⏸️ Scheduler DISABLED — set SCHEDULER_ENABLED=1 to enable")
 

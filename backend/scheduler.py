@@ -23,17 +23,17 @@ def midnight_refresh_job():
     """Midnight IST job: clear pending assignments so new day starts fresh."""
     try:
         logger.info("[SCHEDULER] 🌙 midnight_refresh_job TRIGGERED")
-        from datetime import date, timedelta
+        from datetime import date
         db = get_supabase()
-        yesterday = (date.today() - timedelta(days=1)).isoformat()
-        logger.info(f"[SCHEDULER] Deleting pending assignments for {yesterday}...")
+        today = date.today().isoformat()
+        logger.info(f"[SCHEDULER] Deleting pending assignments older than {today}...")
         res = db.table("calling_assignments") \
-            .eq("assigned_date", yesterday) \
+            .lt("assigned_date", today) \
             .eq("status", "Pending") \
             .delete() \
             .execute()
         deleted = len(res.data or [])
-        logger.info(f"[SCHEDULER] Cleared {deleted} pending assignments from {yesterday}")
+        logger.info(f"[SCHEDULER] Cleared {deleted} old pending assignments.")
     except Exception as e:
         logger.error(f"[SCHEDULER] ❌ midnight_refresh_job FAILED: {e}", exc_info=True)
 

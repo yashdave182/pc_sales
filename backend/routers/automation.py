@@ -143,7 +143,18 @@ def distribute_calls(db: SupabaseClient, admin_email: str = "system", force: boo
     logger.info(f"[DIST] Telecallers to distribute to: {valid_emails}")
 
     # 2. Clear ghost assignments (assignments for users no longer in telecaller list)
+    # Also clean up any lingering pending assignments from past days as a fallback
     try:
+        old_res = db.table("calling_assignments") \
+            .select("assignment_id") \
+            .lt("assigned_date", today_str) \
+            .eq("status", "Pending") \
+            .execute()
+        if old_res.data:
+            for old_row in old_res.data:
+                db.table("calling_assignments").eq("assignment_id", old_row["assignment_id"]).delete().execute()
+            logger.info(f"[DIST] Fallback cleanup complete — deleted {len(old_res.data)} old pending assignments.")
+
         ghost_res = db.table("calling_assignments") \
             .select("assignment_id, user_email") \
             .eq("assigned_date", today_str) \
@@ -158,7 +169,7 @@ def distribute_calls(db: SupabaseClient, admin_email: str = "system", force: boo
                 db.table("calling_assignments").eq("assignment_id", gid).delete().execute()
             logger.info(f"[DIST] Ghost cleanup complete — deleted {len(ghost_ids)} rows")
     except Exception as ge:
-        logger.warning(f"[DIST] Ghost cleanup failed (non-fatal): {ge}")
+        logger.warning(f"[DIST] Cleanup tasks failed (non-fatal): {ge}")
 
     # 3. Smart idempotency check — only block if VALID telecallers already have assignments
     already = _check_already_distributed(db, today_str, valid_emails=valid_emails)

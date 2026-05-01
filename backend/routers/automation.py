@@ -218,7 +218,9 @@ def distribute_calls(db: SupabaseClient, admin_email: str = "system", force: boo
         logger.info(f"[DIST] Fetched {len(customers_to_call)} distributors (top 150 by priority_score)")
     except Exception as e:
         logger.error(f"[DIST] ❌ Failed to fetch distributors: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to fetch distributors: {e}")
+        # Raise a plain RuntimeError (not HTTPException) so this is safe to call
+        # from both the scheduler background job AND HTTP endpoints.
+        raise RuntimeError(f"Failed to fetch distributors: {e}") from e
         
     if customers_to_call:
         logger.info(f"[DIST] Sample distributor IDs: {[c['customer_id'] for c in customers_to_call[:5]]}")
@@ -278,7 +280,7 @@ def distribute_calls(db: SupabaseClient, admin_email: str = "system", force: boo
                 logger.info(f"[DIST] Inserted batch {batches_inserted} ({len(batch)} rows)")
             except Exception as be:
                 logger.error(f"[DIST] ❌ Batch insert failed (batch {batches_inserted+1}): {be}", exc_info=True)
-                raise HTTPException(status_code=500, detail=f"Batch insert failed: {be}")
+                raise RuntimeError(f"Batch insert failed: {be}") from be
         logger.info(f"[DIST] ✅ All {batches_inserted} batch(es) inserted successfully")
 
     # 7. Send notifications to telecallers
@@ -587,25 +589,28 @@ def update_call_status(
             }).execute()
 
         # 5b. Score adjustments based on call outcome
-        customer_id = assignment["customer_id"]
+        # NOTE: customer_id here actually stores distributor_id (schema reuse).
+        # All score adjustments must target the `distributors` table.
+        distributor_id = assignment["customer_id"]
         try:
             if body.call_outcome == "connected" and body.notes and "order" in (body.notes or "").lower():
                 # Connected + order mentioned → decrease score by 15 (min 0)
-                cust_res = db.table("customers").select("priority_score").eq("customer_id", customer_id).execute()
-                if cust_res.data:
-                    current_score = cust_res.data[0].get("priority_score", 0) or 0
+                dist_res = db.table("distributors").select("priority_score").eq("distributor_id", distributor_id).execute()
+                if dist_res.data:
+                    current_score = dist_res.data[0].get("priority_score", 0) or 0
                     new_score = max(0, current_score - 15)
                     from scoring_engine import priority_label as calc_label
-                    db.table("customers").eq("customer_id", customer_id).update({
+                    db.table("distributors").eq("distributor_id", distributor_id).update({
                         "priority_score": new_score,
                         "priority_label": calc_label(new_score),
-                    })
+                    }).execute()
+                    logger.info(f"[SCORE] distributor {distributor_id}: connected+order → score {current_score} → {new_score}")
 
             elif body.call_outcome == "not_reachable":
                 # Not reachable → decrease score by 3 (min 0)
-                cust_res = db.table("customers").select("priority_score").eq("customer_id", customer_id).execute()
-                if cust_res.data:
-                    current_score = cust_res.data[0].get("priority_score", 0) or 0
+                dist_res = db.table("distributors").select("priority_score").eq("distributor_id", distributor_id).execute()
+                if dist_res.data:
+                    current_score = dist_res.data[0].get("priority_score", 0) or 0
                     new_score = max(0, current_score - 3)
                     from scoring_engine import priority_label as calc_label
                     update_data = {
@@ -617,27 +622,29 @@ def update_call_status(
                     week_ago = (date.today() - timedelta(days=7)).isoformat()
                     nr_res = db.table("call_logs") \
                         .select("log_id") \
-                        .eq("customer_id", customer_id) \
+                        .eq("customer_id", distributor_id) \
                         .eq("call_outcome", "not_reachable") \
                         .gte("created_at", week_ago) \
                         .execute()
                     nr_count = len(nr_res.data or [])
                     if nr_count >= 3:
                         update_data["priority_label"] = "LOW"
-                        logger.info(f"Customer {customer_id} has {nr_count} not_reachable this week → forced LOW")
+                        logger.info(f"[SCORE] distributor {distributor_id} has {nr_count} not_reachable this week → forced LOW")
 
-                    db.table("customers").eq("customer_id", customer_id).update(update_data)
+                    db.table("distributors").eq("distributor_id", distributor_id).update(update_data).execute()
+                    logger.info(f"[SCORE] distributor {distributor_id}: not_reachable → score {current_score} → {new_score}")
 
             elif body.call_outcome == "callback":
-                # Callback → freeze score so nightly job skips this customer
-                db.table("customers").eq("customer_id", customer_id).update({
+                # Callback → freeze score so nightly scoring job skips this distributor
+                db.table("distributors").eq("distributor_id", distributor_id).update({
                     "score_frozen": True,
-                })
+                }).execute()
+                logger.info(f"[SCORE] distributor {distributor_id}: callback → score_frozen=True")
 
             # 'connected' without order → no score change (intentional)
 
         except Exception as e:
-            logger.error(f"Score adjustment failed for customer {customer_id}: {e}")
+            logger.error(f"Score adjustment failed for distributor {distributor_id}: {e}")
 
         # 6. Log the activity for the floating toast
         try:
@@ -777,6 +784,8 @@ def admin_distribute(
         return result
     except HTTPException:
         raise
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Distribution failed: {e}")
 
@@ -841,7 +850,7 @@ def get_distribution_status(
     import pytz
     ist = pytz.timezone("Asia/Kolkata")
     now_ist = datetime.now(ist)
-    target = now_ist.replace(hour=22, minute=5, second=0, microsecond=0)  # TEST: revert to hour=10, minute=0
+    target = now_ist.replace(hour=10, minute=0, second=0, microsecond=0)
 
     if now_ist >= target:
         minutes_remaining = 0
@@ -901,6 +910,8 @@ def admin_refresh_distribution(
 
     except HTTPException:
         raise
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Refresh failed: {e}")
 
@@ -965,3 +976,52 @@ def admin_bulk_reassign(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Bulk reassign failed: {e}")
+
+
+# ─── External Cron Trigger ────────────────────────────────
+# Hit this endpoint from cron-job.org (or any external scheduler) at 10:00 AM IST
+# to guarantee daily assignment even if the backend process restarts.
+#
+# Setup:
+#   1. Add CRON_SECRET=<some-long-random-string> to backend/.env
+#   2. On cron-job.org, create a job:
+#        URL:    POST https://<your-backend>/api/automation/trigger-daily
+#        Header: x-cron-secret: <same-secret>
+#        Time:   04:30 UTC (= 10:00 AM IST)
+
+@router.post("/trigger-daily")
+def trigger_daily_cron(
+    x_cron_secret: str = Header(None, alias="x-cron-secret"),
+    db: SupabaseClient = Depends(get_db),
+):
+    """
+    External-cron entry point for daily call distribution.
+    Protected by CRON_SECRET env var — requests without the correct secret are
+    rejected with 401. Safe to expose publicly because without the secret the
+    endpoint is a no-op.
+    """
+    expected_secret = os.environ.get("CRON_SECRET", "").strip()
+    if not expected_secret:
+        # CRON_SECRET not configured — refuse all external calls to prevent
+        # accidental open access.
+        logger.error("[CRON] /trigger-daily called but CRON_SECRET env var is not set — rejecting.")
+        raise HTTPException(
+            status_code=503,
+            detail="CRON_SECRET is not configured on this server. Set it in .env and restart."
+        )
+
+    if x_cron_secret != expected_secret:
+        logger.warning(f"[CRON] /trigger-daily rejected — bad secret (received: {repr(x_cron_secret)})")
+        raise HTTPException(status_code=401, detail="Invalid cron secret.")
+
+    logger.info("[CRON] ✅ /trigger-daily authenticated — starting distribution...")
+    try:
+        result = distribute_calls(db, admin_email="external_cron")
+        logger.info(f"[CRON] distribute_calls result: {result}")
+        return {"triggered_by": "external_cron", **result}
+    except RuntimeError as e:
+        logger.error(f"[CRON] distribute_calls raised RuntimeError: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        logger.error(f"[CRON] Unexpected error in trigger_daily_cron: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Cron trigger failed: {e}")

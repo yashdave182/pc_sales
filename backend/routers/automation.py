@@ -850,7 +850,7 @@ def get_distribution_status(
     import pytz
     ist = pytz.timezone("Asia/Kolkata")
     now_ist = datetime.now(ist)
-    target = now_ist.replace(hour=10, minute=0, second=0, microsecond=0)
+    target = now_ist.replace(hour=15, minute=10, second=0, microsecond=0)  # TEST — revert to hour=10, minute=0
 
     if now_ist >= target:
         minutes_remaining = 0

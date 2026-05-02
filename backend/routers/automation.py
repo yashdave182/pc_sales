@@ -45,39 +45,53 @@ def _get_telecaller_emails(db: SupabaseClient) -> list:
     try:
         res = db.table("app_users").select("email, name, role").execute()
         users = res.data or []
+        logger.info(f"[DIST] app_users total rows: {len(users)}")
+        logger.info(f"[DIST] All roles in app_users: {[u.get('role') for u in users]}")
         telecaller_roles = {"telecaller", "staff", "telecaller1", "telecaller2"}
         telecallers = [
             u for u in users
             if u.get("role", "").lower().replace(" ", "_") in telecaller_roles
                or "telecaller" in u.get("role", "").lower()
         ]
-        logger.info(f"Found {len(telecallers)} telecallers out of {len(users)} users")
+        logger.info(f"[DIST] Found {len(telecallers)} telecallers: {[t['email'] for t in telecallers]}")
         return telecallers
     except Exception as e:
-        logger.error(f"Error fetching telecallers: {e}")
+        logger.error(f"[DIST] Error fetching telecallers: {e}", exc_info=True)
         return []
 
 
-def _check_already_distributed(db: SupabaseClient, target_date: str) -> bool:
-    """Idempotency check: are there assignments for this date already?"""
+def _check_already_distributed(db: SupabaseClient, target_date: str, valid_emails: list = None) -> bool:
+    """
+    Idempotency check: are there assignments for this date for VALID telecallers?
+    If valid_emails is provided, only count assignments where user_email is in that list.
+    Ghost assignments (for removed users) are ignored.
+    """
     try:
         res = db.table("calling_assignments") \
-            .select("assignment_id", count="exact") \
+            .select("assignment_id, user_email") \
             .eq("assigned_date", target_date) \
-            .limit(1) \
             .execute()
-        return (res.count or 0) > 0 or len(res.data or []) > 0
-    except Exception:
-        # Fallback: just check if we get any data
-        try:
-            res = db.table("calling_assignments") \
-                .select("assignment_id") \
-                .eq("assigned_date", target_date) \
-                .limit(1) \
-                .execute()
-            return len(res.data or []) > 0
-        except:
-            return False
+        all_rows = res.data or []
+        if valid_emails:
+            # Only count assignments for currently active telecallers
+            valid_rows = [r for r in all_rows if r.get("user_email") in valid_emails]
+            ghost_rows = [r for r in all_rows if r.get("user_email") not in valid_emails]
+            found = len(valid_rows) > 0
+            logger.info(
+                f"[DIST] Idempotency check for {target_date}: total_rows={len(all_rows)}, "
+                f"valid_rows={len(valid_rows)}, ghost_rows={len(ghost_rows)}, "
+                f"valid_emails={valid_emails}, already_distributed={found}"
+            )
+            if ghost_rows:
+                logger.warning(f"[DIST] ⚠️ Found {len(ghost_rows)} ghost assignments for unknown users: "
+                               f"{list(set(r['user_email'] for r in ghost_rows))} — these will be cleared")
+        else:
+            found = len(all_rows) > 0
+            logger.info(f"[DIST] Idempotency check for {target_date}: already_distributed={found} (rows={len(all_rows)})")
+        return found
+    except Exception as ex:
+        logger.warning(f"[DIST] Idempotency check failed ({ex}), falling back to False")
+        return False
 
 
 def _get_pending_counts(db: SupabaseClient, emails: list) -> dict:
@@ -93,101 +107,183 @@ def _get_pending_counts(db: SupabaseClient, emails: list) -> dict:
             email = row.get("user_email")
             if email in counts:
                 counts[email] += 1
+        logger.info(f"[DIST] Pending counts per telecaller: {counts}")
     except Exception as e:
-        logger.error(f"Error fetching pending counts: {e}")
+        logger.error(f"[DIST] Error fetching pending counts: {e}")
     return counts
 
 
-def distribute_calls(db: SupabaseClient, admin_email: str = "system") -> dict:
+def distribute_calls(db: SupabaseClient, admin_email: str = "system", force: bool = False) -> dict:
     """
     Load-aware, idempotent distribution of pending customers to telecallers.
-    Uses calling_assignments from algorithm or master list.
+    Queries the `customers` table — calling_assignments.customer_id = customers.customer_id.
+    If force=True, clears any ghost/stale assignments for today before checking idempotency.
     """
     today_str = date.today().isoformat()
+    logger.info(f"[DIST] ===== distribute_calls START (date={today_str}, triggered_by={admin_email}, force={force}) =====")
 
-    # 1. Idempotency check
-    if _check_already_distributed(db, today_str):
-        return {"message": "Already distributed for today", "status": "skipped"}
-
-    # 2. Get telecallers
+    # 1. Get telecallers FIRST so we can do smart idempotency check
     telecallers = _get_telecaller_emails(db)
     if not telecallers:
-        logger.warning("No active telecallers found for distribution!")
-        # Alert admin
+        logger.warning("[DIST] ❌ No active telecallers found — aborting distribution!")
         try:
             db.table("notifications").insert({
-                "user_email": admin_email if admin_email != "system" else "system@internal",
+                "user_email": admin_email if admin_email not in ("system", "system_scheduler") else "system@internal",
                 "title": "⚠️ No Telecallers Available",
-                "message": "Auto-distribution failed: No active telecallers found. Please add telecallers to app_users.",
+                "message": "Auto-distribution failed: No active telecallers found in app_users.",
                 "notification_type": "warning",
                 "entity_type": "calling_list",
                 "is_read": False,
             }).execute()
-        except Exception:
-            pass
+        except Exception as ne:
+            logger.error(f"[DIST] Failed to send no-telecaller notification: {ne}")
         return {"message": "No active telecallers found", "status": "error", "total_calls": 0}
 
-    emails = [t["email"] for t in telecallers]
+    valid_emails = [t["email"] for t in telecallers]
+    logger.info(f"[DIST] Telecallers to distribute to: {valid_emails}")
 
-    # 3. Get distributors to call (top 150 by priority score)
+    # 2. Clear ghost assignments (assignments for users no longer in telecaller list)
+    # Also clean up any lingering pending assignments from past days as a fallback
+    try:
+        old_res = db.table("calling_assignments") \
+            .select("assignment_id") \
+            .lt("assigned_date", today_str) \
+            .eq("status", "Pending") \
+            .execute()
+        if old_res.data:
+            for old_row in old_res.data:
+                db.table("calling_assignments").eq("assignment_id", old_row["assignment_id"]).delete().execute()
+            logger.info(f"[DIST] Fallback cleanup complete — deleted {len(old_res.data)} old pending assignments.")
+
+        ghost_res = db.table("calling_assignments") \
+            .select("assignment_id, user_email") \
+            .eq("assigned_date", today_str) \
+            .eq("status", "Pending") \
+            .execute()
+        ghost_rows = [r for r in (ghost_res.data or []) if r.get("user_email") not in valid_emails]
+        if ghost_rows:
+            ghost_ids = [r["assignment_id"] for r in ghost_rows]
+            logger.warning(f"[DIST] 🗑️ Deleting {len(ghost_rows)} ghost assignments for unknown users: "
+                           f"{list(set(r['user_email'] for r in ghost_rows))}")
+            for gid in ghost_ids:
+                db.table("calling_assignments").eq("assignment_id", gid).delete().execute()
+            logger.info(f"[DIST] Ghost cleanup complete — deleted {len(ghost_ids)} rows")
+    except Exception as ge:
+        logger.warning(f"[DIST] Cleanup tasks failed (non-fatal): {ge}")
+
+    # 3. Smart idempotency check — only block if VALID telecallers already have assignments
+    already = _check_already_distributed(db, today_str, valid_emails=valid_emails)
+    if already and not force:
+        logger.info(f"[DIST] Already distributed for {today_str} to valid telecallers — skipping. Use force=True to override.")
+        return {"message": "Already distributed for today", "status": "skipped"}
+    elif already and force:
+        logger.info(f"[DIST] force=True — clearing existing valid assignments and re-distributing")
+        try:
+            existing_res = db.table("calling_assignments") \
+                .select("assignment_id") \
+                .eq("assigned_date", today_str) \
+                .eq("status", "Pending") \
+                .execute()
+            for row in (existing_res.data or []):
+                db.table("calling_assignments").eq("assignment_id", row["assignment_id"]).delete().execute()
+            logger.info(f"[DIST] Force-cleared {len(existing_res.data or [])} existing pending assignments")
+        except Exception as fe:
+            logger.error(f"[DIST] Force-clear failed: {fe}")
+
+    emails = valid_emails  # Already fetched above
+
+    # 3. Get distributors to call (top 150, ordered by priority_score descending)
+    # NOTE: calling_assignments.customer_id stores distributor_id here due to schema reuse.
+    # See: Switch Call Distribution to Distributors Table (implementation doc)
+    customers_to_call = []
     try:
         dist_res = db.table("distributors") \
-            .select("*") \
-            .eq("status", "Active") \
+            .select("distributor_id, mantri_name, mantri_mobile, village, priority_score, priority_label") \
             .order("priority_score", desc=True) \
             .limit(150) \
             .execute()
-        customers = dist_res.data or []
+        raw_distributors = dist_res.data or []
+        
+        # Map distributor fields to customer fields to avoid breaking downstream logic
+        for d in raw_distributors:
+            customers_to_call.append({
+                "customer_id": d.get("distributor_id"),
+                "name": d.get("mantri_name"),
+                "mobile": d.get("mantri_mobile"),
+                "village": d.get("village"),
+                "priority_score": d.get("priority_score"),
+                "priority_label": d.get("priority_label")
+            })
+            
+        logger.info(f"[DIST] Fetched {len(customers_to_call)} distributors (top 150 by priority_score)")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch distributors: {e}")
+        logger.error(f"[DIST] ❌ Failed to fetch distributors: {e}", exc_info=True)
+        # Raise a plain RuntimeError (not HTTPException) so this is safe to call
+        # from both the scheduler background job AND HTTP endpoints.
+        raise RuntimeError(f"Failed to fetch distributors: {e}") from e
+        
+    if customers_to_call:
+        logger.info(f"[DIST] Sample distributor IDs: {[c['customer_id'] for c in customers_to_call[:5]]}")
 
-    if not customers:
+    if not customers_to_call:
+        logger.warning("[DIST] ❌ No distributors found to distribute.")
         return {"message": "No distributors to distribute", "status": "empty", "total_calls": 0}
 
     # 4. Load-aware distribution: fewer pending → more new calls
     pending_counts = _get_pending_counts(db, emails)
-    # Sort by pending count ascending (least busy first)
     sorted_emails = sorted(emails, key=lambda e: pending_counts.get(e, 0))
+    logger.info(f"[DIST] Sorted telecallers by load (least busy first): {sorted_emails}")
 
-    # 3b. Fetch historical affinity from call logs
+    # 4b. Fetch historical affinity from call logs
     affinity_map = {}
     try:
         history_res = db.table("call_logs").select("customer_id, user_email").execute()
         for row in (history_res.data or []):
             affinity_map[row["customer_id"]] = row["user_email"]
+        logger.info(f"[DIST] Loaded {len(affinity_map)} affinity entries from call_logs")
     except Exception as e:
-        logger.warning(f"Could not load affinity map: {e}")
+        logger.warning(f"[DIST] Could not load affinity map (non-fatal): {e}")
 
-    # Round-robin with load-aware ordering and affinity check
+    # 5. Round-robin assignment
     assignments = []
     notifications_map = {}
-    for i, cust in enumerate(customers):
-        dist_id = cust["distributor_id"]
-        assigned_email = affinity_map.get(dist_id)
-        # Fallback to round-robin if no active affinity
+    for i, cust in enumerate(customers_to_call):
+        cust_id = cust["customer_id"]
+        assigned_email = affinity_map.get(cust_id)
         if not assigned_email or assigned_email not in emails:
             assigned_email = sorted_emails[i % len(sorted_emails)]
 
+        priority = cust.get("priority_label") or "Medium"
+        reason = "Historical Affinity" if cust_id in affinity_map else "Auto-assigned"
         assignments.append({
             "user_email": assigned_email,
-            "customer_id": dist_id,
-            "priority": cust.get("priority_label", "Medium"),
-            "reason": "Auto-assigned" if dist_id not in affinity_map else "Historical Affinity",
+            "customer_id": cust_id,
+            "priority": priority,
+            "reason": reason,
             "assigned_date": today_str,
             "status": "Pending",
             "notes": "",
         })
         notifications_map[assigned_email] = notifications_map.get(assigned_email, 0) + 1
 
-    # 5. Bulk insert assignments
+    logger.info(f"[DIST] Built {len(assignments)} assignments. Distribution: {notifications_map}")
+
+    # 6. Bulk insert assignments
     if assignments:
-        # Insert in batches to avoid oversized requests
         batch_size = 50
+        batches_inserted = 0
         for i in range(0, len(assignments), batch_size):
             batch = assignments[i:i + batch_size]
-            db.table("calling_assignments").insert(batch).execute()
+            try:
+                db.table("calling_assignments").insert(batch).execute()
+                batches_inserted += 1
+                logger.info(f"[DIST] Inserted batch {batches_inserted} ({len(batch)} rows)")
+            except Exception as be:
+                logger.error(f"[DIST] ❌ Batch insert failed (batch {batches_inserted+1}): {be}", exc_info=True)
+                raise RuntimeError(f"Batch insert failed: {be}") from be
+        logger.info(f"[DIST] ✅ All {batches_inserted} batch(es) inserted successfully")
 
-    # 6. Send notifications to telecallers
+    # 7. Send notifications to telecallers
     notification_records = []
     for email, count in notifications_map.items():
         notification_records.append({
@@ -199,19 +295,113 @@ def distribute_calls(db: SupabaseClient, admin_email: str = "system") -> dict:
             "is_read": False,
         })
     if notification_records:
-        db.table("notifications").insert(notification_records).execute()
+        try:
+            db.table("notifications").insert(notification_records).execute()
+            logger.info(f"[DIST] Sent {len(notification_records)} notifications")
+        except Exception as ne:
+            logger.warning(f"[DIST] Notification insert failed (non-fatal): {ne}")
 
-    return {
+    result = {
         "message": "Distribution successful",
         "status": "success",
         "total_calls": len(assignments),
         "telecaller_count": len(sorted_emails),
-        "calls_per_person": math.ceil(len(assignments) / len(sorted_emails)),
+        "calls_per_person": math.ceil(len(assignments) / len(sorted_emails)) if sorted_emails else 0,
         "distribution": {email: count for email, count in notifications_map.items()},
     }
+    logger.info(f"[DIST] ===== distribute_calls END: {result} =====")
+    return result
 
 
 # ─── Endpoints ────────────────────────────────────────────
+
+@router.get("/debug-state")
+def debug_state(db: SupabaseClient = Depends(get_db)):
+    """
+    Debug endpoint: returns current system state to diagnose distribution issues.
+    Hit GET /api/automation/debug-state in browser to see full diagnostics.
+    """
+    import os
+    today_str = date.today().isoformat()
+
+    # 1. Scheduler env
+    scheduler_enabled = os.environ.get("SCHEDULER_ENABLED", "").strip()
+
+    # 2. Telecallers
+    try:
+        users_res = db.table("app_users").select("email, name, role").execute()
+        all_users = users_res.data or []
+        telecaller_roles = {"telecaller", "staff", "telecaller1", "telecaller2"}
+        telecallers = [
+            u for u in all_users
+            if u.get("role", "").lower().replace(" ", "_") in telecaller_roles
+               or "telecaller" in u.get("role", "").lower()
+        ]
+    except Exception as e:
+        all_users = []
+        telecallers = []
+        logger.error(f"[DEBUG] app_users query failed: {e}")
+
+    # 3. Customers count
+    try:
+        cust_res = db.table("distributors").select("distributor_id").limit(5).execute()
+        cust_sample = [c["distributor_id"] for c in (cust_res.data or [])]
+        cust_count_res = db.table("distributors").select("distributor_id").execute()
+        cust_total = len(cust_count_res.data or [])
+        
+        scored_res = db.table("distributors").select("distributor_id").gte("priority_score", 0).limit(1).execute()
+        has_scored = len(scored_res.data or []) > 0
+    except Exception as e:
+        cust_sample = []
+        cust_total = -1
+        has_scored = False
+        logger.error(f"[DEBUG] distributors query failed: {e}")
+
+    # 4. Assignments for today
+    try:
+        today_res = db.table("calling_assignments") \
+            .select("assignment_id, user_email, status") \
+            .eq("assigned_date", today_str) \
+            .execute()
+        today_assignments = today_res.data or []
+    except Exception as e:
+        today_assignments = []
+        logger.error(f"[DEBUG] calling_assignments query failed: {e}")
+
+    # 5. All-time assignment count
+    try:
+        all_assign_res = db.table("calling_assignments").select("assignment_id").execute()
+        total_assignments = len(all_assign_res.data or [])
+    except Exception as e:
+        total_assignments = -1
+
+    return {
+        "debug": True,
+        "today": today_str,
+        "scheduler_enabled_env": scheduler_enabled,
+        "scheduler_will_run": scheduler_enabled == "1",
+        "all_app_users": [{"email": u["email"], "role": u["role"]} for u in all_users],
+        "telecallers_found": [{"email": t["email"], "role": t["role"]} for t in telecallers],
+        "telecaller_count": len(telecallers),
+        "customers_total": cust_total,
+        "customers_sample_ids": cust_sample,
+        "has_scored_distributors": has_scored,
+        "assignments_for_today": len(today_assignments),
+        "already_distributed_today": len(today_assignments) > 0,
+        "total_assignments_ever": total_assignments,
+        "today_summary": {
+            email: {"pending": sum(1 for a in today_assignments if a["user_email"] == email and a["status"] == "Pending"),
+                    "called": sum(1 for a in today_assignments if a["user_email"] == email and a["status"] != "Pending")}
+            for email in set(a["user_email"] for a in today_assignments)
+        },
+        "diagnosis": {
+            "scheduler_issue": scheduler_enabled != "1",
+            "no_telecallers": len(telecallers) == 0,
+            "no_customers": cust_total == 0,
+            "already_distributed": len(today_assignments) > 0,
+        }
+    }
+
 
 @router.get("/my-assignments", dependencies=[Depends(verify_permission("view_calling_list"))])
 def get_my_assignments(
@@ -222,15 +412,14 @@ def get_my_assignments(
     db: SupabaseClient = Depends(get_db),
 ):
     """Fetch paginated assignments for the logged-in telecaller."""
+    logger.info(f"[MY-ASSIGN] Request: user={user_email}, status={status}, page={page}, limit={limit}")
     try:
-        today_str = date.today().isoformat()
         offset = (page - 1) * limit
 
-        # Build query
+        # Show ALL assignments for this user (no date filter — was the primary bug)
         query = db.table("calling_assignments") \
             .select("*") \
             .eq("user_email", user_email) \
-            .eq("assigned_date", today_str) \
             .order("assignment_id")
 
         if status:
@@ -242,12 +431,12 @@ def get_my_assignments(
         query = query.limit(limit).offset(offset)
         res = query.execute()
         assignments = res.data or []
+        logger.info(f"[MY-ASSIGN] Raw assignments fetched: {len(assignments)} rows")
 
-        # Get total count for pagination
+        # Total count
         count_query = db.table("calling_assignments") \
             .select("assignment_id") \
-            .eq("user_email", user_email) \
-            .eq("assigned_date", today_str)
+            .eq("user_email", user_email)
         if status:
             if status == "completed":
                 count_query = count_query.neq("status", "Pending")
@@ -255,40 +444,63 @@ def get_my_assignments(
                 count_query = count_query.eq("status", status)
         count_res = count_query.execute()
         total = len(count_res.data or [])
+        logger.info(f"[MY-ASSIGN] Total count for pagination: {total}")
 
-        # Enrich with distributor details
-        dist_ids = [a["customer_id"] for a in assignments if a.get("customer_id")]
-        distributors_map = {}
-        if dist_ids:
-            dist_res = db.table("distributors") \
-                .select("distributor_id, name, village, taluka, district, mantri_mobile, priority_score, priority_label") \
-                .in_("distributor_id", dist_ids) \
-                .execute()
-            distributors_map = {d["distributor_id"]: d for d in (dist_res.data or [])}
+        # Enrich with customer details
+        cust_ids = [a["customer_id"] for a in assignments if a.get("customer_id")]
+        logger.info(f"[MY-ASSIGN] Enriching {len(cust_ids)} distributor IDs: {cust_ids[:10]}")
+        # NOTE: customer_id col stores distributor_id here due to schema reuse.
+        # See: Switch Call Distribution to Distributors Table (implementation doc)
+        customers_map = {}
+        if cust_ids:
+            try:
+                dist_res = db.table("distributors") \
+                    .select("distributor_id, mantri_name, village, taluka, district, mantri_mobile, priority_score, priority_label") \
+                    .in_("distributor_id", cust_ids) \
+                    .execute()
+                # Map fields to what the frontend expects
+                for d in (dist_res.data or []):
+                    customers_map[d["distributor_id"]] = {
+                        "customer_id": d.get("distributor_id"),
+                        "name": d.get("mantri_name"),
+                        "mobile": d.get("mantri_mobile"),
+                        "village": d.get("village"),
+                        "taluka": d.get("taluka"),
+                        "district": d.get("district"),
+                        "priority_score": d.get("priority_score"),
+                        "priority_label": d.get("priority_label")
+                    }
+            except Exception as e:
+                logger.error(f"[MY-ASSIGN] ❌ Distributor enrichment failed: {e}", exc_info=True)
+            
+            logger.info(f"[MY-ASSIGN] Distributor lookup returned {len(customers_map)} matches out of {len(cust_ids)} IDs")
+            if len(customers_map) < len(cust_ids):
+                missing = set(cust_ids) - set(customers_map.keys())
+                logger.warning(f"[MY-ASSIGN] ⚠️ Missing distributor enrichment for IDs: {missing}")
 
         enhanced = []
         for a in assignments:
-            d = distributors_map.get(a["customer_id"], {})
+            c = customers_map.get(a["customer_id"], {})
             enhanced.append({
                 **a,
-                "name": d.get("name", "Unknown"),
-                "mobile": d.get("mantri_mobile", ""),
-                "village": d.get("village", ""),
-                "taluka": d.get("taluka", ""),
-                "district": d.get("district", ""),
-                "priority_score": d.get("priority_score", 0),
-                "priority_label": d.get("priority_label", "LOW"),
+                "name": c.get("name", "Unknown"),
+                "mobile": c.get("mobile", ""),
+                "village": c.get("village", ""),
+                "taluka": c.get("taluka", ""),
+                "district": c.get("district", ""),
+                "priority_score": c.get("priority_score", 0),
+                "priority_label": c.get("priority_label", "LOW"),
             })
 
-        # Summary counts (all statuses for today)
+        # Summary counts
         all_res = db.table("calling_assignments") \
             .select("status") \
             .eq("user_email", user_email) \
-            .eq("assigned_date", today_str) \
             .execute()
         all_assignments = all_res.data or []
         pending = sum(1 for x in all_assignments if x["status"] == "Pending")
         called = sum(1 for x in all_assignments if x["status"] != "Pending")
+        logger.info(f"[MY-ASSIGN] Summary — total={len(all_assignments)}, pending={pending}, called={called}")
 
         return {
             "assignments": enhanced,
@@ -306,7 +518,7 @@ def get_my_assignments(
         }
 
     except Exception as e:
-        logger.error(f"Error getting assignments: {e}")
+        logger.error(f"[MY-ASSIGN] ❌ Unhandled exception: {e}", exc_info=True)
         return {"assignments": [], "error": str(e), "pagination": {"page": 1, "limit": 20, "total": 0, "total_pages": 1}, "summary": {"total": 0, "pending": 0, "called": 0}}
 
 
@@ -353,7 +565,7 @@ def update_call_status(
             .update({
                 "status": new_status,
                 "notes": body.notes or "",
-            })
+            }).execute()  # BUG FIX: was missing .execute()
 
         # 4. Insert call log
         db.table("call_logs").insert({
@@ -377,25 +589,28 @@ def update_call_status(
             }).execute()
 
         # 5b. Score adjustments based on call outcome
-        customer_id = assignment["customer_id"]
+        # NOTE: customer_id here actually stores distributor_id (schema reuse).
+        # All score adjustments must target the `distributors` table.
+        distributor_id = assignment["customer_id"]
         try:
             if body.call_outcome == "connected" and body.notes and "order" in (body.notes or "").lower():
                 # Connected + order mentioned → decrease score by 15 (min 0)
-                cust_res = db.table("customers").select("priority_score").eq("customer_id", customer_id).execute()
-                if cust_res.data:
-                    current_score = cust_res.data[0].get("priority_score", 0) or 0
+                dist_res = db.table("distributors").select("priority_score").eq("distributor_id", distributor_id).execute()
+                if dist_res.data:
+                    current_score = dist_res.data[0].get("priority_score", 0) or 0
                     new_score = max(0, current_score - 15)
                     from scoring_engine import priority_label as calc_label
-                    db.table("customers").eq("customer_id", customer_id).update({
+                    db.table("distributors").eq("distributor_id", distributor_id).update({
                         "priority_score": new_score,
                         "priority_label": calc_label(new_score),
-                    })
+                    }).execute()
+                    logger.info(f"[SCORE] distributor {distributor_id}: connected+order → score {current_score} → {new_score}")
 
             elif body.call_outcome == "not_reachable":
                 # Not reachable → decrease score by 3 (min 0)
-                cust_res = db.table("customers").select("priority_score").eq("customer_id", customer_id).execute()
-                if cust_res.data:
-                    current_score = cust_res.data[0].get("priority_score", 0) or 0
+                dist_res = db.table("distributors").select("priority_score").eq("distributor_id", distributor_id).execute()
+                if dist_res.data:
+                    current_score = dist_res.data[0].get("priority_score", 0) or 0
                     new_score = max(0, current_score - 3)
                     from scoring_engine import priority_label as calc_label
                     update_data = {
@@ -407,27 +622,29 @@ def update_call_status(
                     week_ago = (date.today() - timedelta(days=7)).isoformat()
                     nr_res = db.table("call_logs") \
                         .select("log_id") \
-                        .eq("customer_id", customer_id) \
+                        .eq("customer_id", distributor_id) \
                         .eq("call_outcome", "not_reachable") \
                         .gte("created_at", week_ago) \
                         .execute()
                     nr_count = len(nr_res.data or [])
                     if nr_count >= 3:
                         update_data["priority_label"] = "LOW"
-                        logger.info(f"Customer {customer_id} has {nr_count} not_reachable this week → forced LOW")
+                        logger.info(f"[SCORE] distributor {distributor_id} has {nr_count} not_reachable this week → forced LOW")
 
-                    db.table("customers").eq("customer_id", customer_id).update(update_data)
+                    db.table("distributors").eq("distributor_id", distributor_id).update(update_data).execute()
+                    logger.info(f"[SCORE] distributor {distributor_id}: not_reachable → score {current_score} → {new_score}")
 
             elif body.call_outcome == "callback":
-                # Callback → freeze score so nightly job skips this customer
-                db.table("customers").eq("customer_id", customer_id).update({
+                # Callback → freeze score so nightly scoring job skips this distributor
+                db.table("distributors").eq("distributor_id", distributor_id).update({
                     "score_frozen": True,
-                })
+                }).execute()
+                logger.info(f"[SCORE] distributor {distributor_id}: callback → score_frozen=True")
 
             # 'connected' without order → no score change (intentional)
 
         except Exception as e:
-            logger.error(f"Score adjustment failed for customer {customer_id}: {e}")
+            logger.error(f"Score adjustment failed for distributor {distributor_id}: {e}")
 
         # 6. Log the activity for the floating toast
         try:
@@ -557,15 +774,18 @@ def get_admin_assignments(
 
 @router.post("/admin/distribute")
 def admin_distribute(
+    force: bool = Query(False, description="Set true to re-distribute even if already done today"),
     admin_email: str = Header(None, alias="x-user-email"),
     db: SupabaseClient = Depends(get_db),
 ):
-    """Admin: Trigger idempotent, load-aware call distribution."""
+    """Admin: Trigger idempotent, load-aware call distribution. Use ?force=true to override idempotency."""
     try:
-        result = distribute_calls(db, admin_email or "admin")
+        result = distribute_calls(db, admin_email or "admin", force=force)
         return result
     except HTTPException:
         raise
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Distribution failed: {e}")
 
@@ -598,7 +818,7 @@ def admin_reassign(
         # 2. Update assignment
         db.table("calling_assignments") \
             .eq("assignment_id", body.assignment_id) \
-            .update({"user_email": body.new_user_email})
+            .update({"user_email": body.new_user_email}).execute()  # BUG FIX: was missing .execute()
 
         # 3. Notify new telecaller
         db.table("notifications").insert({
@@ -675,11 +895,11 @@ def admin_refresh_distribution(
         for p in pending:
             db.table("calling_assignments") \
                 .eq("assignment_id", p["assignment_id"]) \
-                .delete()
+                .delete() \
+                .execute()  # BUG FIX: was missing .execute()
 
-        # 3. Re-run distribution (this creates fresh assignments)
-        # First remove today's marker so distribution runs
-        result = distribute_calls(db, admin_email or "admin")
+        # 3. Re-run distribution with force=True since we already cleared
+        result = distribute_calls(db, admin_email or "admin", force=True)
 
         return {
             "message": f"Refreshed: removed {len(pending)} pending, re-distributed",
@@ -690,6 +910,8 @@ def admin_refresh_distribution(
 
     except HTTPException:
         raise
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Refresh failed: {e}")
 
@@ -730,7 +952,8 @@ def admin_bulk_reassign(
         for a in candidates:
             db.table("calling_assignments") \
                 .eq("assignment_id", a["assignment_id"]) \
-                .update({"user_email": body.target_email})
+                .update({"user_email": body.target_email}) \
+                .execute()  # BUG FIX: was missing .execute()
             reassigned += 1
 
         # Notify the telecaller
@@ -753,3 +976,52 @@ def admin_bulk_reassign(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Bulk reassign failed: {e}")
+
+
+# ─── External Cron Trigger ────────────────────────────────
+# Hit this endpoint from cron-job.org (or any external scheduler) at 10:00 AM IST
+# to guarantee daily assignment even if the backend process restarts.
+#
+# Setup:
+#   1. Add CRON_SECRET=<some-long-random-string> to backend/.env
+#   2. On cron-job.org, create a job:
+#        URL:    POST https://<your-backend>/api/automation/trigger-daily
+#        Header: x-cron-secret: <same-secret>
+#        Time:   04:30 UTC (= 10:00 AM IST)
+
+@router.post("/trigger-daily")
+def trigger_daily_cron(
+    x_cron_secret: str = Header(None, alias="x-cron-secret"),
+    db: SupabaseClient = Depends(get_db),
+):
+    """
+    External-cron entry point for daily call distribution.
+    Protected by CRON_SECRET env var — requests without the correct secret are
+    rejected with 401. Safe to expose publicly because without the secret the
+    endpoint is a no-op.
+    """
+    expected_secret = os.environ.get("CRON_SECRET", "").strip()
+    if not expected_secret:
+        # CRON_SECRET not configured — refuse all external calls to prevent
+        # accidental open access.
+        logger.error("[CRON] /trigger-daily called but CRON_SECRET env var is not set — rejecting.")
+        raise HTTPException(
+            status_code=503,
+            detail="CRON_SECRET is not configured on this server. Set it in .env and restart."
+        )
+
+    if x_cron_secret != expected_secret:
+        logger.warning(f"[CRON] /trigger-daily rejected — bad secret (received: {repr(x_cron_secret)})")
+        raise HTTPException(status_code=401, detail="Invalid cron secret.")
+
+    logger.info("[CRON] ✅ /trigger-daily authenticated — starting distribution...")
+    try:
+        result = distribute_calls(db, admin_email="external_cron")
+        logger.info(f"[CRON] distribute_calls result: {result}")
+        return {"triggered_by": "external_cron", **result}
+    except RuntimeError as e:
+        logger.error(f"[CRON] distribute_calls raised RuntimeError: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        logger.error(f"[CRON] Unexpected error in trigger_daily_cron: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Cron trigger failed: {e}")

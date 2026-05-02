@@ -145,12 +145,12 @@ def start_scheduler():
         import pytz
         ist = pytz.timezone("Asia/Kolkata")
         
-        # 2:15 PM IST (Test)
+        # 2:25 PM IST (Test)
         scheduler.add_job(
             distribute_calls_job,
-            trigger=CronTrigger(hour=14, minute=15, timezone=ist),
+            trigger=CronTrigger(hour=14, minute=25, timezone=ist),
             id="daily_calling_distribution",
-            name="Auto-Distribute at 2:15 PM IST",
+            name="Auto-Distribute at 2:25 PM IST",
             replace_existing=True
         )
         # 12:00 AM IST (midnight)

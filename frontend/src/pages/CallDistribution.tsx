@@ -104,6 +104,11 @@ export default function CallDistribution() {
   const [reassignPage, setReassignPage] = useState(0);
   const pageSize = 10;
 
+  // Transfer pending state (for half-day duty etc)
+  const [transferFrom, setTransferFrom] = useState("");
+  const [transferTo, setTransferTo] = useState("");
+  const [transferLoading, setTransferLoading] = useState(false);
+
   useEffect(() => {
     if (user && !canDistribute && !loading) {
       navigate("/dashboard");
@@ -180,6 +185,25 @@ export default function CallDistribution() {
       setToast({ msg: e?.response?.data?.detail || "Bulk assign failed", sev: "error" });
     } finally {
       setBulkLoading(false);
+    }
+  };
+
+  const handleTransfer = async () => {
+    if (transferFrom === transferTo) {
+      setToast({ msg: "Cannot transfer to the same telecaller", sev: "error" });
+      return;
+    }
+    try {
+      setTransferLoading(true);
+      const res = await automationAPI.transferPending(transferFrom, transferTo);
+      setToast({ msg: res.message || "Transferred successfully!", sev: "success" });
+      loadData();
+      setTransferFrom("");
+      setTransferTo("");
+    } catch (e: any) {
+      setToast({ msg: e?.response?.data?.detail || "Transfer failed", sev: "error" });
+    } finally {
+      setTransferLoading(false);
     }
   };
 
@@ -414,6 +438,53 @@ export default function CallDistribution() {
                 sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600, px: 3 }}
               >
                 {t("callDistribution.assign", "Assign")}
+              </Button>
+            </Stack>
+          </Paper>
+
+          {/* ── Transfer Pending Calls (Half-Day) ── */}
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2.5,
+              mb: 3,
+              borderRadius: 3,
+              border: `1px solid ${theme.palette.divider}`,
+              bgcolor: alpha(theme.palette.info.main, 0.02),
+            }}
+          >
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "info.main", mb: 2, textTransform: "uppercase", letterSpacing: 0.5, fontSize: "0.7rem" }}>
+              Transfer Pending Calls (Half-Day / Absent)
+            </Typography>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }}>
+              <FormControl size="small" sx={{ minWidth: 200 }}>
+                <InputLabel>From (Half-Day Telecaller)</InputLabel>
+                <Select label="From (Half-Day Telecaller)" value={transferFrom} onChange={e => setTransferFrom(e.target.value as string)} sx={{ borderRadius: 2 }}>
+                  {telecallers.map(t => (
+                    <MenuItem key={t.email} value={t.email}>{t.name || t.email.split("@")[0]}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <Typography variant="body2" sx={{ color: "text.secondary", px: 1, display: { xs: "none", sm: "block" } }}>
+                ➡
+              </Typography>
+              <FormControl size="small" sx={{ minWidth: 200 }}>
+                <InputLabel>To (Available Telecaller)</InputLabel>
+                <Select label="To (Available Telecaller)" value={transferTo} onChange={e => setTransferTo(e.target.value as string)} sx={{ borderRadius: 2 }}>
+                  {telecallers.map(t => (
+                    <MenuItem key={t.email} value={t.email}>{t.name || t.email.split("@")[0]}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <Button
+                variant="contained"
+                color="info"
+                disabled={!transferFrom || !transferTo || transferFrom === transferTo || transferLoading}
+                startIcon={transferLoading ? <CircularProgress size={16} color="inherit" /> : <DistributeIcon />}
+                onClick={handleTransfer}
+                sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600, px: 3 }}
+              >
+                Transfer All
               </Button>
             </Stack>
           </Paper>

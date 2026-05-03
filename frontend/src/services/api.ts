@@ -580,6 +580,13 @@ export const automationAPI = {
     const response = await apiClient.post("/api/automation/admin/refresh-distribution");
     return response.data;
   },
+  transferPending: async (fromUserEmail: string, toUserEmail: string) => {
+    const response = await apiClient.post("/api/automation/admin/transfer-pending", {
+      from_user_email: fromUserEmail,
+      to_user_email: toUserEmail,
+    });
+    return response.data;
+  },
 };
 // File/Import API
 

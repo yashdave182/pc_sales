@@ -42,6 +42,10 @@ class BulkReassignRequest(BaseModel):
     priority: str  # 'High', 'Medium', 'Low'
     count: int  # how many to assign
 
+class TransferPendingRequest(BaseModel):
+    from_user_email: str
+    to_user_email: str
+
 VALID_OUTCOMES = {'connected', 'not_reachable', 'callback', 'wrong_number'}
 
 # ─── Distribution Logic ──────────────────────────────────
@@ -998,6 +1002,62 @@ def admin_bulk_reassign(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Bulk reassign failed: {e}")
+
+
+@router.post("/admin/transfer-pending")
+def admin_transfer_pending(
+    body: TransferPendingRequest,
+    db: SupabaseClient = Depends(get_db),
+):
+    """
+    Admin: Transfer all pending calls from one telecaller (e.g. half-day duty)
+    to another telecaller.
+    """
+    if body.from_user_email == body.to_user_email:
+        raise HTTPException(status_code=400, detail="Cannot transfer to the same user")
+
+    try:
+        today_str = get_today_ist()
+
+        # Get all pending calls for the from_user
+        res = db.table("calling_assignments") \
+            .select("assignment_id") \
+            .eq("assigned_date", today_str) \
+            .eq("status", "Pending") \
+            .eq("user_email", body.from_user_email) \
+            .execute()
+
+        candidates = res.data or []
+        if not candidates:
+            return {"message": "No pending calls to transfer", "transferred": 0}
+
+        reassigned = 0
+        for a in candidates:
+            db.table("calling_assignments") \
+                .eq("assignment_id", a["assignment_id"]) \
+                .update({"user_email": body.to_user_email}) \
+                .execute()
+            reassigned += 1
+
+        # Notify the new telecaller
+        db.table("notifications").insert({
+            "user_email": body.to_user_email,
+            "title": "📞 Calls Transferred to You",
+            "message": f"{reassigned} pending calls have been transferred to you from {body.from_user_email.split('@')[0]}.",
+            "notification_type": "info",
+            "entity_type": "calling_list",
+            "is_read": False,
+        }).execute()
+
+        return {
+            "message": f"Transferred {reassigned} calls from {body.from_user_email} to {body.to_user_email}",
+            "transferred": reassigned,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Transfer pending failed: {e}")
 
 
 # ─── External Cron Trigger ────────────────────────────────

@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
   DialogActions,
   Button,
@@ -10,25 +9,50 @@ import {
   Box,
   Switch,
   FormControlLabel,
-  Divider,
-  Chip,
-  Avatar,
   Alert,
-  alpha,
-  useTheme,
   LinearProgress,
 } from "@mui/material";
 import {
-  AccessTime as ClockIcon,
-  Groups as GroupsIcon,
   CheckCircle as CheckIcon,
   Warning as WarningIcon,
-  Person as PersonIcon,
+  PhoneDisabled as PhoneDisabledIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../contexts/AuthContext";
 import { attendanceAPI } from "../services/api";
 import apiClient from "../services/api";
 
+// Google Fonts: IBM Plex Mono
+const FONT_LINK_ID = "ibm-plex-mono-font";
+if (typeof document !== "undefined" && !document.getElementById(FONT_LINK_ID)) {
+  const link = document.createElement("link");
+  link.id = FONT_LINK_ID;
+  link.rel = "stylesheet";
+  link.href =
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap";
+  document.head.appendChild(link);
+}
+
+// ─── Design tokens ──────────────────────────────────────────────────────────
+const T = {
+  bg: "#f5f5f0",           // off-white body
+  surface: "#ffffff",       // card/dialog surface
+  charcoal: "#111111",      // dark header, submit button
+  charcoalMid: "#1a1a1a",   // slightly lighter charcoal
+  amber: "#f59e0b",         // accent color
+  amberDark: "#d97706",     // amber hover
+  amberLight: "#fef3c7",    // amber tint
+  green: "#15803d",         // ON toggle
+  gray: "#9ca3af",          // OFF toggle
+  border: "#e2e2e2",        // standard border
+  borderDark: "#d1d1d1",    // slightly darker border
+  textPrimary: "#111111",
+  textSecondary: "#6b6b6b",
+  textMuted: "#9ca3af",
+  red: "#dc2626",
+  redLight: "#fee2e2",
+  mono: "'IBM Plex Mono', 'JetBrains Mono', monospace",
+  sans: "'Inter', 'Helvetica Neue', Arial, sans-serif",
+};
 
 // ─── Roles allowed to manage the duty sheet ─────────────────────────────────
 const DUTY_ROLES = ["admin", "sales_manager", "manager"];
@@ -60,10 +84,34 @@ const getISTDateString = (): string => {
   });
 };
 
+// ─── Custom toggle switch styles ────────────────────────────────────────────
+const switchSx = (isOn: boolean) => ({
+  "& .MuiSwitch-switchBase.Mui-checked": {
+    color: T.green,
+    "&:hover": { backgroundColor: "transparent" },
+  },
+  "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
+    backgroundColor: T.green,
+    opacity: 1,
+  },
+  "& .MuiSwitch-switchBase": {
+    color: "#ffffff",
+    "&:hover": { backgroundColor: "transparent" },
+  },
+  "& .MuiSwitch-track": {
+    backgroundColor: isOn ? T.green : T.gray,
+    opacity: 1,
+    borderRadius: 2,
+  },
+  "& .MuiSwitch-thumb": {
+    boxShadow: "none",
+    borderRadius: 1,
+  },
+});
+
 // ─── Component ───────────────────────────────────────────────────────────────
 const DutySheetPopup: React.FC = () => {
   const { user, role, permissionsLoaded } = useAuth();
-  const theme = useTheme();
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -81,8 +129,6 @@ const DutySheetPopup: React.FC = () => {
 
   // ── Check if popup should open ──────────────────────────────────────────
   useEffect(() => {
-    // Wait until AuthContext has finished loading permissions and role
-    // from the backend before making any determination.
     if (!permissionsLoaded || !user || !role) {
       setLoading(false);
       return;
@@ -96,13 +142,10 @@ const DutySheetPopup: React.FC = () => {
 
     const check = async () => {
       try {
-        // Pass role directly from React context (not from localStorage)
-        // to avoid the race where localStorage hasn't been written yet.
         const res = await apiClient.get("/api/attendance/duty-sheet-status", {
           headers: { "x-user-role": normalizedRole },
         });
         if (res.data.should_show_popup) {
-          // Fetch telecaller list
           const tcRes = await attendanceAPI.getAllTelecallers();
           setTelecallers(tcRes.data.telecallers || []);
           setOpen(true);
@@ -143,7 +186,6 @@ const DutySheetPopup: React.FC = () => {
         telecallers.map((tc) => ({ email: tc.email, is_on_duty: tc.is_on_duty }))
       );
       setSubmitSuccess(true);
-      // Close after a brief success flash
       setTimeout(() => setOpen(false), 1500);
     } catch (err: any) {
       const status = err?.response?.status;
@@ -153,10 +195,7 @@ const DutySheetPopup: React.FC = () => {
         setSubmitError("Duty sheet was already submitted for today by another user.");
         setTimeout(() => setOpen(false), 2500);
       } else if (status === 400) {
-        setSubmitError(
-          detail ||
-            "Submission window has closed (must be before 10:00 AM IST)."
-        );
+        setSubmitError(detail || "Submission window has closed (must be before 10:00 AM IST).");
       } else if (status === 403) {
         setSubmitError("You do not have permission to submit the duty sheet.");
       } else {
@@ -184,168 +223,351 @@ const DutySheetPopup: React.FC = () => {
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 3,
+          borderRadius: "4px",
           overflow: "hidden",
-          background:
-            theme.palette.mode === "dark"
-              ? "linear-gradient(145deg, #1a1a2e 0%, #16213e 100%)"
-              : "linear-gradient(145deg, #ffffff 0%, #f8f9ff 100%)",
-          boxShadow: "0 24px 64px rgba(0,0,0,0.25)",
+          backgroundColor: T.bg,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
+          border: `1px solid ${T.borderDark}`,
         },
       }}
     >
       {/* ── Header ── */}
       <Box
         sx={{
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-          px: 3,
-          py: 2.5,
-          color: "white",
+          backgroundColor: T.charcoal,
+          borderLeft: `4px solid ${T.amber}`,
+          px: "20px",
+          py: "16px",
+          color: "#ffffff",
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 0.5 }}>
-          <GroupsIcon sx={{ fontSize: 28 }} />
-          <Typography variant="h5" fontWeight={700} letterSpacing={-0.5}>
-            Daily Telecaller Duty Sheet
+        <Typography
+          sx={{
+            fontFamily: T.mono,
+            fontWeight: 700,
+            fontSize: "1rem",
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+            color: "#ffffff",
+            lineHeight: 1.3,
+          }}
+        >
+          Daily Telecaller Duty Sheet
+        </Typography>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            mt: "6px",
+          }}
+        >
+          <Typography
+            sx={{
+              fontFamily: T.mono,
+              fontSize: "0.72rem",
+              color: T.amber,
+              fontWeight: 500,
+              letterSpacing: "0.06em",
+            }}
+          >
+            {currentTime} IST
+          </Typography>
+          <Typography sx={{ color: T.textMuted, fontSize: "0.72rem" }}>·</Typography>
+          <Typography
+            sx={{
+              fontFamily: T.mono,
+              fontSize: "0.72rem",
+              color: "#9ca3af",
+              letterSpacing: "0.03em",
+            }}
+          >
+            {getISTDateString()}
           </Typography>
         </Box>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, opacity: 0.9 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <ClockIcon sx={{ fontSize: 14 }} />
-            <Typography variant="caption" fontWeight={600}>
-              {currentTime} IST
-            </Typography>
-          </Box>
-          <Typography variant="caption">•</Typography>
-          <Typography variant="caption">{getISTDateString()}</Typography>
-        </Box>
         <Typography
-          variant="caption"
           sx={{
-            display: "block",
-            mt: 0.5,
-            opacity: 0.8,
-            fontStyle: "italic",
+            fontFamily: T.sans,
+            fontSize: "0.72rem",
+            color: "#6b7280",
+            mt: "4px",
+            letterSpacing: "0.01em",
           }}
         >
           Must be submitted before 10:00 AM · Affects today's call distribution
         </Typography>
       </Box>
 
-      <DialogContent sx={{ px: 3, pt: 3, pb: 0 }}>
+      <DialogContent
+        sx={{
+          px: "20px",
+          pt: "20px",
+          pb: 0,
+          backgroundColor: T.bg,
+        }}
+      >
         {/* ── Error / Success Alerts ── */}
         {submitError && (
-          <Alert
-            severity={submitError.includes("already submitted") ? "warning" : "error"}
-            sx={{ mb: 2, borderRadius: 2 }}
-            onClose={() => setSubmitError(null)}
+          <Box
+            sx={{
+              mb: "16px",
+              p: "12px 14px",
+              backgroundColor: submitError.includes("already submitted")
+                ? "#fffbeb"
+                : T.redLight,
+              border: `1px solid ${submitError.includes("already submitted") ? T.amber : "#fca5a5"}`,
+              borderLeft: `3px solid ${submitError.includes("already submitted") ? T.amber : T.red}`,
+              borderRadius: "4px",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "8px",
+            }}
           >
-            {submitError}
-          </Alert>
+            <WarningIcon
+              sx={{
+                fontSize: 16,
+                color: submitError.includes("already submitted") ? T.amber : T.red,
+                mt: "1px",
+                flexShrink: 0,
+              }}
+            />
+            <Typography
+              sx={{
+                fontFamily: T.sans,
+                fontSize: "0.8rem",
+                color: T.textPrimary,
+                lineHeight: 1.4,
+              }}
+            >
+              {submitError}
+            </Typography>
+            <Box
+              component="button"
+              onClick={() => setSubmitError(null)}
+              sx={{
+                ml: "auto",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: T.textMuted,
+                fontSize: "1rem",
+                lineHeight: 1,
+                p: 0,
+                flexShrink: 0,
+                "&:hover": { color: T.textPrimary },
+              }}
+            >
+              ×
+            </Box>
+          </Box>
         )}
+
         {submitSuccess && (
-          <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }} icon={<CheckIcon />}>
-            Duty sheet submitted! Distribution will proceed with{" "}
-            <strong>{onDutyCount}</strong> telecaller
-            {onDutyCount !== 1 ? "s" : ""}.
-          </Alert>
+          <Box
+            sx={{
+              mb: "16px",
+              p: "12px 14px",
+              backgroundColor: "#f0fdf4",
+              border: "1px solid #86efac",
+              borderLeft: `3px solid ${T.green}`,
+              borderRadius: "4px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <CheckIcon sx={{ fontSize: 16, color: T.green, flexShrink: 0 }} />
+            <Typography sx={{ fontFamily: T.sans, fontSize: "0.8rem", color: T.textPrimary }}>
+              Duty sheet submitted. Distribution will proceed with{" "}
+              <strong>{onDutyCount}</strong> telecaller{onDutyCount !== 1 ? "s" : ""}.
+            </Typography>
+          </Box>
         )}
 
         {/* ── Duty summary bar ── */}
         <Box
           sx={{
-            p: 2,
-            borderRadius: 2,
-            bgcolor: alpha(theme.palette.primary.main, 0.06),
-            border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
-            mb: 2.5,
+            p: "14px 16px",
+            backgroundColor: T.surface,
+            border: `1px solid ${T.border}`,
+            borderRadius: "4px",
+            mb: "16px",
           }}
         >
           <Box
             sx={{
               display: "flex",
               justifyContent: "space-between",
-              alignItems: "center",
-              mb: 1,
+              alignItems: "baseline",
+              mb: "10px",
             }}
           >
-            <Typography variant="body2" fontWeight={600} color="text.secondary">
+            <Typography
+              sx={{
+                fontFamily: T.sans,
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                color: T.textSecondary,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+              }}
+            >
               On Duty Today
             </Typography>
-            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-              <Chip
-                label={`${onDutyCount} / ${totalCount}`}
-                size="small"
-                color={onDutyCount === 0 ? "error" : "primary"}
-                sx={{ fontWeight: 700, fontSize: "0.85rem" }}
-              />
-            </Box>
+            <Typography
+              sx={{
+                fontFamily: T.mono,
+                fontSize: "1.1rem",
+                fontWeight: 700,
+                color: onDutyCount === 0 ? T.red : T.charcoal,
+                letterSpacing: "0.02em",
+              }}
+            >
+              {onDutyCount}
+              <Typography
+                component="span"
+                sx={{
+                  fontFamily: T.mono,
+                  fontSize: "0.85rem",
+                  fontWeight: 500,
+                  color: T.textMuted,
+                }}
+              >
+                {" "}/ {totalCount}
+              </Typography>
+            </Typography>
           </Box>
-          <LinearProgress
-            variant="determinate"
-            value={dutyProgress}
-            color={onDutyCount === 0 ? "error" : "primary"}
-            sx={{ borderRadius: 4, height: 6 }}
-          />
+          {/* Progress bar: amber fill, dark gray track */}
+          <Box
+            sx={{
+              height: "5px",
+              backgroundColor: "#d1d5db",
+              borderRadius: "2px",
+              overflow: "hidden",
+            }}
+          >
+            <Box
+              sx={{
+                height: "100%",
+                width: `${dutyProgress}%`,
+                backgroundColor: onDutyCount === 0 ? T.red : T.amber,
+                borderRadius: "2px",
+                transition: "width 0.3s ease",
+              }}
+            />
+          </Box>
         </Box>
 
         {/* ── Zero duty warning ── */}
         {onDutyCount === 0 && !submitSuccess && (
-          <Alert
-            severity="warning"
-            icon={<WarningIcon />}
-            sx={{ mb: 2, borderRadius: 2 }}
+          <Box
+            sx={{
+              mb: "16px",
+              p: "10px 14px",
+              backgroundColor: "#fffbeb",
+              border: `1px solid ${T.amber}`,
+              borderLeft: `3px solid ${T.amberDark}`,
+              borderRadius: "4px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
           >
-            <strong>No telecallers on duty.</strong> Auto-distribution will be
-            skipped today and you'll be notified.
-          </Alert>
+            <WarningIcon sx={{ fontSize: 14, color: T.amberDark, flexShrink: 0 }} />
+            <Typography sx={{ fontFamily: T.sans, fontSize: "0.78rem", color: "#92400e" }}>
+              No telecallers on duty — distribution will be skipped today.
+            </Typography>
+          </Box>
         )}
 
         {/* ── Instruction ── */}
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Toggle ON for telecallers who are present today. Call distribution
-          will only include ON-duty telecallers.
+        <Typography
+          sx={{
+            fontFamily: T.sans,
+            fontSize: "0.8rem",
+            color: T.textSecondary,
+            mb: "12px",
+            lineHeight: 1.5,
+          }}
+        >
+          Toggle ON for telecallers present today. Only ON-duty telecallers will
+          receive call assignments.
         </Typography>
 
-        {/* ── Select/Clear All ── */}
-        <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
-          <Button
-            size="small"
-            variant="outlined"
+        {/* ── Select/Clear All — text-only ── */}
+        <Box sx={{ display: "flex", gap: "16px", mb: "12px", alignItems: "center" }}>
+          <Box
+            component="button"
             onClick={handleSelectAll}
             disabled={submitting || submitSuccess}
-            sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
+            sx={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontFamily: T.sans,
+              fontSize: "0.78rem",
+              fontWeight: 600,
+              color: T.green,
+              textDecoration: "none",
+              p: 0,
+              opacity: submitting || submitSuccess ? 0.4 : 1,
+              "&:hover": { textDecoration: "underline" },
+              "&:disabled": { cursor: "not-allowed" },
+            }}
           >
-            ✅ Select All
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            color="error"
+            Select All
+          </Box>
+          <Box
+            sx={{
+              width: "1px",
+              height: "12px",
+              backgroundColor: T.border,
+            }}
+          />
+          <Box
+            component="button"
             onClick={handleClearAll}
             disabled={submitting || submitSuccess}
-            sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
+            sx={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontFamily: T.sans,
+              fontSize: "0.78rem",
+              fontWeight: 600,
+              color: T.red,
+              textDecoration: "none",
+              p: 0,
+              opacity: submitting || submitSuccess ? 0.4 : 1,
+              "&:hover": { textDecoration: "underline" },
+              "&:disabled": { cursor: "not-allowed" },
+            }}
           >
             Clear All
-          </Button>
+          </Box>
         </Box>
 
-        <Divider sx={{ mb: 2 }} />
+        {/* ── Divider ── */}
+        <Box sx={{ height: "1px", backgroundColor: T.border, mb: "12px" }} />
 
         {/* ── Telecaller list ── */}
         {telecallers.length === 0 ? (
           <Box
             sx={{
               textAlign: "center",
-              py: 4,
-              color: "text.secondary",
+              py: "32px",
+              color: T.textMuted,
             }}
           >
-            <PersonIcon sx={{ fontSize: 48, opacity: 0.3, mb: 1 }} />
-            <Typography variant="body2">No telecallers found in the system.</Typography>
+            <PhoneDisabledIcon sx={{ fontSize: 36, opacity: 0.3, mb: "8px" }} />
+            <Typography
+              sx={{ fontFamily: T.sans, fontSize: "0.82rem", color: T.textMuted }}
+            >
+              No telecallers found in the system.
+            </Typography>
           </Box>
         ) : (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mb: 1 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: "6px", mb: "4px" }}>
             {telecallers.map((tc) => (
               <Box
                 key={tc.email}
@@ -353,71 +575,90 @@ const DutySheetPopup: React.FC = () => {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  p: 1.5,
-                  borderRadius: 2,
-                  border: `1px solid ${
-                    tc.is_on_duty
-                      ? alpha(theme.palette.success.main, 0.3)
-                      : alpha(theme.palette.divider, 0.8)
-                  }`,
-                  bgcolor: tc.is_on_duty
-                    ? alpha(theme.palette.success.main, 0.04)
-                    : "transparent",
-                  transition: "all 0.2s ease",
+                  px: "14px",
+                  py: "10px",
+                  backgroundColor: tc.is_on_duty ? T.surface : "#fafafa",
+                  border: `1px solid ${tc.is_on_duty ? T.border : T.border}`,
+                  borderLeft: `3px solid ${tc.is_on_duty ? T.amber : T.border}`,
+                  borderRadius: "4px",
+                  transition: "border-color 0.15s ease, background-color 0.15s ease",
                 }}
               >
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                  <Avatar
+                <Box sx={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  {/* Flat monogram square */}
+                  <Box
                     sx={{
-                      width: 36,
-                      height: 36,
-                      bgcolor: tc.is_on_duty
-                        ? theme.palette.success.main
-                        : alpha(theme.palette.text.secondary, 0.25),
-                      fontSize: "0.85rem",
-                      fontWeight: 700,
-                      transition: "background-color 0.2s",
+                      width: 34,
+                      height: 34,
+                      borderRadius: "4px",
+                      backgroundColor: tc.is_on_duty ? T.amber : "#e5e7eb",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      transition: "background-color 0.15s ease",
                     }}
                   >
-                    {(tc.name || tc.email).charAt(0).toUpperCase()}
-                  </Avatar>
+                    <Typography
+                      sx={{
+                        fontFamily: T.mono,
+                        fontSize: "0.85rem",
+                        fontWeight: 700,
+                        color: tc.is_on_duty ? T.charcoal : T.textMuted,
+                        lineHeight: 1,
+                      }}
+                    >
+                      {(tc.name || tc.email).charAt(0).toUpperCase()}
+                    </Typography>
+                  </Box>
+
                   <Box>
-                    <Typography variant="body2" fontWeight={600} lineHeight={1.2}>
+                    <Typography
+                      sx={{
+                        fontFamily: T.sans,
+                        fontSize: "0.85rem",
+                        fontWeight: 600,
+                        color: T.textPrimary,
+                        lineHeight: 1.2,
+                      }}
+                    >
                       {tc.name || tc.email}
                     </Typography>
                     <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ fontSize: "0.7rem" }}
+                      sx={{
+                        fontFamily: T.mono,
+                        fontSize: "0.67rem",
+                        color: T.textMuted,
+                        letterSpacing: "0.01em",
+                      }}
                     >
                       {tc.email}
                     </Typography>
                   </Box>
                 </Box>
 
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={tc.is_on_duty}
-                      onChange={() => handleToggle(tc.email)}
-                      disabled={submitting || submitSuccess}
-                      color="success"
-                      size="medium"
-                    />
-                  }
-                  label={
-                    <Typography
-                      variant="caption"
-                      fontWeight={700}
-                      color={tc.is_on_duty ? "success.main" : "text.disabled"}
-                      sx={{ minWidth: 28 }}
-                    >
-                      {tc.is_on_duty ? "ON" : "OFF"}
-                    </Typography>
-                  }
-                  labelPlacement="start"
-                  sx={{ m: 0, gap: 0.5 }}
-                />
+                <Box sx={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Typography
+                    sx={{
+                      fontFamily: T.mono,
+                      fontSize: "0.7rem",
+                      fontWeight: 700,
+                      color: tc.is_on_duty ? T.green : T.gray,
+                      letterSpacing: "0.1em",
+                      minWidth: "24px",
+                      textAlign: "right",
+                    }}
+                  >
+                    {tc.is_on_duty ? "ON" : "OFF"}
+                  </Typography>
+                  <Switch
+                    checked={tc.is_on_duty}
+                    onChange={() => handleToggle(tc.email)}
+                    disabled={submitting || submitSuccess}
+                    size="small"
+                    sx={switchSx(tc.is_on_duty)}
+                  />
+                </Box>
               </Box>
             ))}
           </Box>
@@ -427,51 +668,57 @@ const DutySheetPopup: React.FC = () => {
       {/* ── Actions ── */}
       <DialogActions
         sx={{
-          px: 3,
-          py: 2.5,
-          gap: 1,
-          borderTop: `1px solid ${theme.palette.divider}`,
-          mt: 2,
+          px: "20px",
+          py: "16px",
+          mt: "16px",
+          borderTop: `1px solid ${T.border}`,
+          backgroundColor: T.bg,
         }}
       >
-        <Button
-          variant="contained"
-          size="large"
-          fullWidth
+        <Box
+          component="button"
           onClick={handleSubmit}
           disabled={submitting || submitSuccess}
-          startIcon={
-            submitting ? (
-              <CircularProgress size={18} color="inherit" />
-            ) : submitSuccess ? (
-              <CheckIcon />
-            ) : undefined
-          }
           sx={{
-            py: 1.4,
-            borderRadius: 2,
+            width: "100%",
+            py: "12px",
+            px: "20px",
+            backgroundColor: submitSuccess ? T.green : T.charcoal,
+            color: "#ffffff",
+            border: "none",
+            borderBottom: `3px solid ${submitSuccess ? "#166534" : T.amber}`,
+            borderRadius: "4px",
+            cursor: submitting || submitSuccess ? "not-allowed" : "pointer",
+            fontFamily: T.mono,
+            fontSize: "0.82rem",
             fontWeight: 700,
-            fontSize: "0.95rem",
-            textTransform: "none",
-            background: submitSuccess
-              ? theme.palette.success.main
-              : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            "&:hover": {
-              background: submitSuccess
-                ? theme.palette.success.dark
-                : "linear-gradient(135deg, #5568d3 0%, #6941a0 100%)",
-            },
-            "&.Mui-disabled": {
-              background: theme.palette.action.disabledBackground,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            opacity: submitting ? 0.7 : 1,
+            transition: "background-color 0.15s ease, opacity 0.15s ease",
+            "&:hover:not(:disabled)": {
+              backgroundColor: submitSuccess ? "#166534" : T.charcoalMid,
             },
           }}
         >
-          {submitting
-            ? "Submitting..."
-            : submitSuccess
-            ? "✅ Duty Sheet Submitted!"
-            : `Submit Duty Sheet (${onDutyCount} on duty)`}
-        </Button>
+          {submitting ? (
+            <>
+              <CircularProgress size={14} sx={{ color: "#ffffff" }} />
+              Submitting...
+            </>
+          ) : submitSuccess ? (
+            <>
+              <CheckIcon sx={{ fontSize: 16 }} />
+              Duty Sheet Confirmed
+            </>
+          ) : (
+            `Submit Duty Sheet — ${onDutyCount} on duty`
+          )}
+        </Box>
       </DialogActions>
     </Dialog>
   );

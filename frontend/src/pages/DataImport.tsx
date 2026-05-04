@@ -59,7 +59,7 @@ export default function DataImport() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
 
-  const handleDownloadTemplate = () => {
+  const handleDownloadDistributorTemplate = () => {
     const headers = [
       "MANTRI_NAME",
       "MANTRI_MOBILE",
@@ -123,6 +123,36 @@ export default function DataImport() {
     XLSX.utils.book_append_sheet(wb, ws, "Distributors");
     XLSX.writeFile(wb, "distributor_import_template.xlsx");
   };
+
+  const handleDownloadSabhasadTemplate = () => {
+    const headers = [
+      "CODE",
+      "SABHASAD NAME",
+      "NUMBER",
+      "VILLAGE",
+      "TALUKA",
+      "DISTRICT",
+      "STATE",
+      "AADHAR"
+    ];
+
+    const sampleRow = {
+      "CODE": "CUST001",
+      "SABHASAD NAME": "RAHUL PATEL",
+      "NUMBER": "9876543210",
+      "VILLAGE": "ANAND",
+      "TALUKA": "ANAND",
+      "DISTRICT": "ANAND",
+      "STATE": "GUJARAT",
+      "AADHAR": "123456789012"
+    };
+
+    const ws = XLSX.utils.json_to_sheet([sampleRow], { header: headers });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sabhasads");
+    XLSX.writeFile(wb, "sabhasad_import_template.xlsx");
+  };
+
 
   const importDialogs: ImportDialog[] = [
     {
@@ -576,15 +606,15 @@ export default function DataImport() {
               </Grid>
             )}
 
-            {openDialog === "customer" && (
+            {(openDialog === "customer" || openDialog === "sabhasad") && (
               <Box sx={{ mb: 3, display: "flex", justifyContent: "flex-end" }}>
                 <Button
                   variant="outlined"
-                  onClick={handleDownloadTemplate}
+                  onClick={openDialog === "customer" ? handleDownloadDistributorTemplate : handleDownloadSabhasadTemplate}
                   startIcon={<AttachFileIcon sx={{ transform: "rotate(45deg)" }} />}
                   sx={{ borderRadius: 2, textTransform: "none" }}
                 >
-                  Download Sample Format
+                  Download {openDialog === "customer" ? "Distributor" : "Sabhasad"} Sample Format
                 </Button>
               </Box>
             )}

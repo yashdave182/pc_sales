@@ -8,6 +8,7 @@ import os
 import math
 import logging
 from datetime import datetime, date
+import pytz
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, HTTPException, Header, Body
@@ -18,6 +19,11 @@ from activity_logger import get_activity_logger
 
 router = APIRouter()
 logger = logging.getLogger("automation")
+
+def get_today_ist() -> str:
+    """Returns today's date in YYYY-MM-DD format using IST timezone."""
+    ist = pytz.timezone('Asia/Kolkata')
+    return datetime.now(ist).date().isoformat()
 
 # ─── Pydantic Models ─────────────────────────────────────
 
@@ -36,24 +42,44 @@ class BulkReassignRequest(BaseModel):
     priority: str  # 'High', 'Medium', 'Low'
     count: int  # how many to assign
 
+class TransferPendingRequest(BaseModel):
+    from_user_email: str
+    to_user_email: str
+
 VALID_OUTCOMES = {'connected', 'not_reachable', 'callback', 'wrong_number'}
 
 # ─── Distribution Logic ──────────────────────────────────
 
 def _get_telecaller_emails(db: SupabaseClient) -> list:
-    """Get telecaller users from app_users table."""
+    """Get telecaller users from app_users table, filtered by today's attendance."""
     try:
         res = db.table("app_users").select("email, name, role").execute()
         users = res.data or []
         logger.info(f"[DIST] app_users total rows: {len(users)}")
-        logger.info(f"[DIST] All roles in app_users: {[u.get('role') for u in users]}")
+        
         telecaller_roles = {"telecaller", "staff", "telecaller1", "telecaller2"}
-        telecallers = [
+        all_telecallers = [
             u for u in users
             if u.get("role", "").lower().replace(" ", "_") in telecaller_roles
                or "telecaller" in u.get("role", "").lower()
         ]
-        logger.info(f"[DIST] Found {len(telecallers)} telecallers: {[t['email'] for t in telecallers]}")
+        
+        # Filter by today's attendance (IST)
+        today_str = get_today_ist()
+        att_res = db.table("telecaller_attendance") \
+            .select("user_email, is_present") \
+            .eq("attendance_date", today_str) \
+            .eq("is_present", True) \
+            .execute()
+            
+        present_emails = {row["user_email"] for row in (att_res.data or [])}
+        
+        telecallers = [t for t in all_telecallers if t["email"] in present_emails]
+        logger.info(f"[DIST] Found {len(all_telecallers)} total telecallers, {len(telecallers)} are PRESENT today: {[t['email'] for t in telecallers]}")
+        
+        if not telecallers:
+            logger.warning("🚨 [DIST] ZERO TELECALLERS ARE PRESENT TODAY! 🚨")
+            
         return telecallers
     except Exception as e:
         logger.error(f"[DIST] Error fetching telecallers: {e}", exc_info=True)
@@ -119,25 +145,25 @@ def distribute_calls(db: SupabaseClient, admin_email: str = "system", force: boo
     Queries the `customers` table — calling_assignments.customer_id = customers.customer_id.
     If force=True, clears any ghost/stale assignments for today before checking idempotency.
     """
-    today_str = date.today().isoformat()
+    today_str = get_today_ist()
     logger.info(f"[DIST] ===== distribute_calls START (date={today_str}, triggered_by={admin_email}, force={force}) =====")
 
     # 1. Get telecallers FIRST so we can do smart idempotency check
     telecallers = _get_telecaller_emails(db)
     if not telecallers:
-        logger.warning("[DIST] ❌ No active telecallers found — aborting distribution!")
+        logger.warning("[DIST] ❌ No active telecallers found (or none marked present) — aborting distribution!")
         try:
             db.table("notifications").insert({
                 "user_email": admin_email if admin_email not in ("system", "system_scheduler") else "system@internal",
-                "title": "⚠️ No Telecallers Available",
-                "message": "Auto-distribution failed: No active telecallers found in app_users.",
+                "title": "⚠️ No Telecallers Present",
+                "message": "Auto-distribution failed: Zero telecallers are marked as present today.",
                 "notification_type": "warning",
                 "entity_type": "calling_list",
                 "is_read": False,
             }).execute()
         except Exception as ne:
             logger.error(f"[DIST] Failed to send no-telecaller notification: {ne}")
-        return {"message": "No active telecallers found", "status": "error", "total_calls": 0}
+        return {"message": "No telecallers marked present", "status": "error", "total_calls": 0}
 
     valid_emails = [t["email"] for t in telecallers]
     logger.info(f"[DIST] Telecallers to distribute to: {valid_emails}")
@@ -218,7 +244,9 @@ def distribute_calls(db: SupabaseClient, admin_email: str = "system", force: boo
         logger.info(f"[DIST] Fetched {len(customers_to_call)} distributors (top 150 by priority_score)")
     except Exception as e:
         logger.error(f"[DIST] ❌ Failed to fetch distributors: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to fetch distributors: {e}")
+        # Raise a plain RuntimeError (not HTTPException) so this is safe to call
+        # from both the scheduler background job AND HTTP endpoints.
+        raise RuntimeError(f"Failed to fetch distributors: {e}") from e
         
     if customers_to_call:
         logger.info(f"[DIST] Sample distributor IDs: {[c['customer_id'] for c in customers_to_call[:5]]}")
@@ -278,7 +306,7 @@ def distribute_calls(db: SupabaseClient, admin_email: str = "system", force: boo
                 logger.info(f"[DIST] Inserted batch {batches_inserted} ({len(batch)} rows)")
             except Exception as be:
                 logger.error(f"[DIST] ❌ Batch insert failed (batch {batches_inserted+1}): {be}", exc_info=True)
-                raise HTTPException(status_code=500, detail=f"Batch insert failed: {be}")
+                raise RuntimeError(f"Batch insert failed: {be}") from be
         logger.info(f"[DIST] ✅ All {batches_inserted} batch(es) inserted successfully")
 
     # 7. Send notifications to telecallers
@@ -320,7 +348,7 @@ def debug_state(db: SupabaseClient = Depends(get_db)):
     Hit GET /api/automation/debug-state in browser to see full diagnostics.
     """
     import os
-    today_str = date.today().isoformat()
+    today_str = get_today_ist()
 
     # 1. Scheduler env
     scheduler_enabled = os.environ.get("SCHEDULER_ENABLED", "").strip()
@@ -587,25 +615,28 @@ def update_call_status(
             }).execute()
 
         # 5b. Score adjustments based on call outcome
-        customer_id = assignment["customer_id"]
+        # NOTE: customer_id here actually stores distributor_id (schema reuse).
+        # All score adjustments must target the `distributors` table.
+        distributor_id = assignment["customer_id"]
         try:
             if body.call_outcome == "connected" and body.notes and "order" in (body.notes or "").lower():
                 # Connected + order mentioned → decrease score by 15 (min 0)
-                cust_res = db.table("customers").select("priority_score").eq("customer_id", customer_id).execute()
-                if cust_res.data:
-                    current_score = cust_res.data[0].get("priority_score", 0) or 0
+                dist_res = db.table("distributors").select("priority_score").eq("distributor_id", distributor_id).execute()
+                if dist_res.data:
+                    current_score = dist_res.data[0].get("priority_score", 0) or 0
                     new_score = max(0, current_score - 15)
                     from scoring_engine import priority_label as calc_label
-                    db.table("customers").eq("customer_id", customer_id).update({
+                    db.table("distributors").eq("distributor_id", distributor_id).update({
                         "priority_score": new_score,
                         "priority_label": calc_label(new_score),
-                    })
+                    }).execute()
+                    logger.info(f"[SCORE] distributor {distributor_id}: connected+order → score {current_score} → {new_score}")
 
             elif body.call_outcome == "not_reachable":
                 # Not reachable → decrease score by 3 (min 0)
-                cust_res = db.table("customers").select("priority_score").eq("customer_id", customer_id).execute()
-                if cust_res.data:
-                    current_score = cust_res.data[0].get("priority_score", 0) or 0
+                dist_res = db.table("distributors").select("priority_score").eq("distributor_id", distributor_id).execute()
+                if dist_res.data:
+                    current_score = dist_res.data[0].get("priority_score", 0) or 0
                     new_score = max(0, current_score - 3)
                     from scoring_engine import priority_label as calc_label
                     update_data = {
@@ -617,27 +648,29 @@ def update_call_status(
                     week_ago = (date.today() - timedelta(days=7)).isoformat()
                     nr_res = db.table("call_logs") \
                         .select("log_id") \
-                        .eq("customer_id", customer_id) \
+                        .eq("customer_id", distributor_id) \
                         .eq("call_outcome", "not_reachable") \
                         .gte("created_at", week_ago) \
                         .execute()
                     nr_count = len(nr_res.data or [])
                     if nr_count >= 3:
                         update_data["priority_label"] = "LOW"
-                        logger.info(f"Customer {customer_id} has {nr_count} not_reachable this week → forced LOW")
+                        logger.info(f"[SCORE] distributor {distributor_id} has {nr_count} not_reachable this week → forced LOW")
 
-                    db.table("customers").eq("customer_id", customer_id).update(update_data)
+                    db.table("distributors").eq("distributor_id", distributor_id).update(update_data).execute()
+                    logger.info(f"[SCORE] distributor {distributor_id}: not_reachable → score {current_score} → {new_score}")
 
             elif body.call_outcome == "callback":
-                # Callback → freeze score so nightly job skips this customer
-                db.table("customers").eq("customer_id", customer_id).update({
+                # Callback → freeze score so nightly scoring job skips this distributor
+                db.table("distributors").eq("distributor_id", distributor_id).update({
                     "score_frozen": True,
-                })
+                }).execute()
+                logger.info(f"[SCORE] distributor {distributor_id}: callback → score_frozen=True")
 
             # 'connected' without order → no score change (intentional)
 
         except Exception as e:
-            logger.error(f"Score adjustment failed for customer {customer_id}: {e}")
+            logger.error(f"Score adjustment failed for distributor {distributor_id}: {e}")
 
         # 6. Log the activity for the floating toast
         try:
@@ -691,7 +724,7 @@ def get_admin_assignments(
 ):
     """Admin: view all assignments for a date, grouped summary."""
     try:
-        d = target_date or date.today().isoformat()
+        d = target_date or get_today_ist()
         offset = (page - 1) * limit
 
         res = db.table("calling_assignments") \
@@ -777,6 +810,8 @@ def admin_distribute(
         return result
     except HTTPException:
         raise
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Distribution failed: {e}")
 
@@ -834,14 +869,14 @@ def get_distribution_status(
     db: SupabaseClient = Depends(get_db),
 ):
     """Check if today's distribution has happened and return timer info."""
-    today_str = date.today().isoformat()
+    today_str = get_today_ist()
     distributed = _check_already_distributed(db, today_str)
 
     # Calculate time until 10 AM IST
     import pytz
     ist = pytz.timezone("Asia/Kolkata")
     now_ist = datetime.now(ist)
-    target = now_ist.replace(hour=22, minute=5, second=0, microsecond=0)  # TEST: revert to hour=10, minute=0
+    target = now_ist.replace(hour=10, minute=0, second=0, microsecond=0)
 
     if now_ist >= target:
         minutes_remaining = 0
@@ -869,7 +904,7 @@ def admin_refresh_distribution(
     from today using the same load-aware logic. Effectively a manual midnight reset.
     """
     try:
-        today_str = date.today().isoformat()
+        today_str = get_today_ist()
 
         # 1. Get all pending assignments for today
         pending_res = db.table("calling_assignments") \
@@ -901,6 +936,8 @@ def admin_refresh_distribution(
 
     except HTTPException:
         raise
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Refresh failed: {e}")
 
@@ -918,7 +955,7 @@ def admin_bulk_reassign(
         raise HTTPException(status_code=400, detail="Count must be at least 1")
 
     try:
-        today_str = date.today().isoformat()
+        today_str = get_today_ist()
 
         # Get pending assignments of this priority NOT already assigned to target
         res = db.table("calling_assignments") \
@@ -965,3 +1002,108 @@ def admin_bulk_reassign(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Bulk reassign failed: {e}")
+
+
+@router.post("/admin/transfer-pending")
+def admin_transfer_pending(
+    body: TransferPendingRequest,
+    db: SupabaseClient = Depends(get_db),
+):
+    """
+    Admin: Transfer all pending calls from one telecaller (e.g. half-day duty)
+    to another telecaller.
+    """
+    if body.from_user_email == body.to_user_email:
+        raise HTTPException(status_code=400, detail="Cannot transfer to the same user")
+
+    try:
+        today_str = get_today_ist()
+
+        # Get all pending calls for the from_user
+        res = db.table("calling_assignments") \
+            .select("assignment_id") \
+            .eq("assigned_date", today_str) \
+            .eq("status", "Pending") \
+            .eq("user_email", body.from_user_email) \
+            .execute()
+
+        candidates = res.data or []
+        if not candidates:
+            return {"message": "No pending calls to transfer", "transferred": 0}
+
+        reassigned = 0
+        for a in candidates:
+            db.table("calling_assignments") \
+                .eq("assignment_id", a["assignment_id"]) \
+                .update({"user_email": body.to_user_email}) \
+                .execute()
+            reassigned += 1
+
+        # Notify the new telecaller
+        db.table("notifications").insert({
+            "user_email": body.to_user_email,
+            "title": "📞 Calls Transferred to You",
+            "message": f"{reassigned} pending calls have been transferred to you from {body.from_user_email.split('@')[0]}.",
+            "notification_type": "info",
+            "entity_type": "calling_list",
+            "is_read": False,
+        }).execute()
+
+        return {
+            "message": f"Transferred {reassigned} calls from {body.from_user_email} to {body.to_user_email}",
+            "transferred": reassigned,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Transfer pending failed: {e}")
+
+
+# ─── External Cron Trigger ────────────────────────────────
+# Hit this endpoint from cron-job.org (or any external scheduler) at 10:00 AM IST
+# to guarantee daily assignment even if the backend process restarts.
+#
+# Setup:
+#   1. Add CRON_SECRET=<some-long-random-string> to backend/.env
+#   2. On cron-job.org, create a job:
+#        URL:    POST https://<your-backend>/api/automation/trigger-daily
+#        Header: x-cron-secret: <same-secret>
+#        Time:   04:30 UTC (= 10:00 AM IST)
+
+@router.post("/trigger-daily")
+def trigger_daily_cron(
+    x_cron_secret: str = Header(None, alias="x-cron-secret"),
+    db: SupabaseClient = Depends(get_db),
+):
+    """
+    External-cron entry point for daily call distribution.
+    Protected by CRON_SECRET env var — requests without the correct secret are
+    rejected with 401. Safe to expose publicly because without the secret the
+    endpoint is a no-op.
+    """
+    expected_secret = os.environ.get("CRON_SECRET", "").strip()
+    if not expected_secret:
+        # CRON_SECRET not configured — refuse all external calls to prevent
+        # accidental open access.
+        logger.error("[CRON] /trigger-daily called but CRON_SECRET env var is not set — rejecting.")
+        raise HTTPException(
+            status_code=503,
+            detail="CRON_SECRET is not configured on this server. Set it in .env and restart."
+        )
+
+    if x_cron_secret != expected_secret:
+        logger.warning(f"[CRON] /trigger-daily rejected — bad secret (received: {repr(x_cron_secret)})")
+        raise HTTPException(status_code=401, detail="Invalid cron secret.")
+
+    logger.info("[CRON] ✅ /trigger-daily authenticated — starting distribution...")
+    try:
+        result = distribute_calls(db, admin_email="external_cron")
+        logger.info(f"[CRON] distribute_calls result: {result}")
+        return {"triggered_by": "external_cron", **result}
+    except RuntimeError as e:
+        logger.error(f"[CRON] distribute_calls raised RuntimeError: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        logger.error(f"[CRON] Unexpected error in trigger_daily_cron: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Cron trigger failed: {e}")

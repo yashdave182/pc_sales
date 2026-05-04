@@ -24,11 +24,6 @@ def dashboard_metrics(db: SupabaseClient = Depends(get_supabase)):
 
         total_sales = sum((s.get("total_amount") or 0) for s in sales_data)
         total_transactions = len(sales_data)
-        pending_amount = sum(
-            (s.get("total_amount") or 0)
-            for s in sales_data
-            if str(s.get("payment_status", "")).lower() == "pending"
-        )
 
         # 2. Customer Metrics — only fetch status column
         customers_response = db.table("customers").select("status").execute()
@@ -61,10 +56,15 @@ def dashboard_metrics(db: SupabaseClient = Depends(get_supabase)):
         payments_data = payments_response.data or []
 
         payment_method_distribution = {}
+        total_collected = 0
         for p in payments_data:
             method = p.get("payment_method") or "Unknown"
             amount = p.get("amount") or 0
             payment_method_distribution[method] = payment_method_distribution.get(method, 0) + amount
+            total_collected += amount
+
+        # Calculate accurate pending amount by subtracting all collected payments from total sales
+        pending_amount = max(0, total_sales - total_collected)
 
         return {
             "total_sales": total_sales,

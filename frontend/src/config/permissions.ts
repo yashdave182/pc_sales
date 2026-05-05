@@ -92,6 +92,11 @@ export const PERMISSIONS = {
     MANAGE_USERS: "manage_users",
     MANAGE_ROLES: "manage_roles",
     MANAGE_NOTIFICATIONS: "manage_notifications",
+
+    // Leads
+    VIEW_ALL_LEADS: "view_all_leads",
+    WORK_LEADS: "work_leads",
+    VIEW_LEAD_DASHBOARD: "view_lead_dashboard",
 } as const;
 
 export type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS];
@@ -107,4 +112,6 @@ export enum UserRole {
     MARKETING_MANAGER = "marketing_manager",
     BUSINESS_ANALYST = "business_analyst",
     PRODUCT_MANAGER = "product_manager",
+    LEAD_MANAGER = "lead_manager",
+    LEAD_OWNER = "lead_owner",
 }

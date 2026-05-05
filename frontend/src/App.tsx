@@ -35,6 +35,9 @@ import Notifications from "./pages/Notifications";
 import RoleManagement from "./pages/RoleManagement";
 import Chat from "./pages/Chat";
 import Activity from "./pages/Activity";
+import LeadDashboard from "./pages/LeadDashboard";
+import LeadPipeline from "./pages/LeadPipeline";
+import LeadWorkspace from "./pages/LeadWorkspace";
 import { createAppTheme } from "./theme/theme";
 import { PERMISSIONS } from "./config/permissions";
 
@@ -293,6 +296,36 @@ function App() {
                     <ProtectedRoute>
                       <Layout toggleTheme={toggleTheme} themeMode={mode}>
                         <Chat />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/lead-dashboard"
+                  element={
+                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_LEAD_DASHBOARD}>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <LeadDashboard />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/leads"
+                  element={
+                    <ProtectedRoute requiredPermission={PERMISSIONS.VIEW_ALL_LEADS}>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <LeadPipeline />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/lead-workspace"
+                  element={
+                    <ProtectedRoute requiredPermission={PERMISSIONS.WORK_LEADS}>
+                      <Layout toggleTheme={toggleTheme} themeMode={mode}>
+                        <LeadWorkspace />
                       </Layout>
                     </ProtectedRoute>
                   }

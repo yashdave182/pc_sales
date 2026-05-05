@@ -13,54 +13,10 @@ from routers.notifications import create_notification_helper
 router = APIRouter()
 
 
-def _get_fiscal_year_suffix() -> str:
-    """Return the fiscal year suffix string, e.g. '26-27' for April 2026 – March 2027."""
-    now = datetime.now()
-    if now.month >= 4:  # April onwards → new fiscal year starts
-        fy_start = now.year % 100
-        fy_end = (now.year + 1) % 100
-    else:              # Jan–Mar → still the previous fiscal year
-        fy_start = (now.year - 1) % 100
-        fy_end = now.year % 100
-    return f"{fy_start:02d}-{fy_end:02d}"
-
-
-def generate_invoice_no(db: SupabaseClient) -> str:
-    """Generate a unique invoice number in FSC####/YY-YY format."""
-    try:
-        fy_suffix = _get_fiscal_year_suffix()  # e.g. "26-27"
-        pattern = f"FSC%/{fy_suffix}"          # e.g. "FSC%/26-27"
-
-        # Fetch all invoices for the current fiscal year so we can find the max
-        response = (
-            db.table("sales")
-            .select("invoice_no")
-            .like("invoice_no", pattern)
-            .execute()
-        )
-
-        max_num = 0
-        if response.data:
-            for row in response.data:
-                inv = row.get("invoice_no") or ""
-                # Format: FSC0016/26-27  →  number part is between "FSC" and "/"
-                if inv.startswith("FSC") and "/" in inv:
-                    try:
-                        num = int(inv[3:].split("/")[0])
-                        if num > max_num:
-                            max_num = num
-                    except (ValueError, IndexError):
-                        pass
-
-        new_num = max_num + 1
-        return f"FSC{new_num:04d}/{fy_suffix}"
-
-    except Exception as e:
-        # Fallback: use a timestamp-derived number so we never block a sale
-        print(f"Warning: Could not generate sequential invoice number: {e}")
-        now = datetime.now()
-        fy_suffix = _get_fiscal_year_suffix()
-        return f"FSC{int(now.timestamp()) % 9999 + 1:04d}/{fy_suffix}"
+# Invoice number generation has been moved entirely to the database.
+# A BEFORE INSERT trigger on the `sales` table calls the PostgreSQL function
+# `generate_fsc_invoice_no()` which is atomic and race-condition-safe.
+# See: database/migrations/invoice_no_trigger.sql
 
 
 @router.get("/", dependencies=[Depends(verify_permission("view_sales"))])
@@ -276,27 +232,36 @@ def create_sale(
             capacity = product.get("capacity_ltr", 0) or 0
             total_liters += capacity * item.quantity
 
-        # Generate invoice number
-        if sale.invoice_no:
-             # Check if invoice number already exists
-            existing_sale = db.table("sales").select("sale_id").eq("invoice_no", sale.invoice_no).execute()
-            if existing_sale.data:
-                raise HTTPException(status_code=400, detail=f"Invoice number {sale.invoice_no} already exists")
-            invoice_no = sale.invoice_no
-        else:
-            invoice_no = generate_invoice_no(db)
-
-        # Create sale record
-        sale_data = {
-            "invoice_no": invoice_no,
+        # Build sale record.
+        # invoice_no is intentionally OMITTED when the caller hasn't supplied one —
+        # the database BEFORE INSERT trigger calls generate_fsc_invoice_no() and
+        # fills it in atomically, guaranteeing uniqueness even under concurrent load.
+        sale_data: dict = {
             "customer_id": sale.customer_id,
             "sale_date": sale.sale_date,
             "total_amount": total_amount,
             "total_liters": total_liters,
             "payment_status": "Pending",
-            "notes": sale.notes if hasattr(sale, "notes") and sale.notes else None,
-            "payment_terms": sale.payment_terms if hasattr(sale, "payment_terms") else None,
+            "notes": sale.notes or None,
+            "payment_terms": sale.payment_terms or None,
         }
+
+        # Only include invoice_no when the caller explicitly provides one
+        if sale.invoice_no and sale.invoice_no.strip():
+            # Reject duplicates early so we give a clear error before hitting the DB
+            existing = (
+                db.table("sales")
+                .select("sale_id")
+                .eq("invoice_no", sale.invoice_no.strip())
+                .execute()
+            )
+            if existing.data:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Invoice number '{sale.invoice_no}' already exists.",
+                )
+            sale_data["invoice_no"] = sale.invoice_no.strip()
+        # else: DB trigger generates the invoice number — no Python code needed
 
         sale_response = db.table("sales").insert(sale_data).execute()
 
@@ -305,6 +270,8 @@ def create_sale(
 
         created_sale = sale_response.data[0]
         sale_id = created_sale.get("sale_id")
+        # The DB trigger populates invoice_no — read it back from the response
+        invoice_no = created_sale.get("invoice_no", "")
         
         # Generate and store sale_code in MMyy#### format (optional - only if column exists)
         try:
@@ -495,13 +462,11 @@ def create_sale(
         raise
     except Exception as e:
         error_str = str(e)
-        # Supabase returns a 409 when a UNIQUE constraint is violated (duplicate invoice_no).
-        # Surface this as a 409 so the frontend shows a meaningful message instead of a
-        # generic "500 Internal Server Error".
+        # The DB trigger is atomic, but surface any remaining constraint errors clearly
         if "409" in error_str or "duplicate" in error_str.lower() or "unique" in error_str.lower():
             raise HTTPException(
                 status_code=409,
-                detail=f"Duplicate invoice number detected. Please try again — a new unique number will be assigned automatically.",
+                detail="A duplicate invoice number was detected. This should not happen — please contact support if it persists.",
             )
         raise HTTPException(status_code=500, detail=f"Error creating sale: {error_str}")
 

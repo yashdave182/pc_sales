@@ -57,44 +57,46 @@ def extract_packaging_liter(text):
 # =================================================
 
 def detect_excel_type(file_path: str) -> str:
+    print(f"DEBUG: Starting detection for: {file_path}")
     xls = pd.ExcelFile(file_path)
 
-    # SALES → always has 2 sheets
+    # 1. SALES → always has 2+ sheets
     if len(xls.sheet_names) >= 2:
+        print("Detected Type: SALES (Multiple sheets)")
         return "SALES"
 
-    df = pd.read_excel(xls, sheet_name=0, header=None)
+    # Read first 20 rows to scan for keywords
+    df = pd.read_excel(xls, sheet_name=0, header=None, nrows=20)
     df.dropna(how="all", inplace=True)
-
-    customer_hits = 0
-    distributor_hits = 0
-    sabhasad_hits = 0
-
-    for _, row in df.head(50).iterrows():
-        text = " ".join(str(c).lower() for c in row if pd.notna(c))
-
-        if re.search(r"\b\d{10}\b", text):
-            customer_hits += 1
-
-        if "mantri" in text:
-            distributor_hits += 5 # High weight for Mantri
-        elif any(k in text for k in ["district", "taluka", "village", "jilla", "gaon"]):
-            distributor_hits += 1
-            
-        if "sabhasad" in text:
-            sabhasad_hits += 5 # High weight for Sabhasad
-
-    if distributor_hits >= 5:
-        # If it has "mantri", it's definitely Distributors
+    
+    # Flatten everything to a single lowercase string for scanning
+    all_text = " ".join(df.astype(str).values.flatten()).lower()
+    
+    # 2. DISTRIBUTORS (HIGH PRIORITY)
+    # Check for distributor-specific keywords
+    dist_keywords = ["dairy", "sabhasad_count", "milk_collection", "mantri", "dairy_time", "collection"]
+    if any(k in all_text for k in dist_keywords):
+        print(f"Detected Type: DISTRIBUTORS (Found keyword in: {dist_keywords})")
         return "DISTRIBUTORS"
-        
-    if sabhasad_hits >= 3:
+
+    # 3. SABHASAD (SECOND PRIORITY)
+    # Pattern: Name field AND Mobile field
+    name_hits = ["sabhasad name", "member name", "sabahsad name", "name"]
+    mobile_hits = ["mobile", "number", "contact", "phone", "mobile no"]
+    
+    has_name = any(k in all_text for k in name_hits)
+    has_mobile = any(k in all_text for k in mobile_hits)
+    
+    if has_name and has_mobile:
+        print(f"Detected Type: SABHASAD (Found Name + Mobile pattern)")
         return "SABHASAD"
 
-    if customer_hits >= 3:
+    # 4. CUSTOMERS (LEGACY FALLBACK)
+    if re.search(r"\b\d{10}\b", all_text):
+        print("Detected Type: CUSTOMERS (Found 10-digit phone pattern)")
         return "CUSTOMERS"
 
-
+    print(f"WARNING: Could not detect type. Sample text: {all_text[:300]}")
     return "UNKNOWN"
 
 

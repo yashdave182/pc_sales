@@ -40,6 +40,11 @@ import { PERMISSIONS } from "../config/permissions";
 export default function Customers() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  // Utility to safely convert value to uppercase
+  const toUpperCaseSafe = (val: any) => {
+    return typeof val === "string" ? val.toUpperCase() : val;
+  };
   
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +54,7 @@ export default function Customers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState<Partial<Customer>>({
+    customer_code: "",
     name: "",
     mobile: "",
     village: "",
@@ -86,6 +92,7 @@ export default function Customers() {
     } else {
       setEditingCustomer(null);
       setFormData({
+        customer_code: "",
         name: "",
         mobile: "",
         village: "",
@@ -103,6 +110,7 @@ export default function Customers() {
     setOpenDialog(false);
     setEditingCustomer(null);
     setFormData({
+      customer_code: "",
       name: "",
       mobile: "",
       village: "",
@@ -124,13 +132,23 @@ export default function Customers() {
         return;
       }
 
+      const payload = {
+        ...formData,
+        name: toUpperCaseSafe(formData.name),
+        village: toUpperCaseSafe(formData.village),
+        taluka: toUpperCaseSafe(formData.taluka),
+        district: toUpperCaseSafe(formData.district),
+        state: toUpperCaseSafe(formData.state),
+        customer_code: toUpperCaseSafe(formData.customer_code),
+      };
+
       if (editingCustomer && editingCustomer.customer_id) {
         await customerAPI.update(
           editingCustomer.customer_id,
-          formData as Customer,
+          payload as Customer,
         );
       } else {
-        await customerAPI.create(formData as Customer);
+        await customerAPI.create(payload as Customer);
       }
 
       // Close dialog immediately to prevent duplicate clicks while API completes
@@ -402,10 +420,21 @@ export default function Customers() {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
+                  label={tf("customer_code")}
+                  value={formData.customer_code || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, customer_code: toUpperCaseSafe(e.target.value) })
+                  }
+                  placeholder="e.g. CUST001"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
                   label={`${tf("name")} *`}
                   value={formData.name}
                   onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
+                    setFormData({ ...formData, name: toUpperCaseSafe(e.target.value) })
                   }
                 />
               </Grid>
@@ -430,7 +459,7 @@ export default function Customers() {
                   label={tf("village")}
                   value={formData.village}
                   onChange={(e) =>
-                    setFormData({ ...formData, village: e.target.value })
+                    setFormData({ ...formData, village: toUpperCaseSafe(e.target.value) })
                   }
                 />
               </Grid>
@@ -440,7 +469,7 @@ export default function Customers() {
                   label={tf("taluka")}
                   value={formData.taluka}
                   onChange={(e) =>
-                    setFormData({ ...formData, taluka: e.target.value })
+                    setFormData({ ...formData, taluka: toUpperCaseSafe(e.target.value) })
                   }
                 />
               </Grid>
@@ -450,7 +479,7 @@ export default function Customers() {
                   label={tf("district")}
                   value={formData.district}
                   onChange={(e) =>
-                    setFormData({ ...formData, district: e.target.value })
+                    setFormData({ ...formData, district: toUpperCaseSafe(e.target.value) })
                   }
                 />
               </Grid>
@@ -461,7 +490,7 @@ export default function Customers() {
                   label="State"
                   value={formData.state || "Gujarat"}
                   onChange={(e) =>
-                    setFormData({ ...formData, state: e.target.value })
+                    setFormData({ ...formData, state: toUpperCaseSafe(e.target.value) })
                   }
                 >
                   <MenuItem value="Gujarat">Gujarat</MenuItem>

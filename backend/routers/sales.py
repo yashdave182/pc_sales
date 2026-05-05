@@ -13,36 +13,54 @@ from routers.notifications import create_notification_helper
 router = APIRouter()
 
 
+def _get_fiscal_year_suffix() -> str:
+    """Return the fiscal year suffix string, e.g. '26-27' for April 2026 – March 2027."""
+    now = datetime.now()
+    if now.month >= 4:  # April onwards → new fiscal year starts
+        fy_start = now.year % 100
+        fy_end = (now.year + 1) % 100
+    else:              # Jan–Mar → still the previous fiscal year
+        fy_start = (now.year - 1) % 100
+        fy_end = now.year % 100
+    return f"{fy_start:02d}-{fy_end:02d}"
+
+
 def generate_invoice_no(db: SupabaseClient) -> str:
-    """Generate a unique invoice number"""
+    """Generate a unique invoice number in FSC####/YY-YY format."""
     try:
-        # Get the latest invoice number
+        fy_suffix = _get_fiscal_year_suffix()  # e.g. "26-27"
+        pattern = f"FSC%/{fy_suffix}"          # e.g. "FSC%/26-27"
+
+        # Fetch all invoices for the current fiscal year so we can find the max
         response = (
             db.table("sales")
             .select("invoice_no")
-            .order("created_at", desc=True)
-            .limit(1)
+            .like("invoice_no", pattern)
             .execute()
         )
 
-        if response.data and response.data[0].get("invoice_no"):
-            last_invoice = response.data[0]["invoice_no"]
-            # Extract number from invoice (assuming format INV-XXXXX)
-            if last_invoice.startswith("INV-"):
-                try:
-                    last_num = int(last_invoice.split("-")[1])
-                    new_num = last_num + 1
-                except:
-                    new_num = 1
-            else:
-                new_num = 1
-        else:
-            new_num = 1
+        max_num = 0
+        if response.data:
+            for row in response.data:
+                inv = row.get("invoice_no") or ""
+                # Format: FSC0016/26-27  →  number part is between "FSC" and "/"
+                if inv.startswith("FSC") and "/" in inv:
+                    try:
+                        num = int(inv[3:].split("/")[0])
+                        if num > max_num:
+                            max_num = num
+                    except (ValueError, IndexError):
+                        pass
 
-        return f"INV-{new_num:05d}"
-    except:
-        # Fallback to timestamp-based invoice
-        return f"INV-{int(datetime.now().timestamp())}"
+        new_num = max_num + 1
+        return f"FSC{new_num:04d}/{fy_suffix}"
+
+    except Exception as e:
+        # Fallback: use a timestamp-derived number so we never block a sale
+        print(f"Warning: Could not generate sequential invoice number: {e}")
+        now = datetime.now()
+        fy_suffix = _get_fiscal_year_suffix()
+        return f"FSC{int(now.timestamp()) % 9999 + 1:04d}/{fy_suffix}"
 
 
 @router.get("/", dependencies=[Depends(verify_permission("view_sales"))])
@@ -476,7 +494,16 @@ def create_sale(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error creating sale: {str(e)}")
+        error_str = str(e)
+        # Supabase returns a 409 when a UNIQUE constraint is violated (duplicate invoice_no).
+        # Surface this as a 409 so the frontend shows a meaningful message instead of a
+        # generic "500 Internal Server Error".
+        if "409" in error_str or "duplicate" in error_str.lower() or "unique" in error_str.lower():
+            raise HTTPException(
+                status_code=409,
+                detail=f"Duplicate invoice number detected. Please try again — a new unique number will be assigned automatically.",
+            )
+        raise HTTPException(status_code=500, detail=f"Error creating sale: {error_str}")
 
 
 @router.get("/{sale_id}", dependencies=[Depends(verify_permission("view_sales"))])

@@ -41,6 +41,8 @@ export default function Customers() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
+  const STATE_OPTIONS = ["GUJARAT", "MAHARASHTRA", "MADHYA PRADESH"];
+
   // Utility to safely convert value to uppercase
   const toUpperCaseSafe = (val: any) => {
     return typeof val === "string" ? val.toUpperCase() : val;
@@ -60,7 +62,7 @@ export default function Customers() {
     village: "",
     taluka: "",
     district: "",
-    state: "Gujarat",
+    state: "GUJARAT",
     adhar_no: "",
     status: "Active",
   });
@@ -98,7 +100,7 @@ export default function Customers() {
         village: "",
         taluka: "",
         district: "",
-        state: "Gujarat",
+        state: "GUJARAT",
         adhar_no: "",
         status: "Active",
       });
@@ -116,7 +118,7 @@ export default function Customers() {
       village: "",
       taluka: "",
       district: "",
-      state: "Gujarat",
+      state: "GUJARAT",
       adhar_no: "",
       status: "Active",
     });
@@ -488,14 +490,16 @@ export default function Customers() {
                   fullWidth
                   select
                   label="State"
-                  value={formData.state || "Gujarat"}
+                  value={formData.state || "GUJARAT"}
                   onChange={(e) =>
                     setFormData({ ...formData, state: toUpperCaseSafe(e.target.value) })
                   }
                 >
-                  <MenuItem value="Gujarat">Gujarat</MenuItem>
-                  <MenuItem value="Maharashtra">Maharashtra</MenuItem>
-                  <MenuItem value="Madhya Pradesh">Madhya Pradesh</MenuItem>
+                  {STATE_OPTIONS.map((option) => (
+                    <MenuItem key={option} value={option}>
+                      {option}
+                    </MenuItem>
+                  ))}
                 </TextField>
               </Grid>
               <Grid item xs={12} sm={6}>

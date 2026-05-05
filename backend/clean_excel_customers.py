@@ -38,9 +38,18 @@ def _match_col(norm_cols: list[str], aliases: set[str]) -> str | None:
 def _safe_str(value) -> str | None:
     if pd.isna(value):
         return None
+    
+    # Standardize to string
     s = str(value).strip()
+    
+    # Remove float decimal if it's .0 (common in Excel imports)
+    if s.endswith(".0"):
+        s = s[:-2]
+    
+    # Basic cleanup
     if not s or s.lower() in ["n/a", "na", "null", "none", "nil", "-", "."]:
         return None
+        
     return s
 
 def to_upper_safe(value):
@@ -75,7 +84,7 @@ def extract_sabhasad(filepath: str, sheet_name: int | str = 0) -> list[dict]:
     """
     try:
         # Step 1: Read the first row to detect headers
-        df = pd.read_excel(filepath, sheet_name=sheet_name)
+        df = pd.read_excel(filepath, sheet_name=sheet_name, dtype=str)
     except Exception as exc:
         raise RuntimeError(f"Failed to open Excel file: {exc}") from exc
 
@@ -133,7 +142,7 @@ def extract_sabhasad(filepath: str, sheet_name: int | str = 0) -> list[dict]:
         aadhar = re.sub(r"\D", "", str(row[col_aadhar])) if col_aadhar and pd.notna(row[col_aadhar]) else None
         
         record = {
-            "customer_code": to_upper_safe(_safe_str(row[col_code])) if col_code else None,
+            "customer_code": _safe_str(row[col_code]) if col_code else None,
             "name": to_upper_safe(name),
             "mobile": mobile,
             "adhar_no": aadhar,

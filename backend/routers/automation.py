@@ -1159,10 +1159,7 @@ def trigger_scoring_cron(
 
     logger.info("[CRON] 🔄 /trigger-scoring authenticated — starting nightly scoring...")
     try:
-        # Import the same logic used by the internal scheduler
-        import sys
-        import os
-        # Ensure we can import scoring_engine
+        # Ensure we can import run_nightly_scoring
         from scheduler import run_nightly_scoring
         
         # The internal run_nightly_scoring doesn't return anything or take db, 

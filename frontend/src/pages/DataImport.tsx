@@ -31,6 +31,7 @@ import {
 } from "@mui/icons-material";
 import { fileAPI } from "../services/api";
 import { useTranslation } from "../hooks/useTranslation";
+import * as XLSX from "xlsx";
 
 type ImportType = "customer" | "payment" | "demos" | "sales" | "sabhasad";
 
@@ -57,6 +58,101 @@ export default function DataImport() {
   const [success, setSuccess] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
+
+  const handleDownloadDistributorTemplate = () => {
+    const headers = [
+      "MANTRI_NAME",
+      "MANTRI_MOBILE",
+      "VILLAGE",
+      "TALUKA",
+      "DISTRICT",
+      "STATE",
+      "DAIRY_TYPE",
+      "RECORD_DATE",
+      "DAIRY_TIME_MORNING",
+      "DAIRY_TIME_EVENING",
+      "SABHASAD_COUNT",
+      "CONTACT_IN_GROUP",
+      "SABHASAD_MORNING",
+      "SABHASAD_EVENING",
+      "MILK_COLLECTION_MORNING",
+      "MILK_COLLECTION_EVENING",
+      "NATURE_OF_SABHASAD",
+      "SUPPORT",
+      "ANIMAL_DELIVERY_PERIOD",
+      "PAYMENT_RECOVERY_DEMO",
+      "PAYMENT_RECOVERY_DISPATCH",
+      "DECISION_MAKER_AVAILABILITY_MORNING",
+      "DECISION_MAKER_AVAILABILITY_EVENING",
+      "HIGH_HOLDER_TO_LOW_HOLDER_VILLAGES",
+      "CURRENT_STATUS_OF_BUSINESS",
+      "STATUS",
+    ];
+
+    const sampleRow = {
+      MANTRI_NAME: "RAJESHBHAI PATEL",
+      MANTRI_MOBILE: "9876543210",
+      VILLAGE: "RAMPUR",
+      TALUKA: "ANAND",
+      DISTRICT: "ANAND",
+      STATE: "GUJARAT",
+      DAIRY_TYPE: "AMUL",
+      RECORD_DATE: "2024-05-01",
+      DAIRY_TIME_MORNING: "07:00",
+      DAIRY_TIME_EVENING: "18:00",
+      SABHASAD_COUNT: 150,
+      CONTACT_IN_GROUP: 120,
+      SABHASAD_MORNING: 80,
+      SABHASAD_EVENING: 70,
+      MILK_COLLECTION_MORNING: 500,
+      MILK_COLLECTION_EVENING: 450,
+      NATURE_OF_SABHASAD: "AWARE",
+      SUPPORT: "HIGH",
+      ANIMAL_DELIVERY_PERIOD: "15 DAYS",
+      PAYMENT_RECOVERY_DEMO: 7,
+      PAYMENT_RECOVERY_DISPATCH: 10,
+      DECISION_MAKER_AVAILABILITY_MORNING: "YES",
+      DECISION_MAKER_AVAILABILITY_EVENING: "YES",
+      HIGH_HOLDER_TO_LOW_HOLDER_VILLAGES: "HIGH",
+      CURRENT_STATUS_OF_BUSINESS: "ACTIVE",
+      STATUS: "ACTIVE",
+    };
+
+    const ws = XLSX.utils.json_to_sheet([sampleRow], { header: headers });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Distributors");
+    XLSX.writeFile(wb, "distributor_import_template.xlsx");
+  };
+
+  const handleDownloadSabhasadTemplate = () => {
+    const headers = [
+      "CODE",
+      "SABHASAD NAME",
+      "NUMBER",
+      "VILLAGE",
+      "TALUKA",
+      "DISTRICT",
+      "STATE",
+      "AADHAR"
+    ];
+
+    const sampleRow = {
+      "CODE": "CUST001",
+      "SABHASAD NAME": "RAHUL PATEL",
+      "NUMBER": "9876543210",
+      "VILLAGE": "ANAND",
+      "TALUKA": "ANAND",
+      "DISTRICT": "ANAND",
+      "STATE": "GUJARAT",
+      "AADHAR": "123456789012"
+    };
+
+    const ws = XLSX.utils.json_to_sheet([sampleRow], { header: headers });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sabhasads");
+    XLSX.writeFile(wb, "sabhasad_import_template.xlsx");
+  };
+
 
   const importDialogs: ImportDialog[] = [
     {
@@ -508,6 +604,19 @@ export default function DataImport() {
                     </Grid>
                   ))}
               </Grid>
+            )}
+
+            {(openDialog === "customer" || openDialog === "sabhasad") && (
+              <Box sx={{ mb: 3, display: "flex", justifyContent: "flex-end" }}>
+                <Button
+                  variant="outlined"
+                  onClick={openDialog === "customer" ? handleDownloadDistributorTemplate : handleDownloadSabhasadTemplate}
+                  startIcon={<AttachFileIcon sx={{ transform: "rotate(45deg)" }} />}
+                  sx={{ borderRadius: 2, textTransform: "none" }}
+                >
+                  Download {openDialog === "customer" ? "Distributor" : "Sabhasad"} Sample Format
+                </Button>
+              </Box>
             )}
 
             {/* File Upload Section */}

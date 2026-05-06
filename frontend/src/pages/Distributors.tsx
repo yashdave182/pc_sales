@@ -48,6 +48,12 @@ export default function Distributors() {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isDarkMode = theme.palette.mode === "dark";
   const { t, tf } = useTranslation();
+  
+  // Utility to safely convert value to uppercase
+  const toUpperCaseSafe = (val: any) => {
+    return typeof val === "string" ? val.toUpperCase() : val;
+  };
+
   const [distributors, setDistributors] = useState<Distributor[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -201,12 +207,34 @@ export default function Distributors() {
 
       if (editingDistributor) {
         console.log("🚀 PAYLOAD BEING SENT:", formData);
+        
+        // Final safety layer: Ensure all string fields are uppercase
+        const payload = {
+          ...formData,
+          mantri_name: toUpperCaseSafe(formData.mantri_name),
+          village: toUpperCaseSafe(formData.village),
+          taluka: toUpperCaseSafe(formData.taluka),
+          district: toUpperCaseSafe(formData.district),
+          state: toUpperCaseSafe(formData.state),
+          dairy_type: toUpperCaseSafe(formData.dairy_type),
+        };
+
         await distributorAPI.update(
           editingDistributor.distributor_id!,
-          formData as Distributor,
+          payload as Distributor,
         );
       } else {
-        await distributorAPI.create(formData as Distributor);
+        // Final safety layer: Ensure all string fields are uppercase
+        const payload = {
+          ...formData,
+          mantri_name: toUpperCaseSafe(formData.mantri_name),
+          village: toUpperCaseSafe(formData.village),
+          taluka: toUpperCaseSafe(formData.taluka),
+          district: toUpperCaseSafe(formData.district),
+          state: toUpperCaseSafe(formData.state),
+          dairy_type: toUpperCaseSafe(formData.dairy_type),
+        };
+        await distributorAPI.create(payload as Distributor);
       }
 
       handleCloseDialog();
@@ -333,6 +361,14 @@ export default function Distributors() {
   };
 
   const baseColumns: GridColDef[] = [
+    {
+      field: "serial_id",
+      headerName: "ID",
+      width: 80,
+      headerAlign: "center",
+      align: "center",
+      headerClassName: "multi-line-header",
+    },
     {
       field: "actions",
       headerName: t("common.actions"),
@@ -1048,7 +1084,7 @@ export default function Distributors() {
                 label={t("distributors.mantriName", "Mantri Name")}
                 value={formData.mantri_name}
                 onChange={(e) =>
-                  setFormData({ ...formData, mantri_name: e.target.value })
+                  setFormData({ ...formData, mantri_name: toUpperCaseSafe(e.target.value) })
                 }
               />
             </Grid>
@@ -1085,7 +1121,7 @@ export default function Distributors() {
                 label={tf("village")}
                 value={formData.village}
                 onChange={(e) =>
-                  setFormData({ ...formData, village: e.target.value })
+                  setFormData({ ...formData, village: toUpperCaseSafe(e.target.value) })
                 }
               />
             </Grid>
@@ -1095,7 +1131,7 @@ export default function Distributors() {
                 label={tf("taluka")}
                 value={formData.taluka}
                 onChange={(e) =>
-                  setFormData({ ...formData, taluka: e.target.value })
+                  setFormData({ ...formData, taluka: toUpperCaseSafe(e.target.value) })
                 }
               />
             </Grid>
@@ -1105,7 +1141,7 @@ export default function Distributors() {
                 label={tf("district")}
                 value={formData.district}
                 onChange={(e) =>
-                  setFormData({ ...formData, district: e.target.value })
+                  setFormData({ ...formData, district: toUpperCaseSafe(e.target.value) })
                 }
               />
             </Grid>
@@ -1115,7 +1151,7 @@ export default function Distributors() {
                 label={tf("state")}
                 value={formData.state || ""}
                 onChange={(e) =>
-                  setFormData({ ...formData, state: e.target.value })
+                  setFormData({ ...formData, state: toUpperCaseSafe(e.target.value) })
                 }
               />
             </Grid>
@@ -1225,7 +1261,7 @@ export default function Distributors() {
                 label={t("distributors.dairyType", "Dairy Type")}
                 value={formData.dairy_type || ""}
                 onChange={(e) =>
-                  setFormData({ ...formData, dairy_type: e.target.value })
+                  setFormData({ ...formData, dairy_type: toUpperCaseSafe(e.target.value) })
                 }
               />
             </Grid>

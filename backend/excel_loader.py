@@ -2,6 +2,7 @@ import re
 from typing import Optional, Any
 import pandas as pd
 from clean_excel_distributors import extract_distributors, to_upper_safe
+from clean_excel_customers import extract_sabhasad
 
 # =================================================
 # CONSTANTS
@@ -56,34 +57,48 @@ def extract_packaging_liter(text):
 # =================================================
 
 def detect_excel_type(file_path: str) -> str:
+    print(f"DEBUG: Starting detection for: {file_path}")
     xls = pd.ExcelFile(file_path)
 
-    # SALES → always has 2 sheets
+    # 1. SALES → always has 2+ sheets
     if len(xls.sheet_names) >= 2:
+        print("Detected Type: SALES (Multiple sheets)")
         return "SALES"
 
-    df = pd.read_excel(xls, sheet_name=0, header=None)
+    # Read first 20 rows to scan for keywords
+    df = pd.read_excel(xls, sheet_name=0, header=None, nrows=20)
     df.dropna(how="all", inplace=True)
-
-    customer_hits = 0
-    distributor_hits = 0
-
-    for _, row in df.head(50).iterrows():
-        text = " ".join(str(c).lower() for c in row if pd.notna(c))
-
-        if re.search(r"\b\d{10}\b", text):
-            customer_hits += 1
-
-        if any(k in text for k in ["mantri", "sabhasad", "district", "taluka"]):
-            distributor_hits += 1
-
-    if distributor_hits >= 3:
+    
+    # Flatten everything to a single lowercase string for scanning
+    all_text = " ".join(df.astype(str).values.flatten()).lower()
+    
+    # 2. DISTRIBUTORS (HIGH PRIORITY)
+    # Check for distributor-specific keywords
+    dist_keywords = ["dairy", "sabhasad_count", "milk_collection", "mantri", "dairy_time", "collection"]
+    if any(k in all_text for k in dist_keywords):
+        print(f"Detected Type: DISTRIBUTORS (Found keyword in: {dist_keywords})")
         return "DISTRIBUTORS"
 
-    if customer_hits >= 3:
+    # 3. SABHASAD (SECOND PRIORITY)
+    # Pattern: Name field AND Mobile field
+    name_hits = ["sabhasad name", "member name", "sabahsad name", "name"]
+    mobile_hits = ["mobile", "number", "contact", "phone", "mobile no"]
+    
+    has_name = any(k in all_text for k in name_hits)
+    has_mobile = any(k in all_text for k in mobile_hits)
+    
+    if has_name and has_mobile:
+        print(f"Detected Type: SABHASAD (Found Name + Mobile pattern)")
+        return "SABHASAD"
+
+    # 4. CUSTOMERS (LEGACY FALLBACK)
+    if re.search(r"\b\d{10}\b", all_text):
+        print("Detected Type: CUSTOMERS (Found 10-digit phone pattern)")
         return "CUSTOMERS"
 
+    print(f"WARNING: Could not detect type. Sample text: {all_text[:300]}")
     return "UNKNOWN"
+
 
 # =================================================
 # PRODUCT RESOLUTION
@@ -111,10 +126,11 @@ def resolve_product(conn: Any, packaging_name: str) -> Optional[int]:
     return None
 
 # =================================================
-# CUSTOMERS IMPORT (FREE-FORM)
+# CUSTOMERS IMPORT (FREE-FORM) - DEPRECATED in favor of import_sabhasad_excel
 # =================================================
 
 def import_customers_excel(path: str, conn: Any) -> int:
+    """Legacy free-form customer import."""
     df = pd.read_excel(path, header=None)
     df.dropna(how="all", inplace=True)
 
@@ -157,6 +173,60 @@ def import_customers_excel(path: str, conn: Any) -> int:
         inserted = len(res.data) if hasattr(res, 'data') else len(records)
 
     return inserted
+
+# =================================================
+# SABHASAD IMPORT (CLEAN & ROBUST)
+# =================================================
+
+def import_sabhasad_excel(path: str, conn: Any) -> dict:
+    """
+    Import Sabhasad (Customers) data with robust cleaning and auto-code generation.
+    """
+    data = extract_sabhasad(path)
+    print(f"DEBUG: Rows received from cleaner: {len(data)}")
+    
+    if not data:
+        return {"success": True, "inserted": 0, "skipped": 0, "errors": []}
+
+    # Get current max customer code to generate new ones
+    try:
+        res = conn.table("customers").select("customer_code").order("customer_code", desc=True).limit(1).execute()
+        last_code = res.data[0]["customer_code"] if res.data else "CUST000"
+        # Extract numeric part
+        m = re.search(r"CUST(\d+)", str(last_code))
+        last_num = int(m.group(1)) if m else 0
+    except Exception:
+        last_num = 0
+
+    inserted = 0
+    errors = []
+    
+    records_to_insert = []
+    for row in data:
+        if not row.get("customer_code"):
+            last_num += 1
+            row["customer_code"] = f"CUST{last_num:03d}"
+        records_to_insert.append(row)
+
+    if records_to_insert:
+        try:
+            # Use upsert to handle potential duplicate codes gracefully
+            print(f"DEBUG: Attempting to insert/upsert {len(records_to_insert)} records into customers table")
+            res = conn.table("customers").upsert(records_to_insert).execute()
+            inserted = len(res.data) if res.data else 0
+            print(f"DEBUG: Successfully inserted/updated {inserted} records")
+        except Exception as e:
+            errors.append(str(e))
+            print(f"❌ DATABASE ERROR in Sabhasad import: {e}")
+
+    return {
+        "success": len(errors) == 0,
+        "inserted": inserted,
+        "skipped": len(data) - inserted,
+        "errors": errors
+    }
+
+
 
 # =================================================
 # SALES IMPORT (SHEET 0)

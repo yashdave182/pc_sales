@@ -13,6 +13,7 @@ from excel_loader import (
     import_demo_excel,
     import_distributors_excel,
     import_sales_excel,
+    import_sabhasad_excel,
 )
 
 print("[DEBUG] imports.py loaded")
@@ -68,7 +69,9 @@ def import_excel(
     try:
         try:
             excel_type = detect_excel_type(file_path)
+            print(f"[DEBUG] Detected Excel Type: {excel_type}")
         except Exception as detection_err:
+            print(f"[ERROR] Detection failed: {detection_err}")
             excel_type = "UNKNOWN"
 
         if excel_type == "DISTRIBUTORS":
@@ -79,15 +82,15 @@ def import_excel(
                 "message": f"Successfully imported {inserted} distributors",
             }
 
-        elif excel_type == "CUSTOMERS":
-            print("🔥 CUSTOMER IMPORT TRIGGERED")
-            print("🔥 USING DISTRIBUTOR LOGIC")
-            print("⚠️ Customer import redirected to distributor logic")
-            inserted = import_distributors_excel(file_path, conn)
+        elif excel_type == "SABHASAD" or excel_type == "CUSTOMERS":
+            print(f"🔥 {excel_type} IMPORT TRIGGERED")
+            result = import_sabhasad_excel(file_path, conn)
             return {
-                "type": "Distributors",
-                "distributors_inserted": inserted,
-                "message": f"Successfully imported {inserted} distributors",
+                "type": "Sabhasad",
+                "inserted": result["inserted"],
+                "skipped": result["skipped"],
+                "message": f"Successfully imported {result['inserted']} Sabhasad records.",
+                "errors": result["errors"]
             }
 
         elif excel_type == "SALES":
@@ -103,19 +106,14 @@ def import_excel(
                 ),
             }
 
-        # DISTRIBUTORS or UNKNOWN — always use distributor importer
-        if excel_type != "DISTRIBUTORS":
-            print("Fallback triggered")
+        # Fallback for DISTRIBUTORS or UNKNOWN
         inserted = import_distributors_excel(file_path, conn)
         return {
-            "type": "Distributors" if excel_type == "DISTRIBUTORS" else "Distributors (Fallback)",
+            "type": "Distributors (Fallback)",
             "distributors_inserted": inserted,
-            "message": (
-                f"Successfully imported {inserted} distributors"
-                if excel_type == "DISTRIBUTORS"
-                else "Successfully imported distributors"
-            ),
+            "message": f"Successfully imported distributors via fallback logic.",
         }
+
 
     except Exception as e:
         print("❌ IMPORT ERROR:", str(e))
